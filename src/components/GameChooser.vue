@@ -11,6 +11,10 @@
         <h2>Schulte Tables</h2>
         <p>Find the numbers in order, as fast as you can. Visual search &amp; attention.</p>
       </button>
+      <button class="game-card" @click="$emit('choose', 'nback')">
+        <h2>Number N-Back</h2>
+        <p>Does this number match the one N steps back? Working memory &amp; attention.</p>
+      </button>
     </div>
   </div>
 </template>

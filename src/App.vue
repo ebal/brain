@@ -62,6 +62,35 @@
         @history="handleSchulteHistory"
       />
     </template>
+
+    <template v-else-if="activeGame === 'nback'">
+      <NBackMainMenu
+        v-if="nbackScreen === 'menu'"
+        @start="handleNBackStart"
+        @about="nbackScreen = 'about'"
+        @history="handleNBackHistory"
+        @exit="activeGame = null"
+      />
+      <NBackAboutPage v-else-if="nbackScreen === 'about'" @menu="nbackScreen = 'menu'" />
+      <NBackHistoryPage
+        v-else-if="nbackScreen === 'history'"
+        :initial-difficulty="nbackDifficulty || '2'"
+        @menu="nbackScreen = 'menu'"
+      />
+      <NBackGameScreen
+        v-else-if="nbackScreen === 'game'"
+        :difficulty-key="nbackDifficulty"
+        @finished="handleNBackFinished"
+      />
+      <NBackResultsScreen
+        v-else-if="nbackScreen === 'results'"
+        :results="nbackResults"
+        :difficulty-key="nbackDifficulty"
+        @replay="handleNBackStart(nbackDifficulty)"
+        @menu="nbackScreen = 'menu'"
+        @history="handleNBackHistory"
+      />
+    </template>
   </div>
 </template>
 
@@ -81,7 +110,13 @@ import SchulteHistoryPage from './components/schulte/HistoryPage.vue'
 import SchulteGameScreen from './components/schulte/GameScreen.vue'
 import SchulteResultsScreen from './components/schulte/ResultsScreen.vue'
 
-const activeGame = ref(null) // null | 'stroop' | 'schulte'
+import NBackMainMenu from './components/nback/MainMenu.vue'
+import NBackAboutPage from './components/nback/AboutPage.vue'
+import NBackHistoryPage from './components/nback/HistoryPage.vue'
+import NBackGameScreen from './components/nback/GameScreen.vue'
+import NBackResultsScreen from './components/nback/ResultsScreen.vue'
+
+const activeGame = ref(null) // null | 'stroop' | 'schulte' | 'nback'
 
 // --- Stroop Effect Test ---
 const stroopScreen = ref('menu')
@@ -129,5 +164,25 @@ function handleSchulteHistory(payload) {
 function handleSchulteFinished(results) {
   schulteResults.value = results
   schulteScreen.value = 'results'
+}
+
+// --- Number N-Back ---
+const nbackScreen = ref('menu')
+const nbackDifficulty = ref(null)
+const nbackResults = ref(null)
+
+function handleNBackStart(difficultyKey) {
+  nbackDifficulty.value = difficultyKey
+  nbackScreen.value = 'game'
+}
+
+function handleNBackHistory(payload) {
+  if (payload?.difficultyKey) nbackDifficulty.value = payload.difficultyKey
+  nbackScreen.value = 'history'
+}
+
+function handleNBackFinished(results) {
+  nbackResults.value = results
+  nbackScreen.value = 'results'
 }
 </script>

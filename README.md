@@ -1,6 +1,6 @@
 # Cognitive Test Suite
 
-A browser-based pair of quick cognitive tests, built with Vue 3 and Vite: a landing screen lets
+A browser-based set of quick cognitive tests, built with Vue 3 and Vite: a landing screen lets
 you pick between them, and each keeps its own scoring, history, and personal bests.
 
 ## Stroop Effect Test
@@ -44,6 +44,29 @@ once per round and never moves — the task measures scanning and attention, not
 - **About / How to Play** page with a static example and an untimed practice board.
 
 See [`Schulte-SPEC.md`](./Schulte-SPEC.md) for the full design rationale.
+
+## Number N-Back
+
+A continuous working-memory task: numbers appear one at a time, and for each one (after N unscored
+setup stimuli) you decide whether it matches the number shown **N positions earlier** — not just
+whether it's appeared before.
+
+- **Four N levels**: 1-back (Easy) through 4-back (Very Hard), with 2-back as the Classic,
+  reference difficulty. Difficulty comes purely from how far back you have to remember, not from
+  a larger number pool (always 1–9).
+- **Self-paced** — the stimulus waits for your response; no live reaction-time pressure (RT is
+  measured but hidden during play and doesn't affect score).
+- **Deliberately generated sequences**: ~30% of scored trials are real n-back matches, targets are
+  placed and validated before play so the ratio is stable and accidental matches can't sneak in.
+- **End-of-round summary split into Performance** (score, accuracy) **and N-Back Metrics** (hits,
+  misses, false alarms, correct rejections, average/median correct RT), kept visually separate on
+  purpose.
+- **Personal bests**: highest score, tied-broken by accuracy then lower median RT, tracked
+  separately per N level.
+- **Score history**: the last 20 rounds per N level, with score *and* accuracy trend sparklines.
+- **About / How to Play** page with a 2-back walkthrough and untimed 1/2/3-back practice.
+
+See [`NBack-SPEC.md`](./NBack-SPEC.md) for the full design rationale.
 
 ## Installation
 
@@ -111,22 +134,23 @@ Compose picks up `.env` automatically from then on — no need to pass anything 
 
 ## Project structure
 
-Both games live in one Vue app, picked from a landing screen (`GameChooser.vue`) in `App.vue`.
-Stroop's files stay flat under `components/`/`composables/`/`constants/`; Schulte's live in a
-`schulte/` subfolder of each, so filenames that exist in both games (`MainMenu.vue`,
+All three games live in one Vue app, picked from a landing screen (`GameChooser.vue`) in `App.vue`.
+Stroop's files stay flat under `components/`/`composables/`/`constants/`; Schulte's and N-Back's
+each live in their own subfolder, so filenames that repeat across games (`MainMenu.vue`,
 `GameScreen.vue`, `useScoreHistory.js`, ...) never collide.
 
 ```
 stroop/
 ├── SPEC.md
 ├── Schulte-SPEC.md
+├── NBack-SPEC.md
 ├── docker-compose.yml
 ├── package.json
 ├── vite.config.js
 ├── index.html
 └── src/
     ├── main.js
-    ├── App.vue                      # top-level: game chooser + both games' screen state
+    ├── App.vue                      # top-level: game chooser + all three games' screen state
     ├── components/
     │   ├── GameChooser.vue          # landing screen — pick a game
     │   ├── MainMenu.vue             # Stroop
@@ -135,25 +159,39 @@ stroop/
     │   ├── GameScreen.vue
     │   ├── ResultsScreen.vue
     │   ├── ColorButton.vue
-    │   └── schulte/                 # Schulte Tables
+    │   ├── schulte/                 # Schulte Tables
+    │   │   ├── MainMenu.vue
+    │   │   ├── AboutPage.vue
+    │   │   ├── HistoryPage.vue
+    │   │   ├── GameScreen.vue
+    │   │   ├── ResultsScreen.vue
+    │   │   └── SchulteCell.vue
+    │   └── nback/                   # Number N-Back
     │       ├── MainMenu.vue
     │       ├── AboutPage.vue
     │       ├── HistoryPage.vue
     │       ├── GameScreen.vue
     │       ├── ResultsScreen.vue
-    │       └── SchulteCell.vue
+    │       └── ResponseButtons.vue
     ├── composables/
     │   ├── useStroopGame.js         # Stroop: trial generation, timer, scoring
     │   ├── useBestScores.js
     │   ├── useScoreHistory.js
-    │   └── schulte/
-    │       ├── useSchulteGame.js    # board generation, timing, selection validation
-    │       ├── useBestTimes.js
+    │   ├── schulte/
+    │   │   ├── useSchulteGame.js    # board generation, timing, selection validation
+    │   │   ├── useBestTimes.js
+    │   │   └── useScoreHistory.js
+    │   └── nback/
+    │       ├── sequence.js          # pure, seedable sequence generation + validation
+    │       ├── useNBackGame.js      # stimulus progression, timing, classification, scoring
+    │       ├── useBestScores.js
     │       └── useScoreHistory.js
     └── constants/
         ├── colors.js                # Stroop: color palette, difficulty tiers, game modes
-        └── schulte/
-            └── difficulties.js      # Schulte: grid sizes per difficulty
+        ├── schulte/
+        │   └── difficulties.js      # Schulte: grid sizes per difficulty
+        └── nback/
+            └── difficulties.js      # N-Back: N per difficulty, scored-trial counts
 ```
 
 ## License
