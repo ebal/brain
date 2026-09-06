@@ -1,0 +1,72 @@
+<template>
+  <div class="chooser">
+    <h1>Choose a Game</h1>
+
+    <div class="game-grid">
+      <button class="game-card" @click="$emit('choose', 'stroop')">
+        <h2>Stroop Effect Test</h2>
+        <p>Name the ink color, ignore the word. Classic cognitive-interference task.</p>
+      </button>
+      <button class="game-card" @click="$emit('choose', 'schulte')">
+        <h2>Schulte Tables</h2>
+        <p>Find the numbers in order, as fast as you can. Visual search &amp; attention.</p>
+      </button>
+    </div>
+  </div>
+</template>
+
+<script setup>
+defineEmits(['choose'])
+</script>
+
+<style scoped>
+.chooser {
+  max-width: 640px;
+  width: 100%;
+  text-align: center;
+}
+
+h1 {
+  margin-bottom: 1.5rem;
+}
+
+.game-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.game-card {
+  background: var(--surface);
+  border: 1px solid var(--surface-2);
+  border-radius: 12px;
+  padding: 1.5rem 1.25rem;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text);
+  transition: border-color 0.15s ease, transform 0.08s ease;
+}
+
+.game-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.game-card h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.2rem;
+}
+
+.game-card p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 480px) {
+  .game-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

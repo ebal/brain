@@ -1,63 +1,133 @@
 <template>
   <div class="app-shell">
-    <MainMenu v-if="screen === 'menu'" @start="handleStart" @about="handleAbout" @history="handleHistory" />
-    <AboutPage v-else-if="screen === 'about'" :initial-mode="selectedMode" @menu="screen = 'menu'" />
-    <HistoryPage
-      v-else-if="screen === 'history'"
-      :initial-mode="selectedMode"
-      :initial-difficulty="selectedDifficulty || 'easy'"
-      @menu="screen = 'menu'"
-    />
-    <GameScreen
-      v-else-if="screen === 'game'"
-      :difficulty-key="selectedDifficulty"
-      :mode="selectedMode"
-      @finished="handleFinished"
-    />
-    <ResultsScreen
-      v-else-if="screen === 'results'"
-      :results="lastResults"
-      :difficulty-key="selectedDifficulty"
-      :mode="selectedMode"
-      @replay="handleStart({ difficultyKey: selectedDifficulty, mode: selectedMode })"
-      @menu="screen = 'menu'"
-      @history="handleHistory"
-    />
+    <GameChooser v-if="!activeGame" @choose="activeGame = $event" />
+
+    <template v-else-if="activeGame === 'stroop'">
+      <MainMenu
+        v-if="stroopScreen === 'menu'"
+        @start="handleStroopStart"
+        @about="handleStroopAbout"
+        @history="handleStroopHistory"
+        @exit="activeGame = null"
+      />
+      <AboutPage v-else-if="stroopScreen === 'about'" :initial-mode="stroopMode" @menu="stroopScreen = 'menu'" />
+      <HistoryPage
+        v-else-if="stroopScreen === 'history'"
+        :initial-mode="stroopMode"
+        :initial-difficulty="stroopDifficulty || 'easy'"
+        @menu="stroopScreen = 'menu'"
+      />
+      <GameScreen
+        v-else-if="stroopScreen === 'game'"
+        :difficulty-key="stroopDifficulty"
+        :mode="stroopMode"
+        @finished="handleStroopFinished"
+      />
+      <ResultsScreen
+        v-else-if="stroopScreen === 'results'"
+        :results="stroopResults"
+        :difficulty-key="stroopDifficulty"
+        :mode="stroopMode"
+        @replay="handleStroopStart({ difficultyKey: stroopDifficulty, mode: stroopMode })"
+        @menu="stroopScreen = 'menu'"
+        @history="handleStroopHistory"
+      />
+    </template>
+
+    <template v-else-if="activeGame === 'schulte'">
+      <SchulteMainMenu
+        v-if="schulteScreen === 'menu'"
+        @start="handleSchulteStart"
+        @about="schulteScreen = 'about'"
+        @history="handleSchulteHistory"
+        @exit="activeGame = null"
+      />
+      <SchulteAboutPage v-else-if="schulteScreen === 'about'" @menu="schulteScreen = 'menu'" />
+      <SchulteHistoryPage
+        v-else-if="schulteScreen === 'history'"
+        :initial-difficulty="schulteDifficulty || 'classic'"
+        @menu="schulteScreen = 'menu'"
+      />
+      <SchulteGameScreen
+        v-else-if="schulteScreen === 'game'"
+        :difficulty-key="schulteDifficulty"
+        @finished="handleSchulteFinished"
+      />
+      <SchulteResultsScreen
+        v-else-if="schulteScreen === 'results'"
+        :results="schulteResults"
+        :difficulty-key="schulteDifficulty"
+        @replay="handleSchulteStart(schulteDifficulty)"
+        @menu="schulteScreen = 'menu'"
+        @history="handleSchulteHistory"
+      />
+    </template>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue'
+import GameChooser from './components/GameChooser.vue'
+
 import MainMenu from './components/MainMenu.vue'
 import AboutPage from './components/AboutPage.vue'
 import HistoryPage from './components/HistoryPage.vue'
 import GameScreen from './components/GameScreen.vue'
 import ResultsScreen from './components/ResultsScreen.vue'
 
-const screen = ref('menu')
-const selectedDifficulty = ref(null)
-const selectedMode = ref('color')
-const lastResults = ref(null)
+import SchulteMainMenu from './components/schulte/MainMenu.vue'
+import SchulteAboutPage from './components/schulte/AboutPage.vue'
+import SchulteHistoryPage from './components/schulte/HistoryPage.vue'
+import SchulteGameScreen from './components/schulte/GameScreen.vue'
+import SchulteResultsScreen from './components/schulte/ResultsScreen.vue'
 
-function handleStart({ difficultyKey, mode }) {
-  selectedDifficulty.value = difficultyKey
-  selectedMode.value = mode
-  screen.value = 'game'
+const activeGame = ref(null) // null | 'stroop' | 'schulte'
+
+// --- Stroop Effect Test ---
+const stroopScreen = ref('menu')
+const stroopDifficulty = ref(null)
+const stroopMode = ref('color')
+const stroopResults = ref(null)
+
+function handleStroopStart({ difficultyKey, mode }) {
+  stroopDifficulty.value = difficultyKey
+  stroopMode.value = mode
+  stroopScreen.value = 'game'
 }
 
-function handleAbout(mode) {
-  selectedMode.value = mode
-  screen.value = 'about'
+function handleStroopAbout(mode) {
+  stroopMode.value = mode
+  stroopScreen.value = 'about'
 }
 
-function handleHistory(payload) {
-  if (payload?.mode) selectedMode.value = payload.mode
-  if (payload?.difficultyKey) selectedDifficulty.value = payload.difficultyKey
-  screen.value = 'history'
+function handleStroopHistory(payload) {
+  if (payload?.mode) stroopMode.value = payload.mode
+  if (payload?.difficultyKey) stroopDifficulty.value = payload.difficultyKey
+  stroopScreen.value = 'history'
 }
 
-function handleFinished(results) {
-  lastResults.value = results
-  screen.value = 'results'
+function handleStroopFinished(results) {
+  stroopResults.value = results
+  stroopScreen.value = 'results'
+}
+
+// --- Schulte Tables ---
+const schulteScreen = ref('menu')
+const schulteDifficulty = ref(null)
+const schulteResults = ref(null)
+
+function handleSchulteStart(difficultyKey) {
+  schulteDifficulty.value = difficultyKey
+  schulteScreen.value = 'game'
+}
+
+function handleSchulteHistory(payload) {
+  if (payload?.difficultyKey) schulteDifficulty.value = payload.difficultyKey
+  schulteScreen.value = 'history'
+}
+
+function handleSchulteFinished(results) {
+  schulteResults.value = results
+  schulteScreen.value = 'results'
 }
 </script>

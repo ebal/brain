@@ -1,64 +1,50 @@
 <template>
   <div class="menu">
     <button class="exit-link" @click="$emit('exit')">← All Games</button>
-    <h1>Stroop Effect Test</h1>
-    <p class="subtitle">{{ modes[mode].short }}</p>
-
-    <div class="mode-toggle">
-      <button
-        v-for="m in modes"
-        :key="m.key"
-        class="mode-btn"
-        :class="{ active: mode === m.key }"
-        @click="mode = m.key"
-      >
-        {{ m.label }}
-      </button>
-    </div>
+    <h1>Schulte Tables</h1>
+    <p class="subtitle">Find the numbers in order, as fast as you can.</p>
 
     <div class="difficulty-grid">
       <button
         v-for="d in difficulties"
         :key="d.key"
         class="difficulty-card"
-        @click="$emit('start', { difficultyKey: d.key, mode })"
+        @click="$emit('start', d.key)"
       >
-        <h2>{{ d.label }}</h2>
-        <p class="meta">
-          {{ d.colorCount }} colors · {{ d.duration }}s · {{ Math.round((1 - d.congruentRatio) * 100) }}% tricky
-        </p>
-        <div v-if="bestScores[d.key]" class="best">
-          Best: {{ bestScores[d.key].score }} pts
-          ({{ bestScores[d.key].accuracy.toFixed(0) }}% acc)
+        <div class="card-head">
+          <h2>{{ d.label }}</h2>
+          <span v-if="d.isClassic" class="classic-badge">Classic</span>
         </div>
-        <div v-else class="best best--empty">No score yet</div>
+        <p class="meta">{{ d.gridSize }}×{{ d.gridSize }} grid · 1–{{ d.gridSize * d.gridSize }}</p>
+        <div v-if="bestTimes[d.key]" class="best">
+          Best: {{ (bestTimes[d.key].completionTime / 1000).toFixed(2) }}s
+        </div>
+        <div v-else class="best best--empty">No best yet</div>
       </button>
     </div>
 
     <div class="footer-links">
-      <button class="about-link" @click="$emit('about', mode)">New here? How to Play →</button>
-      <button class="about-link" @click="$emit('history', { mode })">Score History →</button>
+      <button class="about-link" @click="$emit('about')">New here? How to Play →</button>
+      <button class="about-link" @click="$emit('history')">Score History →</button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, watchEffect } from 'vue'
-import { DIFFICULTIES, MODES } from '../constants/colors.js'
-import { useBestScores } from '../composables/useBestScores.js'
+import { reactive, watchEffect } from 'vue'
+import { SCHULTE_DIFFICULTIES } from '../../constants/schulte/difficulties.js'
+import { useBestTimes } from '../../composables/schulte/useBestTimes.js'
 
 defineEmits(['start', 'about', 'history', 'exit'])
 
-const difficulties = Object.values(DIFFICULTIES)
-const modes = MODES
-const mode = ref('color')
+const difficulties = Object.values(SCHULTE_DIFFICULTIES)
 
-const { getBest } = useBestScores()
+const { getBest } = useBestTimes()
 
-const bestScores = reactive({})
+const bestTimes = reactive({})
 watchEffect(() => {
   for (const d of difficulties) {
-    bestScores[d.key] = getBest(mode.value, d.key)
+    bestTimes[d.key] = getBest(d.key)
   }
 })
 </script>
@@ -94,33 +80,6 @@ h1 {
 .subtitle {
   color: var(--text-dim);
   margin-bottom: 1.5rem;
-  min-height: 1.4em;
-}
-
-.mode-toggle {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
-  background: var(--surface);
-  padding: 0.35rem;
-  border-radius: 12px;
-  margin-bottom: 1.5rem;
-}
-
-.mode-btn {
-  background: none;
-  border: none;
-  color: var(--text-dim);
-  padding: 0.85rem 0.5rem;
-  border-radius: 9px;
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.mode-btn.active {
-  background: var(--accent);
-  color: #10121a;
 }
 
 .difficulty-grid {
@@ -145,9 +104,25 @@ h1 {
   transform: translateY(-2px);
 }
 
-.difficulty-card h2 {
-  margin: 0 0 0.25rem;
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.card-head h2 {
+  margin: 0;
   font-size: 1.25rem;
+}
+
+.classic-badge {
+  background: var(--accent);
+  color: #10121a;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
 }
 
 .meta {
