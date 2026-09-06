@@ -91,6 +91,33 @@
         @history="handleNBackHistory"
       />
     </template>
+
+    <template v-else-if="activeGame === 'sudoku'">
+      <SudokuMainMenu
+        v-if="sudokuScreen === 'menu'"
+        @start="handleSudokuStart"
+        @continue="handleSudokuContinue"
+        @about="sudokuScreen = 'about'"
+        @history="sudokuScreen = 'history'"
+        @exit="activeGame = null"
+      />
+      <SudokuAboutPage v-else-if="sudokuScreen === 'about'" @menu="sudokuScreen = 'menu'" />
+      <SudokuHistoryPage v-else-if="sudokuScreen === 'history'" @menu="sudokuScreen = 'menu'" />
+      <SudokuGameScreen
+        v-else-if="sudokuScreen === 'game'"
+        :difficulty-key="sudokuDifficulty"
+        :continue-game="sudokuContinue"
+        @finished="handleSudokuFinished"
+      />
+      <SudokuResultsScreen
+        v-else-if="sudokuScreen === 'results'"
+        :results="sudokuResults"
+        :difficulty-key="sudokuDifficulty"
+        @replay="handleSudokuStart(sudokuDifficulty)"
+        @menu="sudokuScreen = 'menu'"
+        @history="sudokuScreen = 'history'"
+      />
+    </template>
   </div>
 </template>
 
@@ -116,7 +143,13 @@ import NBackHistoryPage from './components/nback/HistoryPage.vue'
 import NBackGameScreen from './components/nback/GameScreen.vue'
 import NBackResultsScreen from './components/nback/ResultsScreen.vue'
 
-const activeGame = ref(null) // null | 'stroop' | 'schulte' | 'nback'
+import SudokuMainMenu from './components/sudoku/MainMenu.vue'
+import SudokuAboutPage from './components/sudoku/AboutPage.vue'
+import SudokuHistoryPage from './components/sudoku/HistoryPage.vue'
+import SudokuGameScreen from './components/sudoku/GameScreen.vue'
+import SudokuResultsScreen from './components/sudoku/ResultsScreen.vue'
+
+const activeGame = ref(null) // null | 'stroop' | 'schulte' | 'nback' | 'sudoku'
 
 // --- Stroop Effect Test ---
 const stroopScreen = ref('menu')
@@ -184,5 +217,28 @@ function handleNBackHistory(payload) {
 function handleNBackFinished(results) {
   nbackResults.value = results
   nbackScreen.value = 'results'
+}
+
+// --- Sudoku ---
+const sudokuScreen = ref('menu')
+const sudokuDifficulty = ref(null)
+const sudokuContinue = ref(false)
+const sudokuResults = ref(null)
+
+function handleSudokuStart(difficultyKey) {
+  sudokuDifficulty.value = difficultyKey
+  sudokuContinue.value = false
+  sudokuScreen.value = 'game'
+}
+
+function handleSudokuContinue() {
+  sudokuContinue.value = true
+  sudokuScreen.value = 'game'
+}
+
+function handleSudokuFinished(results) {
+  sudokuResults.value = results
+  sudokuDifficulty.value = results.difficulty
+  sudokuScreen.value = 'results'
 }
 </script>

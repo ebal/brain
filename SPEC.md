@@ -155,3 +155,21 @@ This keeps game logic (composables) separate from presentation (components), whi
 - Added a **Colors** section to the About page listing every in-game color as an actual swatch, between the difficulty table and the live practice demo.
 - Four swatches retuned to more evocative shades: Blue → royal blue (`#3a86ff` → `#4169e1`), Green → avocado (`#6b8e23`, previously `#2a9d52`), Cyan → a brighter cyan (`#0091ab` → `#00a8cc`), Yellow → a brighter, lighter gold (`#e0b400` → `#e6c200`). All four still keep enough contrast against the light stimulus background (`#eef0f4`) to stay readable as ink color — Yellow is the tightest margin, as it always has been (see the two earlier Yellow tuning passes above); go lighter still only with a legibility check against that background.
 - **Simplified Docker to a single `dev` service** (superseding the `stroop`/`builder` split above): runs Vite's own dev server against the bind-mounted source with hot-reload, so there's no build step at all for local iteration — `docker compose up` and edit files. Motivation: in practice this project is only ever run locally/personally, where the nginx+builder split's production-grade artifact wasn't buying anything, just an extra manual build step before every change showed up. Container now runs as `${DOCKER_UID:-1000}:${DOCKER_GID:-1000}` (configurable via a local `.env`) instead of a hardcoded UID, so the compose file isn't tied to one machine.
+- Added installable-PWA / offline support (`vite-plugin-pwa`) — see §10.
+
+---
+
+## 10. Offline / PWA support
+
+The application is installable as an iPhone (and Android/desktop) Home Screen PWA and remains fully playable without network connectivity once it's been installed/cached once.
+
+Requirements:
+
+- Web App Manifest (`vite.config.js` → `VitePWA({ manifest: ... })`), standalone display mode, app name/icons/theme color.
+- Service Worker precaching the entire built app shell (HTML, JS, CSS, manifest, icons) via Workbox — generated automatically from the production build, not hand-written.
+- No runtime network dependency exists for gameplay in the first place — audited: zero `fetch`/`axios`/`WebSocket`/CDN/remote-font references anywhere in `src/`, so there was nothing to special-case for offline; the precached shell *is* the whole app.
+- Existing `localStorage` persistence (best scores, history, stats — all three games) is untouched and works identically offline, since it was never network-backed to begin with.
+- Registration is explicit (`src/main.js`, via `virtual:pwa-register`) rather than auto-injected, so success/failure is visible in the console.
+- **Only present in the production build** (`npm run build` + serving `dist/`, e.g. via `npm run preview`) — the `dev` service (`npm run dev`) intentionally serves the app without a Service Worker, exactly as before; nothing about local development changed.
+- **Secure context requirement**: Service Worker registration and installability require HTTPS (or `localhost`), a browser-enforced rule with no app-level workaround. The `dev`/build setup itself stays HTTP-only; reaching it as a real secure-context HTTPS origin (for installing on a physical phone) is handled by whatever's in front of it (e.g. a reverse proxy doing TLS termination), not by this project.
+- Verified end-to-end in a real (non-devtools-emulated) offline browser session: Service Worker registers and activates, Cache Storage holds exactly the app-shell files (no external URLs), a played round's `localStorage` entry survives two consecutive reloads performed while genuinely offline, and the app remains fully interactive (menus, starting a new round) throughout — not just a frozen static shell.

@@ -15,6 +15,10 @@
         <h2>Number N-Back</h2>
         <p>Does this number match the one N steps back? Working memory &amp; attention.</p>
       </button>
+      <button class="game-card" @click="$emit('choose', 'sudoku')">
+        <h2>Sudoku</h2>
+        <p>Classic 9×9 logic puzzle. Notes, hints, undo, and a real difficulty rating.</p>
+      </button>
     </div>
   </div>
 </template>

@@ -1,7 +1,7 @@
 # Cognitive Test Suite
 
-A browser-based set of quick cognitive tests, built with Vue 3 and Vite: a landing screen lets
-you pick between them, and each keeps its own scoring, history, and personal bests.
+A browser-based set of quick cognitive tests and puzzles, built with Vue 3 and Vite: a landing
+screen lets you pick between them, and each keeps its own scoring, history, and personal bests.
 
 ## Stroop Effect Test
 
@@ -67,6 +67,51 @@ whether it's appeared before.
 - **About / How to Play** page with a 2-back walkthrough and untimed 1/2/3-back practice.
 
 See [`NBack-SPEC.md`](./NBack-SPEC.md) for the full design rationale.
+
+## Sudoku
+
+Classic 9×9 Sudoku, rated by an actual **human-technique logical solver** rather than clue count —
+a puzzle is Easy/Medium/Hard based on the hardest technique genuinely required to solve it (naked
+and hidden singles → pairs, locked candidates → triples and quads), and generation rejects anything
+that would need guessing or expert-tier techniques (X-Wing, Swordfish, forcing chains — explicitly
+out of scope). Every puzzle is verified to have exactly one solution.
+
+- **Easy and Medium generate live**, off the main thread in a Web Worker, and are consistently
+  fast. **Hard** is served from a small pool of pre-vetted puzzles bundled with the app — live
+  generation measured real attempts taking well over a minute in the worst case (genuinely
+  "needs triples/quads but nothing harder" is a narrow slice of the puzzle space), so Hard puzzles
+  are generated once, offline, verified with the same solver, and shipped as a static asset — the
+  approach the spec itself allows for exactly this situation.
+- **Notes (pencil marks)**: candidates auto-clear from every peer cell (row/column/box) when a
+  value is correctly placed; Undo restores both the value and any notes it auto-cleared, without
+  ever rewinding the timer, mistake count, or hint count.
+- **Immediate mistake checking** — a wrong entry flashes and counts against you but is never
+  placed; there's no three-strikes fail state, you can always finish the puzzle.
+- **Hints** are unlimited but disqualify that solve from the **Clean Best** time (zero-hint solves
+  only), tie-broken by fewer mistakes.
+- **Autosave & Continue Game** — the active puzzle (including notes and full undo history)
+  survives a refresh or closed tab; starting a new puzzle over an unfinished one asks first.
+- **Timer pauses automatically** when the tab is hidden or Pause is tapped, and hides the board
+  while paused so you can't keep studying it.
+- Stats tracked per difficulty (started/completed/streaks/clean solves/avg+median time) plus a
+  combined, difficulty-filterable history of the last 30 completed puzzles.
+
+See [`Sudoku-SPEC.md`](./Sudoku-SPEC.md) for the full design rationale.
+
+## Offline / installable (PWA)
+
+The whole suite is installable as a Home Screen app (iOS/Android/desktop) and works fully offline
+once installed — no network dependency exists for gameplay in the first place (no fonts, CDNs,
+analytics, or API calls anywhere in the app), so the entire app shell (HTML/JS/CSS/icons/manifest)
+just gets precached by a Service Worker and served from cache afterward. All `localStorage` data
+(scores, history, stats, an in-progress Sudoku) works identically offline, since it was never
+network-backed.
+
+This only applies to a **production build** (`npm run build`, served via `npm run preview` or
+similar) — `npm run dev` intentionally serves no Service Worker, so local development is unaffected.
+Installing on a physical phone additionally requires the page to be served over a real HTTPS secure
+context (a browser-enforced rule, not a setting) — see §10 of [`SPEC.md`](./SPEC.md) for the details
+and the reasoning behind each choice.
 
 ## Installation
 
@@ -134,23 +179,25 @@ Compose picks up `.env` automatically from then on — no need to pass anything 
 
 ## Project structure
 
-All three games live in one Vue app, picked from a landing screen (`GameChooser.vue`) in `App.vue`.
-Stroop's files stay flat under `components/`/`composables/`/`constants/`; Schulte's and N-Back's
-each live in their own subfolder, so filenames that repeat across games (`MainMenu.vue`,
-`GameScreen.vue`, `useScoreHistory.js`, ...) never collide.
+All four games live in one Vue app, picked from a landing screen (`GameChooser.vue`) in `App.vue`.
+Stroop's files stay flat under `components/`/`composables/`/`constants/`; the other three each live
+in their own subfolder, so filenames that repeat across games (`MainMenu.vue`, `GameScreen.vue`,
+`useScoreHistory.js`, ...) never collide.
 
 ```
 stroop/
 ├── SPEC.md
 ├── Schulte-SPEC.md
 ├── NBack-SPEC.md
+├── Sudoku-SPEC.md
 ├── docker-compose.yml
 ├── package.json
 ├── vite.config.js
 ├── index.html
+├── public/                          # PWA icons (see Offline / PWA support below)
 └── src/
     ├── main.js
-    ├── App.vue                      # top-level: game chooser + all three games' screen state
+    ├── App.vue                      # top-level: game chooser + all four games' screen state
     ├── components/
     │   ├── GameChooser.vue          # landing screen — pick a game
     │   ├── MainMenu.vue             # Stroop
@@ -166,13 +213,23 @@ stroop/
     │   │   ├── GameScreen.vue
     │   │   ├── ResultsScreen.vue
     │   │   └── SchulteCell.vue
-    │   └── nback/                   # Number N-Back
+    │   ├── nback/                   # Number N-Back
+    │   │   ├── MainMenu.vue
+    │   │   ├── AboutPage.vue
+    │   │   ├── HistoryPage.vue
+    │   │   ├── GameScreen.vue
+    │   │   ├── ResultsScreen.vue
+    │   │   └── ResponseButtons.vue
+    │   └── sudoku/                  # Sudoku
     │       ├── MainMenu.vue
     │       ├── AboutPage.vue
     │       ├── HistoryPage.vue
     │       ├── GameScreen.vue
     │       ├── ResultsScreen.vue
-    │       └── ResponseButtons.vue
+    │       ├── SudokuBoard.vue
+    │       ├── SudokuCell.vue
+    │       ├── NumberPad.vue
+    │       └── GameControls.vue
     ├── composables/
     │   ├── useStroopGame.js         # Stroop: trial generation, timer, scoring
     │   ├── useBestScores.js
@@ -181,17 +238,30 @@ stroop/
     │   │   ├── useSchulteGame.js    # board generation, timing, selection validation
     │   │   ├── useBestTimes.js
     │   │   └── useScoreHistory.js
-    │   └── nback/
-    │       ├── sequence.js          # pure, seedable sequence generation + validation
-    │       ├── useNBackGame.js      # stimulus progression, timing, classification, scoring
-    │       ├── useBestScores.js
-    │       └── useScoreHistory.js
+    │   ├── nback/
+    │   │   ├── sequence.js          # pure, seedable sequence generation + validation
+    │   │   ├── useNBackGame.js      # stimulus progression, timing, classification, scoring
+    │   │   ├── useBestScores.js
+    │   │   └── useScoreHistory.js
+    │   └── sudoku/
+    │       ├── sudokuSolver.js      # grid validity, full-grid generation, uniqueness checking
+    │       ├── difficultyRater.js   # human-technique solver — the actual difficulty classifier
+    │       ├── sudokuGenerator.js   # carves + classifies a puzzle for a requested difficulty
+    │       ├── generator.worker.js  # runs generation off the main thread
+    │       ├── useSudokuGenerator.js # promise-based wrapper around the worker
+    │       ├── useSudokuGame.js     # selection, input, notes, undo, mistakes, hints, timer/pause
+    │       ├── useSudokuStorage.js  # autosave / Continue Game
+    │       └── useSudokuStats.js    # per-difficulty stats + combined history
     └── constants/
         ├── colors.js                # Stroop: color palette, difficulty tiers, game modes
         ├── schulte/
         │   └── difficulties.js      # Schulte: grid sizes per difficulty
-        └── nback/
-            └── difficulties.js      # N-Back: N per difficulty, scored-trial counts
+        ├── nback/
+        │   ├── difficulties.js      # N-Back: N per difficulty, scored-trial counts
+        │   └── colors.js            # N-Back: stimulus color palette (cycled, never repeats consecutively)
+        └── sudoku/
+            ├── difficulties.js      # Sudoku: difficulty labels
+            └── hardPool.json        # pre-vetted Hard puzzles (see above)
 ```
 
 ## License
