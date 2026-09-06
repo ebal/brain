@@ -23,6 +23,10 @@
         <h2>SET</h2>
         <p>Spot three cards that make a SET. Visual perception &amp; pattern recognition.</p>
       </button>
+      <button class="game-card" @click="$emit('choose', 'sequence-memory')">
+        <h2>Sequence Memory</h2>
+        <p>Watch the pattern, then repeat it. Visual &amp; spatial memory.</p>
+      </button>
     </div>
   </div>
 </template>

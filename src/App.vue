@@ -145,6 +145,33 @@
         @history="setScreen = 'history'"
       />
     </template>
+
+    <template v-else-if="activeGame === 'sequence-memory'">
+      <SequenceMainMenu
+        v-if="sequenceScreen === 'menu'"
+        @start="handleSequenceStart"
+        @continue="handleSequenceContinue"
+        @about="sequenceScreen = 'about'"
+        @history="sequenceScreen = 'history'"
+        @exit="activeGame = null"
+      />
+      <SequenceAboutPage v-else-if="sequenceScreen === 'about'" @menu="sequenceScreen = 'menu'" />
+      <SequenceHistoryPage v-else-if="sequenceScreen === 'history'" @menu="sequenceScreen = 'menu'" />
+      <SequenceGameScreen
+        v-else-if="sequenceScreen === 'game'"
+        :difficulty-key="sequenceDifficulty"
+        :continue-game="sequenceContinue"
+        @finished="handleSequenceFinished"
+      />
+      <SequenceResultsScreen
+        v-else-if="sequenceScreen === 'results'"
+        :results="sequenceResults"
+        :difficulty-key="sequenceDifficulty"
+        @replay="handleSequenceStart(sequenceDifficulty)"
+        @menu="sequenceScreen = 'menu'"
+        @history="sequenceScreen = 'history'"
+      />
+    </template>
   </div>
 </template>
 
@@ -182,7 +209,13 @@ import SetHistoryPage from './components/set/HistoryPage.vue'
 import SetGameScreen from './components/set/GameScreen.vue'
 import SetResultsScreen from './components/set/ResultsScreen.vue'
 
-const activeGame = ref(null) // null | 'stroop' | 'schulte' | 'nback' | 'sudoku' | 'set'
+import SequenceMainMenu from './components/sequence-memory/MainMenu.vue'
+import SequenceAboutPage from './components/sequence-memory/AboutPage.vue'
+import SequenceHistoryPage from './components/sequence-memory/HistoryPage.vue'
+import SequenceGameScreen from './components/sequence-memory/GameScreen.vue'
+import SequenceResultsScreen from './components/sequence-memory/ResultsScreen.vue'
+
+const activeGame = ref(null) // null | 'stroop' | 'schulte' | 'nback' | 'sudoku' | 'set' | 'sequence-memory'
 
 // --- Stroop Effect Test ---
 const stroopScreen = ref('menu')
@@ -296,5 +329,28 @@ function handleSetFinished(results) {
   setResults.value = results
   setDifficulty.value = results.difficulty
   setScreen.value = 'results'
+}
+
+// --- Sequence Memory ---
+const sequenceScreen = ref('menu')
+const sequenceDifficulty = ref(null)
+const sequenceContinue = ref(false)
+const sequenceResults = ref(null)
+
+function handleSequenceStart(difficultyKey) {
+  sequenceDifficulty.value = difficultyKey
+  sequenceContinue.value = false
+  sequenceScreen.value = 'game'
+}
+
+function handleSequenceContinue() {
+  sequenceContinue.value = true
+  sequenceScreen.value = 'game'
+}
+
+function handleSequenceFinished(results) {
+  sequenceResults.value = results
+  sequenceDifficulty.value = results.difficulty
+  sequenceScreen.value = 'results'
 }
 </script>

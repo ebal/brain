@@ -123,6 +123,28 @@ maintained list.
 
 See [`SET-SPEC.md`](./SET-SPEC.md) for the full design rationale.
 
+## Sequence Memory
+
+A "Simon Says"-style visuospatial memory game: watch a sequence of flashes on a 3×3 grid, then tap
+the same cells back in the same order. Each success extends the *same* sequence by one more step —
+it's never regenerated — so the game measures how long a pattern you can hold, not luck.
+
+- **Difficulty changes lives and playback speed only** — Easy (3 lives, slow), Medium (2 lives,
+  normal), Hard (1 life, faster) — never the grid size or how fast playback speeds up as you climb
+  levels, so results stay comparable across a session.
+- **A mistake replays the exact same sequence** (never a new one) if a life remains — only running
+  out of lives ends the game.
+- **Cells carry no permanent identity** — no colors, numbers, or icons — only temporary flash
+  states, so what's being remembered is spatial position and order, nothing else.
+- **Pausing (manual or tab-hidden) always restarts the current level from its playback**, never
+  mid-sequence, and never costs a life — interruptions like a phone call are never penalized.
+- **Autosave & Continue Game**, per-difficulty stats/streaks, and a combined, filterable history
+  with a Longest-Sequence trend — the same conventions as Sudoku/SET.
+- **Longest sequence successfully completed** is the primary result and personal-best metric, tied
+  broken by fewer mistakes, then higher accuracy, then lower median tap time.
+
+See [`Sequence-Memory-SPEC.md`](./Sequence-Memory-SPEC.md) for the full design rationale.
+
 ## Offline / installable (PWA)
 
 The whole suite is installable as a Home Screen app (iOS/Android/desktop) and works fully offline
@@ -204,8 +226,8 @@ Compose picks up `.env` automatically from then on — no need to pass anything 
 
 ## Project structure
 
-All five games live in one Vue app, picked from a landing screen (`GameChooser.vue`) in `App.vue`.
-Stroop's files stay flat under `components/`/`composables/`/`constants/`; the other four each live
+All six games live in one Vue app, picked from a landing screen (`GameChooser.vue`) in `App.vue`.
+Stroop's files stay flat under `components/`/`composables/`/`constants/`; the other five each live
 in their own subfolder, so filenames that repeat across games (`MainMenu.vue`, `GameScreen.vue`,
 `useScoreHistory.js`, ...) never collide.
 
@@ -216,6 +238,7 @@ stroop/
 ├── NBack-SPEC.md
 ├── Sudoku-SPEC.md
 ├── SET-SPEC.md
+├── Sequence-Memory-SPEC.md
 ├── docker-compose.yml
 ├── package.json
 ├── vite.config.js
@@ -223,7 +246,7 @@ stroop/
 ├── public/                          # PWA icons (see Offline / PWA support below)
 └── src/
     ├── main.js
-    ├── App.vue                      # top-level: game chooser + all five games' screen state
+    ├── App.vue                      # top-level: game chooser + all six games' screen state
     ├── components/
     │   ├── GameChooser.vue          # landing screen — pick a game
     │   ├── MainMenu.vue             # Stroop
@@ -256,14 +279,22 @@ stroop/
     │   │   ├── SudokuCell.vue
     │   │   ├── NumberPad.vue
     │   │   └── GameControls.vue
-    │   └── set/                     # SET
+    │   ├── set/                     # SET
+    │   │   ├── MainMenu.vue
+    │   │   ├── AboutPage.vue
+    │   │   ├── HistoryPage.vue
+    │   │   ├── GameScreen.vue
+    │   │   ├── ResultsScreen.vue
+    │   │   ├── SetBoard.vue
+    │   │   └── SetCard.vue           # inline-SVG card rendering — no images
+    │   └── sequence-memory/         # Sequence Memory
     │       ├── MainMenu.vue
     │       ├── AboutPage.vue
     │       ├── HistoryPage.vue
     │       ├── GameScreen.vue
     │       ├── ResultsScreen.vue
-    │       ├── SetBoard.vue
-    │       └── SetCard.vue           # inline-SVG card rendering — no images
+    │       ├── MemoryGrid.vue
+    │       └── MemoryCell.vue
     ├── composables/
     │   ├── useStroopGame.js         # Stroop: trial generation, timer, scoring
     │   ├── useBestScores.js
@@ -286,13 +317,18 @@ stroop/
     │   │   ├── useSudokuGame.js     # selection, input, notes, undo, mistakes, hints, timer/pause
     │   │   ├── useSudokuStorage.js  # autosave / Continue Game
     │   │   └── useSudokuStats.js    # per-difficulty stats + combined history
-    │   └── set/
-    │       ├── deck.js              # createDeck/shuffleDeck — pure, no Vue
-    │       ├── setValidator.js      # isSet / findCompletingCard / firstFailingProperty
-    │       ├── setFinder.js         # findAllSets (internal — never exposed during play)
-    │       ├── useSetGame.js        # selection, board expansion/replenish, hints, timer/pause
-    │       ├── useSetStorage.js     # autosave / Continue Game
-    │       └── useSetStats.js       # per-difficulty stats + combined history
+    │   ├── set/
+    │   │   ├── deck.js              # createDeck/shuffleDeck — pure, no Vue
+    │   │   ├── setValidator.js      # isSet / findCompletingCard / firstFailingProperty
+    │   │   ├── setFinder.js         # findAllSets (internal — never exposed during play)
+    │   │   ├── useSetGame.js        # selection, board expansion/replenish, hints, timer/pause
+    │   │   ├── useSetStorage.js     # autosave / Continue Game
+    │   │   └── useSetStats.js       # per-difficulty stats + combined history
+    │   └── sequence-memory/
+    │       ├── sequenceGenerator.js # pure, seedable sequence generation (no consecutive repeats)
+    │       ├── useSequenceMemory.js # playback/input state machine, lives, timer/pause
+    │       ├── useMemoryStorage.js  # autosave / Continue Game
+    │       └── useMemoryStats.js    # per-difficulty stats + combined history
     └── constants/
         ├── colors.js                # Stroop: color palette, difficulty tiers, game modes
         ├── schulte/
@@ -303,8 +339,10 @@ stroop/
         ├── sudoku/
         │   ├── difficulties.js      # Sudoku: difficulty labels
         │   └── hardPool.json        # pre-vetted Hard puzzles (see above)
-        └── set/
-            └── cardProperties.js    # SET: property names/colors, difficulty labels
+        ├── set/
+        │   └── cardProperties.js    # SET: property names/colors, difficulty labels
+        └── sequence-memory/
+            └── difficulties.js      # Sequence Memory: lives + flash/gap timing per difficulty
 ```
 
 ## License
