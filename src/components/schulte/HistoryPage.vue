@@ -127,7 +127,7 @@ h1 {
 
 .difficulty-toggle {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.4rem;
   margin-bottom: 1.5rem;
 }

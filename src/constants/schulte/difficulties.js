@@ -6,4 +6,5 @@ export const SCHULTE_DIFFICULTIES = {
   classic: { key: 'classic', label: 'Classic', gridSize: 5, isClassic: true },
   hard: { key: 'hard', label: 'Hard', gridSize: 6 },
   veryHard: { key: 'very-hard', label: 'Very Hard', gridSize: 7 },
+  extreme: { key: 'extreme', label: 'Extreme', gridSize: 8 },
 }

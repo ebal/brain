@@ -33,7 +33,7 @@ A [Schulte Table](https://en.wikipedia.org/wiki/Schulte_table) visual-search and
 find numbers 1..N² in ascending order on a square grid, as fast as you can. The grid is generated
 once per round and never moves — the task measures scanning and attention, not memory or tracking.
 
-- **Five grid sizes**: 3×3 (Easy) through 7×7 (Very Hard), with 5×5 (1–25) as the Classic,
+- **Six grid sizes**: 3×3 (Easy) through 8×8 (Extreme), with 5×5 (1–25) as the Classic,
   reference difficulty.
 - **No round timer** — a round ends only when the final number is found; the running clock is
   purely informational.
