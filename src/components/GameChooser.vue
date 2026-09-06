@@ -28,6 +28,12 @@
         <p>Watch the pattern, then repeat it. Visual &amp; spatial memory.</p>
       </button>
     </div>
+
+    <div class="footer-links">
+      <button class="data-link" @click="$emit('choose', 'activity')">Activity</button>
+      <button class="data-link" @click="$emit('choose', 'benchmark-menu')">Run a Benchmark</button>
+      <button class="data-link" @click="$emit('choose', 'data')">Manage Your Data</button>
+    </div>
   </div>
 </template>
 
@@ -84,5 +90,25 @@ h1 {
   .game-grid {
     grid-template-columns: 1fr;
   }
+}
+
+.footer-links {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.data-link {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.data-link:hover {
+  color: var(--accent);
 }
 </style>

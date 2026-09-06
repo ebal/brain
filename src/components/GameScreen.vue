@@ -7,6 +7,7 @@
     <template v-else-if="status === 'playing'">
       <div class="hud">
         <div class="hud-top">
+          <button class="exit-icon-btn" aria-label="Exit to menu" @click="handleExit">✕</button>
           <span class="mode-label">{{ modeInfo.label }}</span>
           <span class="timer">{{ timeLeft.toFixed(1) }}s</span>
         </div>
@@ -34,12 +35,20 @@
         />
       </div>
     </template>
+
+    <ConfirmDialog
+      v-if="showExitConfirm"
+      message="Exit this round? Your progress on it will be lost."
+      @confirm="confirmExit"
+      @cancel="showExitConfirm = false"
+    />
   </div>
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import ColorButton from './ColorButton.vue'
+import ConfirmDialog from './ConfirmDialog.vue'
 import { useStroopGame } from '../composables/useStroopGame.js'
 import { DIFFICULTIES, MODES } from '../constants/colors.js'
 
@@ -47,7 +56,7 @@ const props = defineProps({
   difficultyKey: { type: String, required: true },
   mode: { type: String, default: 'color' },
 })
-const emit = defineEmits(['finished'])
+const emit = defineEmits(['finished', 'exit'])
 
 const game = useStroopGame()
 const { status, countdownValue, timeLeft, totalDuration, currentTrial, feedback, palette, results } = game
@@ -58,11 +67,25 @@ const progressPct = computed(() =>
   totalDuration.value > 0 ? (timeLeft.value / totalDuration.value) * 100 : 0
 )
 
+const showExitConfirm = ref(false)
+
+function handleExit() {
+  showExitConfirm.value = true
+}
+
+function confirmExit() {
+  showExitConfirm.value = false
+  game.reset()
+  emit('exit')
+}
+
 onMounted(() => {
   game.start(DIFFICULTIES[props.difficultyKey], props.mode)
+  document.addEventListener('visibilitychange', game.handleVisibilityChange)
 })
 
 onUnmounted(() => {
+  document.removeEventListener('visibilitychange', game.handleVisibilityChange)
   game.reset()
 })
 
@@ -97,12 +120,25 @@ watch(status, (val) => {
 }
 
 .hud-top {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
+  gap: 0.5rem;
+}
+
+.exit-icon-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.35rem;
+  justify-self: start;
 }
 
 .mode-label {
+  text-align: center;
   font-size: 0.85rem;
   font-weight: 700;
   color: var(--accent);

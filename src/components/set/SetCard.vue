@@ -46,12 +46,18 @@
   </button>
 </template>
 
+<script>
+// Module scope — runs once per module load, not once per instance — so this
+// keeps incrementing across every card rather than resetting to 0 each time
+// (which is what happens to any counter declared inside <script setup>).
+let patternIdCounter = 0
+</script>
+
 <script setup>
 import { computed } from 'vue'
 import { COLOR_HEX } from '../../constants/set/cardProperties.js'
 
-let instanceCounter = 0
-const patternId = `set-stripe-${instanceCounter++}`
+const patternId = `set-stripe-${patternIdCounter++}`
 
 const props = defineProps({
   number: { type: Number, required: true },

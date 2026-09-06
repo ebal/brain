@@ -33,7 +33,7 @@ defineEmits(['notes', 'erase', 'undo', 'hint', 'pause'])
 
 <style scoped>
 .controls {
-  width: min(92vw, 480px);
+  width: min(95vw, 480px);
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 0.4rem;

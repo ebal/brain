@@ -1,6 +1,16 @@
 <template>
   <div class="app-shell">
+    <div v-if="benchmarkActive" class="benchmark-banner">Benchmark Run — {{ benchmarkConfigLabel }}</div>
+    <div v-else-if="benchmarkFeedback" class="benchmark-feedback">
+      {{ benchmarkFeedback.message }}
+      <button class="dismiss-btn" @click="benchmarkFeedback = null">×</button>
+    </div>
+
     <GameChooser v-if="!activeGame" @choose="activeGame = $event" />
+
+    <BenchmarkMenu v-else-if="activeGame === 'benchmark-menu'" @start="handleBenchmarkStart" @menu="activeGame = null" />
+
+    <ActivityDashboard v-else-if="activeGame === 'activity'" @menu="activeGame = null" />
 
     <template v-else-if="activeGame === 'stroop'">
       <MainMenu
@@ -22,6 +32,7 @@
         :difficulty-key="stroopDifficulty"
         :mode="stroopMode"
         @finished="handleStroopFinished"
+        @exit="stroopScreen = 'menu'; benchmarkActive = false"
       />
       <ResultsScreen
         v-else-if="stroopScreen === 'results'"
@@ -52,6 +63,7 @@
         v-else-if="schulteScreen === 'game'"
         :difficulty-key="schulteDifficulty"
         @finished="handleSchulteFinished"
+        @exit="schulteScreen = 'menu'; benchmarkActive = false"
       />
       <SchulteResultsScreen
         v-else-if="schulteScreen === 'results'"
@@ -81,6 +93,7 @@
         v-else-if="nbackScreen === 'game'"
         :difficulty-key="nbackDifficulty"
         @finished="handleNBackFinished"
+        @exit="nbackScreen = 'menu'; benchmarkActive = false"
       />
       <NBackResultsScreen
         v-else-if="nbackScreen === 'results'"
@@ -108,6 +121,7 @@
         :difficulty-key="sudokuDifficulty"
         :continue-game="sudokuContinue"
         @finished="handleSudokuFinished"
+        @exit="sudokuScreen = 'menu'; benchmarkActive = false"
       />
       <SudokuResultsScreen
         v-else-if="sudokuScreen === 'results'"
@@ -135,6 +149,7 @@
         :difficulty-key="setDifficulty"
         :continue-game="setContinue"
         @finished="handleSetFinished"
+        @exit="setScreen = 'menu'; benchmarkActive = false"
       />
       <SetResultsScreen
         v-else-if="setScreen === 'results'"
@@ -145,6 +160,8 @@
         @history="setScreen = 'history'"
       />
     </template>
+
+    <DataManagement v-else-if="activeGame === 'data'" @menu="activeGame = null" />
 
     <template v-else-if="activeGame === 'sequence-memory'">
       <SequenceMainMenu
@@ -162,6 +179,7 @@
         :difficulty-key="sequenceDifficulty"
         :continue-game="sequenceContinue"
         @finished="handleSequenceFinished"
+        @exit="sequenceScreen = 'menu'; benchmarkActive = false"
       />
       <SequenceResultsScreen
         v-else-if="sequenceScreen === 'results'"
@@ -176,8 +194,21 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
 import GameChooser from './components/GameChooser.vue'
+import DataManagement from './components/DataManagement.vue'
+import BenchmarkMenu from './components/BenchmarkMenu.vue'
+import ActivityDashboard from './components/ActivityDashboard.vue'
+import { BENCHMARK_CONFIGS } from './constants/benchmark.js'
+import { useBenchmarkHistory } from './composables/benchmarkHistory.js'
+import { getBaseline, compareToBaseline } from './composables/baseline.js'
+import {
+  mapStroopEntry,
+  mapSchulteEntry,
+  mapNBackEntry,
+  mapSetEntry,
+  mapSequenceMemoryEntry,
+} from './composables/sessionModel.js'
 
 import MainMenu from './components/MainMenu.vue'
 import AboutPage from './components/AboutPage.vue'
@@ -215,7 +246,56 @@ import SequenceHistoryPage from './components/sequence-memory/HistoryPage.vue'
 import SequenceGameScreen from './components/sequence-memory/GameScreen.vue'
 import SequenceResultsScreen from './components/sequence-memory/ResultsScreen.vue'
 
-const activeGame = ref(null) // null | 'stroop' | 'schulte' | 'nback' | 'sudoku' | 'set' | 'sequence-memory'
+const activeGame = ref(null) // null | 'stroop' | 'schulte' | 'nback' | 'sudoku' | 'set' | 'sequence-memory' | 'data' | 'benchmark-menu' | 'activity'
+
+// --- Benchmark mode (IMPROVEMENT-PLAN.md Phase 5) ---
+// A thin layer over normal play: launching from BenchmarkMenu reuses each
+// game's own handleXStart with the difficulty/mode pinned from
+// BENCHMARK_CONFIGS, and each handleXFinished below additionally records a
+// separate, versioned benchmark session when this flag is set — the game's
+// own normal history/stats/best-scores recording (inside its GameScreen)
+// is untouched either way.
+const { recordBenchmarkSession } = useBenchmarkHistory()
+const benchmarkActive = ref(false)
+const benchmarkConfigLabel = computed(() => BENCHMARK_CONFIGS[activeGame.value]?.label || '')
+
+// Personal baseline (IMPROVEMENT-PLAN.md Phase 6) — shown as a small,
+// dismissible banner right after a benchmark session finishes, rather than
+// wiring a prop into every game's own ResultsScreen.vue.
+const benchmarkFeedback = ref(null) // { game, message } | null
+watch(activeGame, () => { benchmarkFeedback.value = null })
+
+function formatMetricValue(game, value) {
+  return game === 'schulte' || game === 'set' ? `${(value / 1000).toFixed(1)}s` : `${Math.round(value)}`
+}
+
+// Computed from the baseline as it stood BEFORE this session was recorded —
+// comparing today's result against yesterday's baseline, not a baseline that
+// already includes today's own number.
+function describeBenchmarkFeedback(game, priorBaseline, latestValue) {
+  if (!priorBaseline.ready) {
+    return `Benchmark recorded (${priorBaseline.sampleSize}/3) — play ${priorBaseline.sessionsNeeded} more to establish your baseline.`
+  }
+  const comparison = compareToBaseline(game, priorBaseline, latestValue)
+  if (!comparison) return `Benchmark recorded — baseline: ${formatMetricValue(game, priorBaseline.medianPrimaryMetric)}.`
+  const sign = comparison.percentDelta >= 0 ? '+' : ''
+  const verdict = comparison.percentDelta >= 0 ? 'better' : 'worse'
+  return (
+    `Baseline (n=${priorBaseline.sampleSize}): ${formatMetricValue(game, priorBaseline.medianPrimaryMetric)}` +
+    ` — Today: ${formatMetricValue(game, latestValue)} (${sign}${comparison.percentDelta.toFixed(1)}% ${verdict})`
+  )
+}
+
+function handleBenchmarkStart(game) {
+  benchmarkActive.value = true
+  activeGame.value = game
+  const config = BENCHMARK_CONFIGS[game]
+  if (game === 'stroop') handleStroopStart({ difficultyKey: config.difficultyKey, mode: config.mode })
+  else if (game === 'schulte') handleSchulteStart(config.difficultyKey)
+  else if (game === 'nback') handleNBackStart(config.difficultyKey)
+  else if (game === 'set') handleSetStart(config.difficultyKey)
+  else if (game === 'sequence-memory') handleSequenceStart(config.difficultyKey)
+}
 
 // --- Stroop Effect Test ---
 const stroopScreen = ref('menu')
@@ -243,6 +323,16 @@ function handleStroopHistory(payload) {
 function handleStroopFinished(results) {
   stroopResults.value = results
   stroopScreen.value = 'results'
+  if (benchmarkActive.value) {
+    const priorBaseline = getBaseline('stroop')
+    const session = recordBenchmarkSession(mapStroopEntry(
+      { score: results.score, accuracy: results.accuracy, avgResponseTime: results.avgResponseTime, date: new Date().toISOString() },
+      stroopMode.value,
+      stroopDifficulty.value,
+    ))
+    benchmarkFeedback.value = { game: 'stroop', message: describeBenchmarkFeedback('stroop', priorBaseline, session.primaryMetric) }
+    benchmarkActive.value = false
+  }
 }
 
 // --- Schulte Tables ---
@@ -263,6 +353,22 @@ function handleSchulteHistory(payload) {
 function handleSchulteFinished(results) {
   schulteResults.value = results
   schulteScreen.value = 'results'
+  if (benchmarkActive.value) {
+    const priorBaseline = getBaseline('schulte')
+    const session = recordBenchmarkSession(mapSchulteEntry(
+      {
+        completionTime: results.completionTime,
+        errors: results.errors,
+        accuracy: results.accuracy,
+        avgSearchTime: results.avgSearchTime,
+        medianSearchTime: results.medianSearchTime,
+        date: new Date().toISOString(),
+      },
+      schulteDifficulty.value,
+    ))
+    benchmarkFeedback.value = { game: 'schulte', message: describeBenchmarkFeedback('schulte', priorBaseline, session.primaryMetric) }
+    benchmarkActive.value = false
+  }
 }
 
 // --- Number N-Back ---
@@ -283,6 +389,25 @@ function handleNBackHistory(payload) {
 function handleNBackFinished(results) {
   nbackResults.value = results
   nbackScreen.value = 'results'
+  if (benchmarkActive.value) {
+    const priorBaseline = getBaseline('nback')
+    const session = recordBenchmarkSession(mapNBackEntry(
+      {
+        score: results.score,
+        accuracy: results.accuracy,
+        hits: results.hits,
+        misses: results.misses,
+        falseAlarms: results.falseAlarms,
+        correctRejections: results.correctRejections,
+        avgRT: results.avgRT,
+        medianRT: results.medianRT,
+        date: new Date().toISOString(),
+      },
+      nbackDifficulty.value,
+    ))
+    benchmarkFeedback.value = { game: 'nback', message: describeBenchmarkFeedback('nback', priorBaseline, session.primaryMetric) }
+    benchmarkActive.value = false
+  }
 }
 
 // --- Sudoku ---
@@ -329,6 +454,12 @@ function handleSetFinished(results) {
   setResults.value = results
   setDifficulty.value = results.difficulty
   setScreen.value = 'results'
+  if (benchmarkActive.value) {
+    const priorBaseline = getBaseline('set')
+    const session = recordBenchmarkSession(mapSetEntry({ ...results, completedAt: new Date().toISOString() }))
+    benchmarkFeedback.value = { game: 'set', message: describeBenchmarkFeedback('set', priorBaseline, session.primaryMetric) }
+    benchmarkActive.value = false
+  }
 }
 
 // --- Sequence Memory ---
@@ -352,5 +483,50 @@ function handleSequenceFinished(results) {
   sequenceResults.value = results
   sequenceDifficulty.value = results.difficulty
   sequenceScreen.value = 'results'
+  if (benchmarkActive.value) {
+    const priorBaseline = getBaseline('sequence-memory')
+    const session = recordBenchmarkSession(mapSequenceMemoryEntry({ ...results, completedAt: new Date().toISOString() }))
+    benchmarkFeedback.value = { game: 'sequence-memory', message: describeBenchmarkFeedback('sequence-memory', priorBaseline, session.primaryMetric) }
+    benchmarkActive.value = false
+  }
 }
 </script>
+
+<style scoped>
+.benchmark-banner,
+.benchmark-feedback {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  width: 100%;
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  padding: 0.5rem 1rem;
+}
+
+.benchmark-banner {
+  background: var(--accent);
+  color: #10121a;
+}
+
+.benchmark-feedback {
+  background: var(--surface-2);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.dismiss-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+</style>

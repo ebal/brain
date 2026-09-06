@@ -8,6 +8,7 @@
       <div class="paused-overlay">
         <p class="paused-title">PAUSED</p>
         <button class="resume-btn" @click="handleResume">Resume</button>
+        <button class="exit-btn" @click="handleExit">Exit to Menu</button>
       </div>
     </template>
 
@@ -63,7 +64,7 @@ const props = defineProps({
   difficultyKey: { type: String, default: null },
   continueGame: { type: Boolean, default: false },
 })
-const emit = defineEmits(['finished'])
+const emit = defineEmits(['finished', 'exit'])
 
 const game = useSudokuGame()
 const {
@@ -73,7 +74,7 @@ const {
 
 const { generate } = useSudokuGenerator()
 const { getActive, saveActive, clearActive } = useSudokuStorage()
-const { recordStart, recordCompletion } = useSudokuStats()
+const { recordStart, recordCompletion, recordAbandon } = useSudokuStats()
 
 const generating = ref(false)
 const canUndo = computed(() => moveHistory.value.length > 0)
@@ -133,6 +134,16 @@ function handlePause() {
 
 function handleResume() {
   game.resumeTimer()
+}
+
+// Only reachable from Pause (SPEC-consistent with recordAbandon's existing
+// use in MainMenu.vue: an explicit exit resets the streak, closing the tab
+// or continuing later does not).
+function handleExit() {
+  recordAbandon(difficulty.value)
+  clearActive()
+  game.reset()
+  emit('exit')
 }
 
 function handleVisibilityChange() {
@@ -239,8 +250,19 @@ watch(status, (val) => {
   cursor: pointer;
 }
 
+.exit-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0.5rem;
+}
+
 .hud {
-  width: min(92vw, 480px);
+  width: min(95vw, 480px);
   display: flex;
   justify-content: space-between;
   align-items: center;

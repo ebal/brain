@@ -1,20 +1,10 @@
 import { ref, computed } from 'vue'
 import { generateSequence, validateSequence } from './sequence.js'
 import { STIMULUS_COLORS } from '../../constants/nback/colors.js'
+import { avg, median } from '../mathStats.js'
 
 const SETUP_DISPLAY_MS = 1200
 const INTER_STIMULUS_GAP_MS = 300
-
-function avg(arr) {
-  return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0
-}
-
-function median(arr) {
-  if (!arr.length) return 0
-  const sorted = [...arr].sort((a, b) => a - b)
-  const mid = Math.floor(sorted.length / 2)
-  return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
-}
 
 export function useNBackGame() {
   const status = ref('idle') // idle | countdown | playing | finished

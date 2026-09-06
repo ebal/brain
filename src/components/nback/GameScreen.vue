@@ -6,6 +6,7 @@
 
     <template v-else-if="status === 'playing'">
       <div class="hud">
+        <button class="exit-icon-btn" aria-label="Exit to menu" @click="handleExit">✕</button>
         <span class="n-label">{{ difficulty.n }}-BACK</span>
         <span class="progress">
           <template v-if="isSetupPhase">Get ready…</template>
@@ -15,26 +16,34 @@
 
       <div class="stimulus-area">
         <div class="number" :style="{ color: currentColor }">{{ currentNumber }}</div>
-        <div v-if="feedback" class="feedback-icon" :class="feedback">
+        <div v-if="feedback" class="feedback-icon" :class="feedback" aria-live="polite">
           {{ feedback === 'correct' ? '✓' : '✕' }}
         </div>
       </div>
 
       <ResponseButtons :disabled="!awaitingResponse" @answer="game.answer" />
     </template>
+
+    <ConfirmDialog
+      v-if="showExitConfirm"
+      message="Exit this round? Your progress on it will be lost."
+      @confirm="confirmExit"
+      @cancel="showExitConfirm = false"
+    />
   </div>
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import ResponseButtons from './ResponseButtons.vue'
+import ConfirmDialog from '../ConfirmDialog.vue'
 import { useNBackGame } from '../../composables/nback/useNBackGame.js'
 import { NBACK_DIFFICULTIES } from '../../constants/nback/difficulties.js'
 
 const props = defineProps({
   difficultyKey: { type: String, required: true },
 })
-const emit = defineEmits(['finished'])
+const emit = defineEmits(['finished', 'exit'])
 
 const game = useNBackGame()
 const { status, countdownValue, currentNumber, currentColor, isSetupPhase, scoredAnswered, totalScored, feedback, awaitingResponse, results } = game
@@ -42,6 +51,18 @@ const { status, countdownValue, currentNumber, currentColor, isSetupPhase, score
 const difficulty = computed(() =>
   Object.values(NBACK_DIFFICULTIES).find((d) => d.key === props.difficultyKey)
 )
+
+const showExitConfirm = ref(false)
+
+function handleExit() {
+  showExitConfirm.value = true
+}
+
+function confirmExit() {
+  showExitConfirm.value = false
+  game.reset()
+  emit('exit')
+}
 
 function handleKeydown(e) {
   if (!awaitingResponse.value) return
@@ -85,12 +106,25 @@ watch(status, (val) => {
 
 .hud {
   width: 100%;
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
+  gap: 0.5rem;
+}
+
+.exit-icon-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.35rem;
+  justify-self: start;
 }
 
 .n-label {
+  text-align: center;
   font-size: 0.9rem;
   font-weight: 700;
   color: var(--accent);

@@ -21,7 +21,7 @@ defineEmits(['press'])
 
 <style scoped>
 .number-pad {
-  width: min(92vw, 480px);
+  width: min(95vw, 480px);
   display: grid;
   grid-template-columns: repeat(9, 1fr);
   gap: 0.35rem;

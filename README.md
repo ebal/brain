@@ -1,7 +1,9 @@
 # Cognitive Test Suite
 
 A browser-based set of quick cognitive tests and puzzles, built with Vue 3 and Vite: a landing
-screen lets you pick between them, and each keeps its own scoring, history, and personal bests.
+screen lets you pick between them, and each keeps its own scoring, history, and personal bests —
+plus a suite-wide [Benchmark mode](#benchmark-mode) with [personal baselines](#personal-baseline),
+an [Activity dashboard](#activity-dashboard), and full [data export/import](#your-data).
 
 ## Stroop Effect Test
 
@@ -145,6 +147,70 @@ it's never regenerated — so the game measures how long a pattern you can hold,
 
 See [`Sequence-Memory-SPEC.md`](./Sequence-Memory-SPEC.md) for the full design rationale.
 
+## Benchmark Mode
+
+Standardized, fixed-difficulty runs of five of the six games, reachable via **Run a Benchmark**
+below the game grid — so a result from today is genuinely comparable to one from months ago, not
+just a personal best set on whatever difficulty you happened to pick that day. Starting a benchmark
+bypasses each game's own difficulty picker entirely and locks the configuration: Stroop (Medium,
+Color Match), Schulte (5×5 Classic), N-Back (2-Back), SET (Medium), Sequence Memory (Medium).
+
+- **Sudoku is deliberately excluded.** Puzzle-to-puzzle difficulty genuinely varies even within one
+  labeled tier — a Hard puzzle needing quads is a measurably different task from one only needing
+  pairs — so a fixed "Sudoku benchmark" would mostly measure which specific puzzle you got, not
+  your performance on a repeatable task.
+- **A benchmark run also counts as a normal play session** in that game's own history, stats, and
+  personal bests — nothing about normal recording is suppressed or altered; the session is simply
+  *additionally* written to a separate benchmark history.
+- Every benchmark session is stamped with a `benchmarkVersion`, so if these fixed configurations
+  ever change, old and new benchmark results can never be silently mixed into the same comparison.
+
+## Personal Baseline
+
+Once a game has **at least 3 recorded benchmark sessions**, a baseline exists: the median of that
+game's primary benchmark metric (completion time, score, or longest sequence, depending on the
+game). Every benchmark run after that shows a comparison against your own history *before* that
+run — e.g. `Baseline (n=5): 2.5s — Today: 2.1s (+16.0% better)` — never a population average and
+never another player, since no such dataset exists or is fabricated. Before 3 sessions exist, the
+banner tells you how many more are needed instead of computing a "baseline" from 1–2 noisy results.
+
+## Activity Dashboard
+
+A suite-wide view, reachable via **Activity**, of how much you've actually played and how your
+benchmark performance is trending — filterable to the last 7/30/90 days or all time.
+
+- **Overview**: current activity streak (consecutive days played — still counted through yesterday
+  if you haven't played yet today, so a live streak never looks broken before the day is even
+  over), games played, active days, and total sessions.
+- **Sessions by Game**: a per-game session-count breakdown for the selected range.
+- **Benchmark Performance**: per game (Sudoku excluded, same reasoning as Benchmark Mode above) —
+  your baseline, rolling median, a consistency measure (median absolute deviation, i.e. how much
+  your results vary, not just where they land), your best result, most recent result, and
+  today-vs-baseline.
+
+Deliberately **not** a unified cross-game score, and no invented population percentiles. A short
+note on the page itself makes clear these numbers describe performance on specific tasks over
+time, not a general or diagnostic claim about cognitive ability — and that repeated practice can
+improve scores through task familiarity alone, independent of anything else changing.
+
+## Your Data
+
+Reachable via **Manage Your Data**, since this app has no account and no backend of its own to
+recover data from if the browser's storage is ever cleared:
+
+- **Export All Data (JSON)** — a complete backup (history, stats, personal bests, benchmark
+  history, and any in-progress game) across every game, versioned via `schemaVersion` so a future
+  export format change can never be silently misread as an older one.
+- **Export History (CSV)** — a flattened, spreadsheet-friendly view of every session across every
+  game.
+- **Import** — restore from a previously exported JSON file. Shows a preview (how many records,
+  broken down by game) before anything is written, and a choice between **Merge** (combines
+  history from both, keeps your current device's stats/bests on any conflict) and **Replace**
+  (wipes existing data first). Rejects anything that isn't a recognizable export, with a specific
+  reason why.
+- **Delete All Data** — permanently erases everything this app has stored on this device. Gated
+  behind typing `DELETE` to confirm, since it can't be undone.
+
 ## Offline / installable (PWA)
 
 The whole suite is installable as a Home Screen app (iOS/Android/desktop) and works fully offline
@@ -170,8 +236,8 @@ and the reasoning behind each choice.
 ### From source
 
 ```bash
-git clone https://github.com/ebal/Stroop-Effect-Test.git
-cd Stroop-Effect-Test
+git clone https://github.com/ebal/brain.git
+cd brain
 npm install
 ```
 
@@ -191,6 +257,19 @@ Starts the Vite dev server (with hot reload) — open the printed local URL in y
 npm run build   # outputs static files to ./dist
 npm run preview # serve the build locally to sanity-check it
 ```
+
+### Tests
+
+```bash
+npm test
+```
+
+Runs the automated test suite ([Vitest](https://vitest.dev/)) — deterministic unit tests for the
+actual game math and generation logic across all six games (trial/board/sequence generation,
+validators, difficulty classification, scoring, statistics), plus the shared session model,
+Benchmark, and Baseline logic. No component/DOM testing yet — everything covered so far is plain
+JS logic, testable without mounting a Vue component. Each tested module has a co-located
+`*.test.js` file next to it.
 
 ### Docker (dev server, no build step)
 
@@ -229,7 +308,10 @@ Compose picks up `.env` automatically from then on — no need to pass anything 
 All six games live in one Vue app, picked from a landing screen (`GameChooser.vue`) in `App.vue`.
 Stroop's files stay flat under `components/`/`composables/`/`constants/`; the other five each live
 in their own subfolder, so filenames that repeat across games (`MainMenu.vue`, `GameScreen.vue`,
-`useScoreHistory.js`, ...) never collide.
+`useScoreHistory.js`, ...) never collide. Benchmark Mode, the Activity dashboard, and Data
+Management are cross-cutting (not per-game), so their components/composables stay top-level
+alongside `GameChooser.vue`. Every tested module has a co-located `*.test.js` (omitted below —
+see [Tests](#tests)).
 
 ```
 stroop/
@@ -239,16 +321,22 @@ stroop/
 ├── Sudoku-SPEC.md
 ├── SET-SPEC.md
 ├── Sequence-Memory-SPEC.md
+├── AUDIT.md                         # repository audit — findings, what was/wasn't changed
+├── IMPROVEMENT-PLAN.md              # phased plan this audit led to (this app's own changelog of sorts)
 ├── docker-compose.yml
 ├── package.json
 ├── vite.config.js
+├── vitest.config.js
 ├── index.html
 ├── public/                          # PWA icons (see Offline / PWA support below)
 └── src/
     ├── main.js
-    ├── App.vue                      # top-level: game chooser + all six games' screen state
+    ├── App.vue                      # top-level: game chooser + every game's/feature's screen state
     ├── components/
     │   ├── GameChooser.vue          # landing screen — pick a game
+    │   ├── BenchmarkMenu.vue        # Benchmark Mode — fixed-config entry point per game
+    │   ├── ActivityDashboard.vue    # Activity dashboard — engagement + benchmark performance
+    │   ├── DataManagement.vue       # Your Data — export/import/delete
     │   ├── MainMenu.vue             # Stroop
     │   ├── AboutPage.vue
     │   ├── HistoryPage.vue
@@ -296,6 +384,12 @@ stroop/
     │       ├── MemoryGrid.vue
     │       └── MemoryCell.vue
     ├── composables/
+    │   ├── mathStats.js             # avg/median — shared by every game's results/stats calc
+    │   ├── sessionModel.js          # common session shape, derived on-demand from each game's history
+    │   ├── benchmarkHistory.js      # separate, versioned storage for Benchmark Mode sessions
+    │   ├── baseline.js              # personal baseline: median of benchmark history, 3-session minimum
+    │   ├── activityStats.js         # Activity dashboard: date-range filtering, streaks, MAD, per-game performance
+    │   ├── dataPortability.js       # export (JSON/CSV) / import (merge or replace) / delete-all
     │   ├── useStroopGame.js         # Stroop: trial generation, timer, scoring
     │   ├── useBestScores.js
     │   ├── useScoreHistory.js
@@ -330,6 +424,7 @@ stroop/
     │       ├── useMemoryStorage.js  # autosave / Continue Game
     │       └── useMemoryStats.js    # per-difficulty stats + combined history
     └── constants/
+        ├── benchmark.js             # Benchmark Mode: fixed per-game config + benchmarkVersion
         ├── colors.js                # Stroop: color palette, difficulty tiers, game modes
         ├── schulte/
         │   └── difficulties.js      # Schulte: grid sizes per difficulty

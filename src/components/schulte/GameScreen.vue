@@ -1,6 +1,7 @@
 <template>
   <div class="game">
     <div class="hud">
+      <button v-if="status !== 'finished'" class="exit-icon-btn" aria-label="Exit to menu" @click="handleExit">✕</button>
       <span class="find-label">
         <template v-if="status === 'finished'">Done!</template>
         <template v-else>Find: <strong>{{ target }}</strong></template>
@@ -24,19 +25,27 @@
         {{ countdownValue > 0 ? countdownValue : 'Go!' }}
       </div>
     </div>
+
+    <ConfirmDialog
+      v-if="showExitConfirm"
+      message="Exit this round? Your progress on it will be lost."
+      @confirm="confirmExit"
+      @cancel="showExitConfirm = false"
+    />
   </div>
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import SchulteCell from './SchulteCell.vue'
+import ConfirmDialog from '../ConfirmDialog.vue'
 import { useSchulteGame } from '../../composables/schulte/useSchulteGame.js'
 import { SCHULTE_DIFFICULTIES } from '../../constants/schulte/difficulties.js'
 
 const props = defineProps({
   difficultyKey: { type: String, required: true },
 })
-const emit = defineEmits(['finished'])
+const emit = defineEmits(['finished', 'exit'])
 
 const game = useSchulteGame()
 const { status, countdownValue, board, target, elapsedMs, results } = game
@@ -45,11 +54,25 @@ const difficulty = computed(() =>
   Object.values(SCHULTE_DIFFICULTIES).find((d) => d.key === props.difficultyKey)
 )
 
+const showExitConfirm = ref(false)
+
+function handleExit() {
+  showExitConfirm.value = true
+}
+
+function confirmExit() {
+  showExitConfirm.value = false
+  game.reset()
+  emit('exit')
+}
+
 onMounted(() => {
   game.start(difficulty.value)
+  document.addEventListener('visibilitychange', game.handleVisibilityChange)
 })
 
 onUnmounted(() => {
+  document.removeEventListener('visibilitychange', game.handleVisibilityChange)
   game.reset()
 })
 
@@ -72,12 +95,25 @@ watch(status, (val) => {
 
 .hud {
   width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.exit-icon-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.35rem;
+  justify-self: start;
 }
 
 .find-label {
+  text-align: center;
   font-size: 1.1rem;
   font-weight: 700;
   color: var(--text);
@@ -96,18 +132,21 @@ watch(status, (val) => {
 
 .grid-wrap {
   position: relative;
-  width: min(92vw, 480px);
+  /* 8x8 (Extreme) across a ~350px phone screen means every pixel matters
+     for touch-target size — this deliberately extends slightly past the
+     shell's normal content width (see .app-shell padding) rather than the
+     stricter 100%, which measured smaller cells on the narrowest phones. */
+  width: min(95vw, 480px);
   aspect-ratio: 1;
 }
 
 .schulte-grid {
-  --board-width: min(92vw, 480px);
   width: 100%;
   height: 100%;
   display: grid;
   grid-template-columns: repeat(var(--grid-size), 1fr);
   grid-template-rows: repeat(var(--grid-size), 1fr);
-  gap: clamp(3px, 1vw, 8px);
+  gap: clamp(2px, 0.8vw, 6px);
   user-select: none;
 }
 

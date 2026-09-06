@@ -9,6 +9,7 @@
       <div class="paused-overlay">
         <p class="paused-title">PAUSED</p>
         <button class="resume-btn" @click="handleResume">Resume</button>
+        <button class="exit-btn" @click="handleExit">Exit to Menu</button>
       </div>
     </template>
 
@@ -23,7 +24,7 @@
         </span>
       </div>
 
-      <p class="phase-caption">
+      <p class="phase-caption" aria-live="polite">
         <template v-if="status === 'intro'">{{ isRetry ? `Retry Level ${level}` : `Level ${level}` }}<br />Watch...</template>
         <template v-else-if="status === 'playback'">Watch...</template>
         <template v-else-if="status === 'input'">Your turn<br />{{ playerIndex }} / {{ sequenceLength }}</template>
@@ -54,10 +55,10 @@ const props = defineProps({
   difficultyKey: { type: String, default: null },
   continueGame: { type: Boolean, default: false },
 })
-const emit = defineEmits(['finished'])
+const emit = defineEmits(['finished', 'exit'])
 
 const { getActive, saveActive, clearActive } = useMemoryStorage()
-const { recordStart, recordCompletion } = useMemoryStats()
+const { recordStart, recordCompletion, recordAbandon } = useMemoryStats()
 
 // Level completion / mistake resolution happens asynchronously (after a
 // brief result message), well after the tap that triggered it — nothing
@@ -93,6 +94,13 @@ function handlePause() {
 
 function handleResume() {
   game.resumeGame()
+}
+
+function handleExit() {
+  recordAbandon(difficulty.value || props.difficultyKey)
+  clearActive()
+  game.reset()
+  emit('exit')
 }
 
 function handleVisibilityChange() {
@@ -186,6 +194,17 @@ watch(status, (val) => {
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
+}
+
+.exit-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0.5rem;
 }
 
 .hud {

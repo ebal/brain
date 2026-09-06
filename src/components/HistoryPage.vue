@@ -68,6 +68,7 @@
 import { ref, computed } from 'vue'
 import { DIFFICULTIES, MODES } from '../constants/colors.js'
 import { useScoreHistory } from '../composables/useScoreHistory.js'
+import { useBestScores } from '../composables/useBestScores.js'
 
 const props = defineProps({
   initialMode: { type: String, default: 'color' },
@@ -81,6 +82,7 @@ const activeMode = ref(props.initialMode)
 const activeDifficulty = ref(props.initialDifficulty)
 
 const { getHistory } = useScoreHistory()
+const { getBest } = useBestScores()
 
 const history = computed(() => getHistory(activeMode.value, activeDifficulty.value))
 const reversedHistory = computed(() => [...history.value].reverse())
@@ -88,7 +90,8 @@ const reversedHistory = computed(() => [...history.value].reverse())
 const difficultyLabel = computed(() => DIFFICULTIES[activeDifficulty.value].label)
 const modeLabel = computed(() => MODES[activeMode.value].label)
 
-const bestScore = computed(() => Math.max(...history.value.map((h) => h.score)))
+// The true persisted best, not an approximation from the capped display window.
+const bestScore = computed(() => getBest(activeMode.value, activeDifficulty.value)?.score ?? 0)
 const avgScore = computed(() =>
   Math.round(history.value.reduce((sum, h) => sum + h.score, 0) / history.value.length)
 )

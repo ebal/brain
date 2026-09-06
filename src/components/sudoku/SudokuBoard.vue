@@ -69,7 +69,12 @@ function isWrong(row, col) {
 
 <style scoped>
 .board-wrap {
-  width: min(92vw, 480px);
+  /* 9 cells across a ~350px phone screen means every pixel matters for
+     touch-target size — this deliberately extends slightly past the
+     shell's normal content width (see .app-shell padding) rather than the
+     stricter 100%, since the full padding leaves cells uncomfortably
+     small (measured ~36px vs ~38-39px here) on the narrowest phones. */
+  width: min(95vw, 480px);
   aspect-ratio: 1;
 }
 

@@ -3,21 +3,11 @@ import { createDeck, shuffleDeck, makeRng } from './deck.js'
 import { isSet, firstFailingProperty } from './setValidator.js'
 import { findAllSets } from './setFinder.js'
 import { BOARD_SIZE, DEAL_INCREMENT } from '../../constants/set/cardProperties.js'
+import { avg, median } from '../mathStats.js'
 
 const TIMER_TICK_MS = 250
 const VALID_FEEDBACK_MS = 500
 const INVALID_FEEDBACK_MS = 1400 // longer so Easy mode's explanation is readable
-
-function avg(arr) {
-  return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0
-}
-
-function median(arr) {
-  if (!arr.length) return 0
-  const sorted = [...arr].sort((a, b) => a - b)
-  const mid = Math.floor(sorted.length / 2)
-  return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
-}
 
 export function useSetGame(onChange) {
   const status = ref('idle') // idle | playing | paused | finished

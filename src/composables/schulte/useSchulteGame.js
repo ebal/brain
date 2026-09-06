@@ -1,4 +1,5 @@
 import { ref, computed } from 'vue'
+import { avg, median } from '../mathStats.js'
 
 const WRONG_FLASH_MS = 300
 const ELAPSED_TICK_MS = 100
@@ -11,17 +12,6 @@ function shuffle(arr) {
     ;[a[i], a[j]] = [a[j], a[i]]
   }
   return a
-}
-
-function avg(arr) {
-  return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0
-}
-
-function median(arr) {
-  if (!arr.length) return 0
-  const sorted = [...arr].sort((a, b) => a - b)
-  const mid = Math.floor(sorted.length / 2)
-  return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
 }
 
 export function useSchulteGame() {
@@ -37,6 +27,7 @@ export function useSchulteGame() {
   let totalCells = 0
   let roundStartTime = 0
   let lastCorrectTime = 0
+  let hiddenAt = 0
   let countdownId = null
   let goTimeoutId = null
   let elapsedId = null
@@ -107,6 +98,22 @@ export function useSchulteGame() {
     }
   }
 
+  // Backgrounding the tab doesn't pause performance.now(), so without this,
+  // completionTime (the primary metric — anchored to roundStartTime) and
+  // whichever interval spans the hidden period would silently absorb the
+  // entire hidden wall-clock gap. Shifting both anchors forward excludes it
+  // without needing any new paused UI (Schulte has no round timer to pause).
+  function handleVisibilityChange() {
+    if (document.hidden) {
+      if (status.value === 'playing') hiddenAt = performance.now()
+    } else if (hiddenAt) {
+      const gap = performance.now() - hiddenAt
+      roundStartTime += gap
+      lastCorrectTime += gap
+      hiddenAt = 0
+    }
+  }
+
   function finish(now) {
     completionTime.value = now - roundStartTime
     clearInterval(elapsedId)
@@ -158,5 +165,6 @@ export function useSchulteGame() {
     start,
     select,
     reset,
+    handleVisibilityChange,
   }
 }

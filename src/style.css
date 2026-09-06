@@ -30,8 +30,39 @@ button {
   font-family: inherit;
 }
 
+/* Baseline tap feedback and focus ring for every button in the app — any
+   component that already defines its own (higher-specificity) :active or
+   :focus-visible rule keeps that instead; this is only the default for
+   everything that doesn't. Scoped so it never shows for a mouse/touch click
+   (:focus-visible only matches keyboard/programmatic focus), only for
+   keyboard navigation. */
+button {
+  transition: transform 0.08s ease;
+}
+
+button:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 .app-shell {
   min-height: 100vh;
+  min-height: 100dvh; /* mobile Safari's collapsible address bar makes 100vh unreliable */
   display: flex;
   align-items: center;
   justify-content: center;

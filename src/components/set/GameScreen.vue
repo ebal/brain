@@ -4,6 +4,7 @@
       <div class="paused-overlay">
         <p class="paused-title">PAUSED</p>
         <button class="resume-btn" @click="handleResume">Resume</button>
+        <button class="exit-btn" @click="handleExit">Exit to Menu</button>
       </div>
     </template>
 
@@ -19,7 +20,7 @@
         <span class="stat">Deck {{ deckSize }}</span>
       </div>
 
-      <div v-if="feedback" class="feedback-banner" :class="feedback">
+      <div v-if="feedback" class="feedback-banner" :class="feedback" aria-live="assertive">
         <template v-if="feedback === 'valid'">SET!</template>
         <template v-else>
           Not a SET
@@ -65,10 +66,10 @@ const props = defineProps({
   difficultyKey: { type: String, default: null },
   continueGame: { type: Boolean, default: false },
 })
-const emit = defineEmits(['finished'])
+const emit = defineEmits(['finished', 'exit'])
 
 const { getActive, saveActive, clearActive } = useSetStorage()
-const { recordStart, recordCompletion } = useSetStats()
+const { recordStart, recordCompletion, recordAbandon } = useSetStats()
 
 // Some state changes (a found SET being removed/replenished) happen
 // asynchronously via an internal timeout, well after the click that
@@ -123,6 +124,13 @@ function handlePause() {
 
 function handleResume() {
   game.resumeTimer()
+}
+
+function handleExit() {
+  recordAbandon(difficulty.value)
+  clearActive()
+  game.reset()
+  emit('exit')
 }
 
 function handleVisibilityChange() {
@@ -194,6 +202,17 @@ watch(status, (val) => {
   font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
+}
+
+.exit-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0.5rem;
 }
 
 .hud {

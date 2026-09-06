@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import { paletteFor } from '../constants/colors.js'
+import { avg, median } from './mathStats.js'
 
 const INTER_TRIAL_GAP_MS = 250
 const TIMER_TICK_MS = 100
@@ -21,6 +22,7 @@ export function useStroopGame() {
   let goTimeoutId = null
   let gapTimeoutId = null
   let trialStartTime = 0
+  let hiddenAt = 0
   let congruentRatio = 0.25
   let mode = 'color'
 
@@ -114,6 +116,20 @@ export function useStroopGame() {
     }, INTER_TRIAL_GAP_MS)
   }
 
+  // Backgrounding the tab doesn't pause performance.now(), so without this a
+  // trial answered after returning from background would measure the entire
+  // hidden wall-clock gap as reaction time. Shifting the anchor forward by
+  // the hidden duration excludes it without needing any new paused UI.
+  function handleVisibilityChange() {
+    if (document.hidden) {
+      hiddenAt = performance.now()
+    } else if (hiddenAt) {
+      const gap = performance.now() - hiddenAt
+      if (status.value === 'playing') trialStartTime += gap
+      hiddenAt = 0
+    }
+  }
+
   function finish() {
     clearInterval(timerId)
     clearTimeout(gapTimeoutId)
@@ -141,14 +157,6 @@ export function useStroopGame() {
     const correct = correctTrials.length
     const wrong = wrongTrials.length
     const accuracy = total > 0 ? (correct / total) * 100 : 0
-
-    const avg = (arr) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0)
-    const median = (arr) => {
-      if (!arr.length) return 0
-      const sorted = [...arr].sort((a, b) => a - b)
-      const mid = Math.floor(sorted.length / 2)
-      return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
-    }
 
     const correctRTs = correctTrials.map((t) => t.rt)
     const avgResponseTime = avg(correctRTs)
@@ -179,5 +187,6 @@ export function useStroopGame() {
     start,
     answer,
     reset,
+    handleVisibilityChange,
   }
 }
