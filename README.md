@@ -98,6 +98,31 @@ out of scope). Every puzzle is verified to have exactly one solution.
 
 See [`Sudoku-SPEC.md`](./Sudoku-SPEC.md) for the full design rationale.
 
+## SET
+
+The classic pattern-recognition card game, rendered entirely with inline SVG (no card images —
+keeps it offline-capable for free). Every card has four independent properties (number, shape,
+color, shading), each with three values; three cards form a SET only if *every* property is either
+all the same or all different across them, using the actual mathematical rule rather than a
+maintained list.
+
+- Start with 12 cards; if none of them form a SET, 3 more are dealt automatically (repeatedly, if
+  needed) — the board can temporarily grow to 15, 18, or more before shrinking back toward 12 as
+  SETs are found.
+- **Easy** explains exactly which property failed on a wrong guess; **Medium** just says "Not a
+  SET"; **Hard** drops the explanation and visual assistance, without changing the underlying math
+  or board-size behavior.
+- **Progressive hints**: 1st press highlights one card of a real SET on the board, 2nd press a
+  second card, 3rd reveals the complete SET — unlimited, but any hint use disqualifies that game
+  from a new **Clean Best** time.
+- **Autosave & Continue Game**, auto-pause on tab-hidden (board hidden while paused), and
+  per-difficulty stats/streaks plus a combined, filterable history of the last 30 games — the same
+  conventions as Sudoku.
+- No synthetic score — completion time, SETs found, mistakes, hints, and median find time are the
+  primary measurements.
+
+See [`SET-SPEC.md`](./SET-SPEC.md) for the full design rationale.
+
 ## Offline / installable (PWA)
 
 The whole suite is installable as a Home Screen app (iOS/Android/desktop) and works fully offline
@@ -179,8 +204,8 @@ Compose picks up `.env` automatically from then on — no need to pass anything 
 
 ## Project structure
 
-All four games live in one Vue app, picked from a landing screen (`GameChooser.vue`) in `App.vue`.
-Stroop's files stay flat under `components/`/`composables/`/`constants/`; the other three each live
+All five games live in one Vue app, picked from a landing screen (`GameChooser.vue`) in `App.vue`.
+Stroop's files stay flat under `components/`/`composables/`/`constants/`; the other four each live
 in their own subfolder, so filenames that repeat across games (`MainMenu.vue`, `GameScreen.vue`,
 `useScoreHistory.js`, ...) never collide.
 
@@ -190,6 +215,7 @@ stroop/
 ├── Schulte-SPEC.md
 ├── NBack-SPEC.md
 ├── Sudoku-SPEC.md
+├── SET-SPEC.md
 ├── docker-compose.yml
 ├── package.json
 ├── vite.config.js
@@ -197,7 +223,7 @@ stroop/
 ├── public/                          # PWA icons (see Offline / PWA support below)
 └── src/
     ├── main.js
-    ├── App.vue                      # top-level: game chooser + all four games' screen state
+    ├── App.vue                      # top-level: game chooser + all five games' screen state
     ├── components/
     │   ├── GameChooser.vue          # landing screen — pick a game
     │   ├── MainMenu.vue             # Stroop
@@ -220,16 +246,24 @@ stroop/
     │   │   ├── GameScreen.vue
     │   │   ├── ResultsScreen.vue
     │   │   └── ResponseButtons.vue
-    │   └── sudoku/                  # Sudoku
+    │   ├── sudoku/                  # Sudoku
+    │   │   ├── MainMenu.vue
+    │   │   ├── AboutPage.vue
+    │   │   ├── HistoryPage.vue
+    │   │   ├── GameScreen.vue
+    │   │   ├── ResultsScreen.vue
+    │   │   ├── SudokuBoard.vue
+    │   │   ├── SudokuCell.vue
+    │   │   ├── NumberPad.vue
+    │   │   └── GameControls.vue
+    │   └── set/                     # SET
     │       ├── MainMenu.vue
     │       ├── AboutPage.vue
     │       ├── HistoryPage.vue
     │       ├── GameScreen.vue
     │       ├── ResultsScreen.vue
-    │       ├── SudokuBoard.vue
-    │       ├── SudokuCell.vue
-    │       ├── NumberPad.vue
-    │       └── GameControls.vue
+    │       ├── SetBoard.vue
+    │       └── SetCard.vue           # inline-SVG card rendering — no images
     ├── composables/
     │   ├── useStroopGame.js         # Stroop: trial generation, timer, scoring
     │   ├── useBestScores.js
@@ -243,15 +277,22 @@ stroop/
     │   │   ├── useNBackGame.js      # stimulus progression, timing, classification, scoring
     │   │   ├── useBestScores.js
     │   │   └── useScoreHistory.js
-    │   └── sudoku/
-    │       ├── sudokuSolver.js      # grid validity, full-grid generation, uniqueness checking
-    │       ├── difficultyRater.js   # human-technique solver — the actual difficulty classifier
-    │       ├── sudokuGenerator.js   # carves + classifies a puzzle for a requested difficulty
-    │       ├── generator.worker.js  # runs generation off the main thread
-    │       ├── useSudokuGenerator.js # promise-based wrapper around the worker
-    │       ├── useSudokuGame.js     # selection, input, notes, undo, mistakes, hints, timer/pause
-    │       ├── useSudokuStorage.js  # autosave / Continue Game
-    │       └── useSudokuStats.js    # per-difficulty stats + combined history
+    │   ├── sudoku/
+    │   │   ├── sudokuSolver.js      # grid validity, full-grid generation, uniqueness checking
+    │   │   ├── difficultyRater.js   # human-technique solver — the actual difficulty classifier
+    │   │   ├── sudokuGenerator.js   # carves + classifies a puzzle for a requested difficulty
+    │   │   ├── generator.worker.js  # runs generation off the main thread
+    │   │   ├── useSudokuGenerator.js # promise-based wrapper around the worker
+    │   │   ├── useSudokuGame.js     # selection, input, notes, undo, mistakes, hints, timer/pause
+    │   │   ├── useSudokuStorage.js  # autosave / Continue Game
+    │   │   └── useSudokuStats.js    # per-difficulty stats + combined history
+    │   └── set/
+    │       ├── deck.js              # createDeck/shuffleDeck — pure, no Vue
+    │       ├── setValidator.js      # isSet / findCompletingCard / firstFailingProperty
+    │       ├── setFinder.js         # findAllSets (internal — never exposed during play)
+    │       ├── useSetGame.js        # selection, board expansion/replenish, hints, timer/pause
+    │       ├── useSetStorage.js     # autosave / Continue Game
+    │       └── useSetStats.js       # per-difficulty stats + combined history
     └── constants/
         ├── colors.js                # Stroop: color palette, difficulty tiers, game modes
         ├── schulte/
@@ -259,9 +300,11 @@ stroop/
         ├── nback/
         │   ├── difficulties.js      # N-Back: N per difficulty, scored-trial counts
         │   └── colors.js            # N-Back: stimulus color palette (cycled, never repeats consecutively)
-        └── sudoku/
-            ├── difficulties.js      # Sudoku: difficulty labels
-            └── hardPool.json        # pre-vetted Hard puzzles (see above)
+        ├── sudoku/
+        │   ├── difficulties.js      # Sudoku: difficulty labels
+        │   └── hardPool.json        # pre-vetted Hard puzzles (see above)
+        └── set/
+            └── cardProperties.js    # SET: property names/colors, difficulty labels
 ```
 
 ## License

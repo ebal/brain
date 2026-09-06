@@ -19,6 +19,10 @@
         <h2>Sudoku</h2>
         <p>Classic 9×9 logic puzzle. Notes, hints, undo, and a real difficulty rating.</p>
       </button>
+      <button class="game-card" @click="$emit('choose', 'set')">
+        <h2>SET</h2>
+        <p>Spot three cards that make a SET. Visual perception &amp; pattern recognition.</p>
+      </button>
     </div>
   </div>
 </template>

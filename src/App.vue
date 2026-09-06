@@ -118,6 +118,33 @@
         @history="sudokuScreen = 'history'"
       />
     </template>
+
+    <template v-else-if="activeGame === 'set'">
+      <SetMainMenu
+        v-if="setScreen === 'menu'"
+        @start="handleSetStart"
+        @continue="handleSetContinue"
+        @about="setScreen = 'about'"
+        @history="setScreen = 'history'"
+        @exit="activeGame = null"
+      />
+      <SetAboutPage v-else-if="setScreen === 'about'" @menu="setScreen = 'menu'" />
+      <SetHistoryPage v-else-if="setScreen === 'history'" @menu="setScreen = 'menu'" />
+      <SetGameScreen
+        v-else-if="setScreen === 'game'"
+        :difficulty-key="setDifficulty"
+        :continue-game="setContinue"
+        @finished="handleSetFinished"
+      />
+      <SetResultsScreen
+        v-else-if="setScreen === 'results'"
+        :results="setResults"
+        :difficulty-key="setDifficulty"
+        @replay="handleSetStart(setDifficulty)"
+        @menu="setScreen = 'menu'"
+        @history="setScreen = 'history'"
+      />
+    </template>
   </div>
 </template>
 
@@ -149,7 +176,13 @@ import SudokuHistoryPage from './components/sudoku/HistoryPage.vue'
 import SudokuGameScreen from './components/sudoku/GameScreen.vue'
 import SudokuResultsScreen from './components/sudoku/ResultsScreen.vue'
 
-const activeGame = ref(null) // null | 'stroop' | 'schulte' | 'nback' | 'sudoku'
+import SetMainMenu from './components/set/MainMenu.vue'
+import SetAboutPage from './components/set/AboutPage.vue'
+import SetHistoryPage from './components/set/HistoryPage.vue'
+import SetGameScreen from './components/set/GameScreen.vue'
+import SetResultsScreen from './components/set/ResultsScreen.vue'
+
+const activeGame = ref(null) // null | 'stroop' | 'schulte' | 'nback' | 'sudoku' | 'set'
 
 // --- Stroop Effect Test ---
 const stroopScreen = ref('menu')
@@ -240,5 +273,28 @@ function handleSudokuFinished(results) {
   sudokuResults.value = results
   sudokuDifficulty.value = results.difficulty
   sudokuScreen.value = 'results'
+}
+
+// --- SET ---
+const setScreen = ref('menu')
+const setDifficulty = ref(null)
+const setContinue = ref(false)
+const setResults = ref(null)
+
+function handleSetStart(difficultyKey) {
+  setDifficulty.value = difficultyKey
+  setContinue.value = false
+  setScreen.value = 'game'
+}
+
+function handleSetContinue() {
+  setContinue.value = true
+  setScreen.value = 'game'
+}
+
+function handleSetFinished(results) {
+  setResults.value = results
+  setDifficulty.value = results.difficulty
+  setScreen.value = 'results'
 }
 </script>
