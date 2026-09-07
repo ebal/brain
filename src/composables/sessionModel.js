@@ -27,6 +27,7 @@ import { useSetStats } from './set/useSetStats.js'
 import { useMemoryStats } from './sequence-memory/useMemoryStats.js'
 import { useSwitchTrailStats } from './switchtrail/useSwitchTrailStats.js'
 import { useMemoryPairsStats } from './memorypairs/useMemoryPairsStats.js'
+import { METRIC_VERSIONS } from '../constants/metricVersions.js'
 
 export function mapStroopEntry(entry, mode, difficultyKey) {
   return {
@@ -44,6 +45,10 @@ export function mapStroopEntry(entry, mode, difficultyKey) {
     medianRT: null, // history stores avgResponseTime only, never a median
     mistakes: null, // history stores accuracy only, not a raw wrong-count
     hints: null, // Stroop has no hint concept
+    // Entries written before metricVersion existed simply predate the field —
+    // treated as version 1 for backwards compatibility (see constants/metricVersions.js).
+    metricVersion: entry.metricVersion ?? METRIC_VERSIONS.stroop,
+    appVersion: entry.appVersion ?? null,
   }
 }
 
@@ -67,6 +72,8 @@ export function mapSchulteEntry(entry, difficultyKey, mode = 'classic') {
     medianRT: entry.medianSearchTime,
     mistakes: entry.errors,
     hints: null, // Schulte has no hint concept
+    metricVersion: entry.metricVersion ?? METRIC_VERSIONS.schulte,
+    appVersion: entry.appVersion ?? null,
   }
 }
 
@@ -85,6 +92,8 @@ export function mapNBackEntry(entry, difficultyKey) {
     medianRT: entry.medianRT,
     mistakes: entry.misses + entry.falseAlarms,
     hints: null, // N-Back has no hint concept
+    metricVersion: entry.metricVersion ?? METRIC_VERSIONS.nback,
+    appVersion: entry.appVersion ?? null,
   }
 }
 
@@ -103,6 +112,8 @@ export function mapSudokuEntry(entry) {
     medianRT: null,
     mistakes: entry.mistakes,
     hints: entry.hints,
+    metricVersion: entry.metricVersion ?? METRIC_VERSIONS.sudoku,
+    appVersion: entry.appVersion ?? null,
   }
 }
 
@@ -121,6 +132,8 @@ export function mapSetEntry(entry) {
     medianRT: entry.medianFindTime,
     mistakes: entry.mistakes,
     hints: entry.hints,
+    metricVersion: entry.metricVersion ?? METRIC_VERSIONS.set,
+    appVersion: entry.appVersion ?? null,
   }
 }
 
@@ -139,6 +152,8 @@ export function mapSequenceMemoryEntry(entry) {
     medianRT: entry.medianTapTime,
     mistakes: entry.mistakes,
     hints: null, // Sequence Memory has no hint concept
+    metricVersion: entry.metricVersion ?? METRIC_VERSIONS['sequence-memory'],
+    appVersion: entry.appVersion ?? null,
   }
 }
 
@@ -161,6 +176,8 @@ export function mapSwitchTrailEntry(entry, mode = 'classic') {
     medianRT: entry.medianTransitionTime,
     mistakes: entry.errors,
     hints: null, // Switch Trail has no hint concept
+    metricVersion: entry.metricVersion ?? METRIC_VERSIONS.switchtrail,
+    appVersion: entry.appVersion ?? null,
   }
 }
 
@@ -179,11 +196,13 @@ export function mapMemoryPairsEntry(entry) {
     medianRT: null, // no per-selection RT is stored, only aggregate moves/time
     mistakes: entry.mistakes,
     hints: null, // Memory Pairs has no hint concept
+    metricVersion: entry.metricVersion ?? METRIC_VERSIONS.memorypairs,
+    appVersion: entry.appVersion ?? null,
   }
 }
 
 // Touches localStorage (via each game's own history/stats composable) to
-// aggregate every session across all six games into one common-shape list,
+// aggregate every session across all eight games into one common-shape list,
 // sorted oldest first. Nothing here is unit-tested directly — correctness
 // follows from the pure mapper functions above (which are) plus each game's
 // already-established getHistory()/getDerivedStats() reads.

@@ -1,5 +1,6 @@
 <template>
   <div class="chooser">
+    <p class="brand">Brain</p>
     <h1>Choose a Game</h1>
 
     <div class="game-grid">
@@ -38,9 +39,12 @@
     </div>
 
     <div class="footer-links">
-      <button class="data-link" @click="$emit('choose', 'activity')">Activity</button>
       <button class="data-link" @click="$emit('choose', 'benchmark-menu')">Run a Benchmark</button>
+      <button class="data-link" @click="$emit('choose', 'activity')">Activity</button>
+    </div>
+    <div class="footer-links footer-links--tertiary">
       <button class="data-link" @click="$emit('choose', 'data')">Manage Your Data</button>
+      <button class="data-link" @click="$emit('choose', 'about')">About</button>
     </div>
   </div>
 </template>
@@ -54,6 +58,15 @@ defineEmits(['choose'])
   max-width: 640px;
   width: 100%;
   text-align: center;
+}
+
+.brand {
+  margin: 0 0 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
 }
 
 h1 {
@@ -105,6 +118,12 @@ h1 {
   justify-content: center;
   gap: 1.5rem;
   margin-top: 1.5rem;
+}
+
+.footer-links--tertiary {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--surface-2);
 }
 
 .data-link {

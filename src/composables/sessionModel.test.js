@@ -28,7 +28,19 @@ describe('mapStroopEntry', () => {
       medianRT: null,
       mistakes: null,
       hints: null,
+      metricVersion: 1, // no metricVersion on the raw entry -> falls back to METRIC_VERSIONS.stroop
+      appVersion: null, // no appVersion on the raw entry -> stays null rather than fabricated
     })
+  })
+
+  it('an entry that already carries metricVersion/appVersion (written after this feature existed) keeps them as-is', () => {
+    const entry = {
+      score: 850, accuracy: 92.5, avgResponseTime: 640, date: '2026-01-01T00:00:00.000Z',
+      metricVersion: 1, appVersion: '1.0.0',
+    }
+    const session = mapStroopEntry(entry, 'color', 'easy')
+    expect(session.metricVersion).toBe(1)
+    expect(session.appVersion).toBe('1.0.0')
   })
 
   it('produces a different id for a different mode or difficulty with the same timestamp', () => {

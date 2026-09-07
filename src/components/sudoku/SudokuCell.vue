@@ -81,9 +81,9 @@ defineEmits(['click'])
 
 .value {
   /* Fixed fraction of the actual cell width (board width / 9), computed in
-     the parent — not a container-query unit. See Cognitive Test Suite's
-     Schulte Tables history for why: cqmin misbehaves when combined with
-     aspect-ratio inside a CSS Grid fr-track parent. */
+     the parent — not a container-query unit. See Brain's own Schulte Tables
+     history for why: cqmin misbehaves when combined with aspect-ratio
+     inside a CSS Grid fr-track parent. */
   font-size: var(--cell-value-font);
   font-weight: 700;
 }

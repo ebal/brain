@@ -12,6 +12,8 @@
 
     <ActivityDashboard v-else-if="activeGame === 'activity'" @menu="activeGame = null" />
 
+    <AboutBrain v-else-if="activeGame === 'about'" @menu="activeGame = null" />
+
     <template v-else-if="activeGame === 'stroop'">
       <MainMenu
         v-if="stroopScreen === 'menu'"
@@ -266,6 +268,7 @@ import GameChooser from './components/GameChooser.vue'
 import DataManagement from './components/DataManagement.vue'
 import BenchmarkMenu from './components/BenchmarkMenu.vue'
 import ActivityDashboard from './components/ActivityDashboard.vue'
+import AboutBrain from './components/AboutBrain.vue'
 import { BENCHMARK_CONFIGS } from './constants/benchmark.js'
 import { useBenchmarkHistory } from './composables/benchmarkHistory.js'
 import { getBaseline, compareToBaseline } from './composables/baseline.js'
@@ -327,7 +330,7 @@ import MemoryPairsHistoryPage from './components/memorypairs/HistoryPage.vue'
 import MemoryPairsGameScreen from './components/memorypairs/GameScreen.vue'
 import MemoryPairsResultsScreen from './components/memorypairs/ResultsScreen.vue'
 
-const activeGame = ref(null) // null | 'stroop' | 'schulte' | 'nback' | 'sudoku' | 'set' | 'sequence-memory' | 'switchtrail' | 'memorypairs' | 'data' | 'benchmark-menu' | 'activity'
+const activeGame = ref(null) // null | 'stroop' | 'schulte' | 'nback' | 'sudoku' | 'set' | 'sequence-memory' | 'switchtrail' | 'memorypairs' | 'data' | 'benchmark-menu' | 'activity' | 'about'
 
 // --- Benchmark mode (IMPROVEMENT-PLAN.md Phase 5) ---
 // A thin layer over normal play: launching from BenchmarkMenu reuses each

@@ -1,3 +1,5 @@
+import { METRIC_VERSIONS } from '../constants/metricVersions.js'
+
 const PREFIX = 'stroop:history:'
 const MAX_ENTRIES = 20
 
@@ -34,6 +36,8 @@ export function useScoreHistory() {
       accuracy: result.accuracy,
       avgResponseTime: result.avgResponseTime,
       date: new Date().toISOString(),
+      metricVersion: METRIC_VERSIONS.stroop,
+      appVersion: __APP_VERSION__,
     })
     write(mode, difficultyKey, entries.slice(-MAX_ENTRIES))
   }

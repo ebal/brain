@@ -1,198 +1,145 @@
-# Cognitive Test Suite
+# Brain
 
-A browser-based set of quick cognitive tests and puzzles, built with Vue 3 and Vite: a landing
-screen lets you pick between them, and each keeps its own scoring, history, and personal bests —
-plus a suite-wide [Benchmark mode](#benchmark-mode) with [personal baselines](#personal-baseline),
-an [Activity dashboard](#activity-dashboard), and full [data export/import](#your-data).
+A small, offline-first suite of quick cognitive games for attention, memory, and reasoning — built
+with Vue 3 and Vite, also deployed at brain.ebal.gr. Pick a game from the landing screen; each
+keeps its own scoring, history, and personal bests, plus a suite-wide
+[Benchmark mode](#benchmark-mode) with [personal baselines](#personal-baseline), an
+[Activity dashboard](#activity-dashboard), and full [data export/import](#your-data).
+
+**Brain measures your performance on these specific games, over time** — not general intelligence,
+brain health, or clinical cognitive ability. Repeated practice can improve scores just through
+familiarity with a task's own mechanics, so a rising score is best read as improved performance on
+that particular game, not proof of general cognitive improvement.
+
+| Game | Main focus |
+| --- | --- |
+| [Stroop Effect Test](#stroop-effect-test) | Inhibition / interference |
+| [Schulte Tables](#schulte-tables) | Visual search / attention |
+| [Number N-Back](#number-n-back) | Working memory |
+| [Sudoku](#sudoku) | Logic / reasoning |
+| [SET](#set) | Pattern recognition |
+| [Sequence Memory](#sequence-memory) | Visuospatial sequence memory |
+| [Switch Trail](#switch-trail) | Cognitive flexibility |
+| [Memory Pairs](#memory-pairs) | Visual/spatial associative memory |
+
+Detailed rules, scoring formulas, and design rationale for each game live in its own `*-SPEC.md`
+file, linked from each section below.
 
 ## Stroop Effect Test
 
-The classic [Stroop effect](https://en.wikipedia.org/wiki/Stroop_effect) task. You're shown a
-color name rendered in an ink color and must click the swatch matching the **ink color**, ignoring
-what the word says — most trials are deliberately incongruent (word ≠ ink color), which is what
-produces the measurable slowdown the test is named for.
+The classic [Stroop effect](https://en.wikipedia.org/wiki/Stroop_effect) task: name the **ink
+color** a word is printed in, ignoring what the word says — most trials are deliberately
+incongruent (word ≠ ink color), which is what produces the measurable slowdown the test is named
+for.
 
-- **Three game modes**: Color Match (tap the ink color — the classic task), Word Match (tap what the word says — the "word reading" control condition, which shows much less interference), and Underline Word (plays like Color Match, but ~25% of trials are randomly underlined and flip the target to the word instead — a cued task-switching variant that adds a rule-switching cost on top of the usual color/word interference).
-- **Four difficulty tiers** that scale on two axes at once — more color choices and a higher incongruent ratio:
-
-  | Difficulty | Colors | Duration | Incongruent / Congruent mix |
-  | --- | --- | --- | --- |
-  | Easy | 4 | 30 s | 50% / 50% |
-  | Medium | 6 | 60 s | 65% / 35% |
-  | Hard | 8 | 60 s | 80% / 20% |
-  | Very Hard | 10 | 90 s | 90% / 10% |
-
-- **End-of-round stats**: accuracy, average/median response time (correct trials only), interference score (avg RT<sub>incongruent</sub> − avg RT<sub>congruent</sub>, correct trials only, shown once at least 5 valid trials of each type exist), and a speed/accuracy-weighted total score.
-- **Score history**: the last 20 rounds per mode + difficulty, with a sparkline trend, stored in the browser via `localStorage` — no backend, no login.
-- **About / How to Play** page: rule explanation, congruent/incongruent examples, a full reference of every in-game color, and a live untimed practice trial.
-- Mobile-first layout with large tap targets.
+- **Three modes**: Color Match (the classic task), Word Match (the "word reading" control
+  condition), and Underline Word (a cued task-switching variant — plays like Color Match, but a
+  random fraction of trials flip the target to the word instead).
+- **Four difficulty tiers** scaling color count and incongruent ratio together.
+- Tracks accuracy, response time, and an interference score (incongruent vs. congruent RT),
+  with personal bests and history kept per mode and difficulty.
 
 See [`SPEC.md`](./SPEC.md) for the full design rationale and changelog.
 
 ## Schulte Tables
 
-A [Schulte Table](https://en.wikipedia.org/wiki/Schulte_table) visual-search and attention drill:
-find numbers 1..N² in ascending order on a square grid, as fast as you can. The grid is generated
-once per round and never moves — the task measures scanning and attention, not memory or tracking.
+A [Schulte Table](https://en.wikipedia.org/wiki/Schulte_table) visual-search drill: find numbers
+1..N² in ascending order on a grid that's generated once per round and never moves — the task
+measures scanning and attention, not memory or tracking.
 
-- **Six grid sizes**: 3×3 (Easy) through 8×8 (Extreme), with 5×5 (1–25) as the Classic,
-  reference difficulty.
-- **No round timer** — a round ends only when the final number is found; the running clock is
-  purely informational.
-- **End-of-round stats**: completion time (the primary metric), errors, accuracy, average/median
-  search time between consecutive correct picks, and fastest/slowest search.
+- **Six grid sizes**, 3×3 through 8×8, with 5×5 as the Classic reference difficulty. No round
+  timer — a round ends only when the final number is found.
 - **Personal bests require a zero-error round** — a fast round full of mistakes can't set a record.
-- **Score history**: the last 20 rounds per difficulty, with a completion-time sparkline, stored in `localStorage`.
-- **Two optional variants**, toggled independently before starting a round and available at every grid size: **Random Color** (each cell gets a random background, fixed for the round) and **Random Position** (numbers reshuffle among the still-unsolved cells after every correct tap). Each variant is tracked with its own separate best time/history, never mixed with Classic.
-- **About / How to Play** page with a static example and an untimed practice board.
+- **Two optional variants**, toggled independently and available at every grid size: **Random
+  Color** (a fixed random background per cell) and **Random Position** (numbers reshuffle among
+  the still-unsolved cells after every correct tap). Each is tracked separately from Classic.
 
 See [`Schulte-SPEC.md`](./Schulte-SPEC.md) for the full design rationale.
 
 ## Number N-Back
 
-A continuous working-memory task: numbers appear one at a time, and for each one (after N unscored
-setup stimuli) you decide whether it matches the number shown **N positions earlier** — not just
-whether it's appeared before.
+A continuous working-memory task: does the number shown now match the one shown **N positions
+earlier** — not just whether it's appeared before at all?
 
-- **Four N levels**: 1-back (Easy) through 4-back (Very Hard), with 2-back as the Classic,
-  reference difficulty. Difficulty comes purely from how far back you have to remember, not from
-  a larger number pool (always 1–9).
-- **Self-paced** — the stimulus waits for your response; no live reaction-time pressure (RT is
-  measured but hidden during play and doesn't affect score).
-- **Deliberately generated sequences**: ~30% of scored trials are real n-back matches, targets are
-  placed and validated before play so the ratio is stable and accidental matches can't sneak in.
-- **End-of-round summary split into Performance** (score, accuracy) **and N-Back Metrics** (hits,
-  misses, false alarms, correct rejections, average/median correct RT), kept visually separate on
-  purpose.
-- **Personal bests**: highest score, tied-broken by accuracy then lower median RT, tracked
-  separately per N level.
-- **Score history**: the last 20 rounds per N level, with score *and* accuracy trend sparklines.
-- **About / How to Play** page with a 2-back walkthrough and untimed 1/2/3-back practice.
+- **Four N levels**, 1-back through 4-back, with 2-back as the Classic reference difficulty.
+  Difficulty comes purely from how far back you have to remember, never a larger number pool.
+- **Self-paced** — the stimulus waits for your response; no live reaction-time pressure.
+- Deliberately generated/validated sequences keep the target-match ratio stable across rounds.
+- Score and accuracy are tracked separately from raw hit/miss/false-alarm counts.
 
 See [`NBack-SPEC.md`](./NBack-SPEC.md) for the full design rationale.
 
 ## Sudoku
 
 Classic 9×9 Sudoku, rated by an actual **human-technique logical solver** rather than clue count —
-a puzzle is Easy/Medium/Hard based on the hardest technique genuinely required to solve it (naked
-and hidden singles → pairs, locked candidates → triples and quads), and generation rejects anything
-that would need guessing or expert-tier techniques (X-Wing, Swordfish, forcing chains — explicitly
-out of scope). Every puzzle is verified to have exactly one solution.
+Easy/Medium/Hard reflects the hardest technique genuinely required to solve it, never guessing.
+Every puzzle is verified to have exactly one solution.
 
-- **Easy and Medium generate live**, off the main thread in a Web Worker, and are consistently
-  fast. **Hard** is served from a small pool of pre-vetted puzzles bundled with the app — live
-  generation measured real attempts taking well over a minute in the worst case (genuinely
-  "needs triples/quads but nothing harder" is a narrow slice of the puzzle space), so Hard puzzles
-  are generated once, offline, verified with the same solver, and shipped as a static asset — the
-  approach the spec itself allows for exactly this situation.
-- **Notes (pencil marks)**: candidates auto-clear from every peer cell (row/column/box) when a
-  value is correctly placed; Undo restores both the value and any notes it auto-cleared, without
-  ever rewinding the timer, mistake count, or hint count.
-- **Immediate mistake checking** — a wrong entry flashes and counts against you but is never
-  placed; there's no three-strikes fail state, you can always finish the puzzle.
-- **Hints** are unlimited but disqualify that solve from the **Clean Best** time (zero-hint solves
-  only), tie-broken by fewer mistakes.
-- **Autosave & Continue Game** — the active puzzle (including notes and full undo history)
-  survives a refresh or closed tab; starting a new puzzle over an unfinished one asks first.
-- **Timer pauses automatically** when the tab is hidden or Pause is tapped, and hides the board
-  while paused so you can't keep studying it.
-- Stats tracked per difficulty (started/completed/streaks/clean solves/avg+median time) plus a
-  combined, difficulty-filterable history of the last 30 completed puzzles.
+- Easy/Medium generate live off the main thread; **Hard** is served from a small pool of
+  pre-vetted puzzles (live generation was impractically slow for that narrow slice of puzzles).
+- Notes/pencil-marks with auto-clearing and full undo; immediate mistake-checking with no
+  three-strikes fail state — you can always finish the puzzle.
+- Unlimited hints, but any hint use disqualifies that solve from the zero-hint **Clean Best** time.
+- Autosave & Continue Game; timer auto-pauses and hides the board when the tab is hidden.
 
 See [`Sudoku-SPEC.md`](./Sudoku-SPEC.md) for the full design rationale.
 
 ## SET
 
-The classic pattern-recognition card game, rendered entirely with inline SVG (no card images —
-keeps it offline-capable for free). Every card has four independent properties (number, shape,
-color, shading), each with three values; three cards form a SET only if *every* property is either
-all the same or all different across them, using the actual mathematical rule rather than a
-maintained list.
+The classic pattern-recognition card game, rendered entirely with inline SVG (no card images, so
+it stays offline-capable for free). Find three cards where every property (number, shape, color,
+shading) is all-same or all-different, using the actual mathematical rule rather than a lookup
+list.
 
-- Start with 12 cards; if none of them form a SET, 3 more are dealt automatically (repeatedly, if
-  needed) — the board can temporarily grow to 15, 18, or more before shrinking back toward 12 as
-  SETs are found.
-- **Easy** explains exactly which property failed on a wrong guess; **Medium** just says "Not a
-  SET"; **Hard** drops the explanation and visual assistance, without changing the underlying math
-  or board-size behavior.
-- **Progressive hints**: 1st press highlights one card of a real SET on the board, 2nd press a
-  second card, 3rd reveals the complete SET — unlimited, but any hint use disqualifies that game
-  from a new **Clean Best** time.
-- **Autosave & Continue Game**, auto-pause on tab-hidden (board hidden while paused), and
-  per-difficulty stats/streaks plus a combined, filterable history of the last 30 games — the same
-  conventions as Sudoku.
-- No synthetic score — completion time, SETs found, mistakes, hints, and median find time are the
-  primary measurements.
+- Easy/Medium/Hard change only how much help you get on a wrong guess — never the underlying
+  math or board-size behavior.
+- **Progressive hints**, unlimited but any use disqualifies that game from a new **Clean Best**.
+- Autosave & Continue Game, auto-pause on tab-hidden, per-difficulty stats and history.
+- No synthetic score — completion time, mistakes, hints, and find time are the primary measurements.
 
 See [`SET-SPEC.md`](./SET-SPEC.md) for the full design rationale.
 
 ## Sequence Memory
 
 A "Simon Says"-style visuospatial memory game: watch a sequence of flashes on a 3×3 grid, then tap
-the same cells back in the same order. Each success extends the *same* sequence by one more step —
-it's never regenerated — so the game measures how long a pattern you can hold, not luck.
+the same cells back in order. Each success extends the *same* sequence by one more step — it's
+never regenerated — so the game measures how long a pattern you can hold, not luck.
 
-- **Difficulty changes lives and playback speed only** — Easy (3 lives, slow), Medium (2 lives,
-  normal), Hard (1 life, faster) — never the grid size or how fast playback speeds up as you climb
-  levels, so results stay comparable across a session.
-- **A mistake replays the exact same sequence** (never a new one) if a life remains — only running
-  out of lives ends the game.
-- **Cells carry no permanent identity** — no colors, numbers, or icons — only temporary flash
-  states, so what's being remembered is spatial position and order, nothing else.
-- **Pausing (manual or tab-hidden) always restarts the current level from its playback**, never
-  mid-sequence, and never costs a life — interruptions like a phone call are never penalized.
-- **Autosave & Continue Game**, per-difficulty stats/streaks, and a combined, filterable history
-  with a Longest-Sequence trend — the same conventions as Sudoku/SET.
-- **Longest sequence successfully completed** is the primary result and personal-best metric, tied
-  broken by fewer mistakes, then higher accuracy, then lower median tap time.
+- **Difficulty changes lives and playback speed only**, never grid size, so results stay
+  comparable across a session.
+- A mistake replays the same sequence (never a new one) if a life remains.
+- Cells carry no permanent identity — only temporary flash states — so what's remembered is
+  spatial position and order, nothing else.
+- **Longest sequence completed** is the primary result and personal-best metric.
 
 See [`Sequence-Memory-SPEC.md`](./Sequence-Memory-SPEC.md) for the full design rationale.
 
 ## Switch Trail
 
 A Trail Making-inspired task-switching game: tap spatially scattered targets in alternating order —
-`1 → A → 2 → B → 3 → C ...` — before the time limit expires. Targets are placed once per round with
-random (non-overlapping) positions and never move, so the task measures visual search, sequencing,
-and switching between numbers and letters, not memory of where things are.
+`1 → A → 2 → B → 3 → C ...` — before time runs out. Targets are placed once per round and never
+move, so the task measures visual search and switching, not memory of where things are.
 
-- **Four difficulties**: Easy (12 targets / 30s), Medium (16 / 45s), Hard (24 / 90s), and Extreme
-  (24 / 90s, plus every remaining target reshuffles position after each correct tap) — difficulty
-  comes from target density and switching, not tiny circles or poor contrast.
-- **Optional Random Color variant**, available at every difficulty: each target gets a random
-  background color, tracked with its own separate best score/time.
-- **Rejection-sampling board generation** guarantees no overlaps, readable labels, and practical
-  mobile tap targets; layouts support an internal deterministic seed for reproducibility/testing.
-- **A wrong tap costs points and flashes red** but never ends the round or resets progress — only
-  running out of time or completing every target ends a round.
-- **Score rewards both speed and accuracy**: +100 per correct target, −50 per error, a
-  remaining-time bonus and a +250 clean-completion bonus on a fully completed trail (incomplete
-  rounds get no time bonus), floored at 0.
-- **Best Score and Best Completion Time tracked separately** per difficulty, plus per-target
-  transition timing (average/median/fastest/slowest, and number→letter vs. letter→number direction).
-- **Pausing (tab-hidden) hides the board and shows Resume/Restart/Quit**, with a fresh 3-2-1 before
-  the board reappears — time spent hidden never counts against the round.
-- **About / How to Play** page with an untimed six-target practice trail.
+- **Four difficulties**, the last (Extreme) reshuffling every remaining target's position after
+  each correct tap — difficulty comes from density and switching, never tiny targets.
+- Seeded rejection-sampling board generation guarantees no overlaps and practical tap targets.
+- A wrong tap costs points and flashes red but never ends the round.
+- **Optional Random Color variant**, available at every difficulty, tracked separately.
 
 See [`Switch-Trail-SPEC.md`](./Switch-Trail-SPEC.md) for the full design rationale.
 
 ## Memory Pairs
 
-A classic emoji Concentration/Memory Match game: flip two face-down tiles at a time, and find every
-matching pair. The board is generated once and never changes — the task measures visual memory and
+A classic emoji Concentration/Memory Match game: flip two face-down tiles at a time and find every
+matching pair, on a board generated once and never changed — the task measures visual memory and
 spatial recall, not tracking a moving target.
 
-- **Five difficulties**: Easy (12 tiles / 6 pairs) through Extreme (36 / 18), scaling purely through
-  how many tile locations you have to remember — never tiny tiles or a shorter mismatch delay. Hard
-  and Very Hard render narrower-but-taller in portrait (tile/pair count never changes, only the grid
-  shape).
-- **Score rewards completion, fewer Moves, a faster time, and fewer Mistakes** — a mismatch is both
-  an extra Move *and* a Mistake, so it costs more than random guessing is worth. Floored at 0.
-- **Move Efficiency** (theoretical minimum Moves ÷ actual Moves) is tracked and shown separately
-  from Score, alongside raw Time, Moves, and Mistakes.
-- **Best Score, Best Time, and Best Move Efficiency tracked separately** per difficulty.
-- **Autosave & Continue Game** — pausing (manual or tab-hidden) cancels any in-flight tile selection
-  without penalty and hides unmatched tile faces; resuming shows a fresh 3-2-1 with the same board.
-- **About / How to Play** page with an untimed 2-pair practice board.
+- **Five difficulties** scaling purely through how many tile locations you have to remember —
+  never tiny tiles or a shorter mismatch delay.
+- Score rewards completion, fewer Moves, and fewer Mistakes; a mismatch is both an extra Move
+  *and* a Mistake, so it costs more than random guessing is worth.
+- **Move Efficiency** (theoretical-minimum Moves ÷ actual Moves) is tracked separately from Score.
+- Autosave & Continue Game — pausing cancels any in-flight selection without penalty.
 
 See [`Memory-Pairs-SPEC.md`](./Memory-Pairs-SPEC.md) for the full design rationale.
 
@@ -215,6 +162,16 @@ Switch Trail (Medium, 16 targets), Memory Pairs (Medium, 8 pairs).
 - Every benchmark session is stamped with a `benchmarkVersion`, so if these fixed configurations
   ever change, old and new benchmark results can never be silently mixed into the same comparison.
 
+## Metric Versioning
+
+The same idea extended to ordinary (non-benchmark) play: every newly written history entry also
+carries a per-game `metricVersion` (currently `1` for every game — nothing's measurement
+definition has changed yet) plus the `appVersion` that recorded it. If a game's score formula or
+measurement definition is ever changed meaningfully, that game's version in
+`src/constants/metricVersions.js` gets bumped, so old- and new-definition sessions never get
+silently averaged together. Older entries that predate this field simply don't have it and are
+treated as version 1 for backwards compatibility — nothing is rewritten or migrated.
+
 ## Personal Baseline
 
 Once a game has **at least 3 recorded benchmark sessions**, a baseline exists: the median of that
@@ -236,7 +193,8 @@ benchmark performance is trending — filterable to the last 7/30/90 days or all
 - **Benchmark Performance**: per game (Sudoku excluded, same reasoning as Benchmark Mode above) —
   your baseline, rolling median, a consistency measure (median absolute deviation, i.e. how much
   your results vary, not just where they land), your best result, most recent result, and
-  today-vs-baseline.
+  today-vs-baseline. Every trend stat shows the sample size it's based on (`n=`), so a change
+  based on 3 sessions is never confused with one based on 40.
 
 Deliberately **not** a unified cross-game score, and no invented population percentiles. A short
 note on the page itself makes clear these numbers describe performance on specific tasks over
@@ -250,7 +208,9 @@ recover data from if the browser's storage is ever cleared:
 
 - **Export All Data (JSON)** — a complete backup (history, stats, personal bests, benchmark
   history, and any in-progress game) across every game, versioned via `schemaVersion` so a future
-  export format change can never be silently misread as an older one.
+  export format change can never be silently misread as an older one. Individual history entries
+  also carry a per-game `metricVersion` (see [Metric versioning](#metric-versioning) below), which
+  survives export/import untouched since the whole entry is copied verbatim.
 - **Export History (CSV)** — a flattened, spreadsheet-friendly view of every session across every
   game.
 - **Import** — restore from a previously exported JSON file. Shows a preview (how many records,
@@ -364,13 +324,15 @@ alongside `GameChooser.vue`. Every tested module has a co-located `*.test.js` (o
 see [Tests](#tests)).
 
 ```
-stroop/
+brain/
 ├── SPEC.md
 ├── Schulte-SPEC.md
 ├── NBack-SPEC.md
 ├── Sudoku-SPEC.md
 ├── SET-SPEC.md
 ├── Sequence-Memory-SPEC.md
+├── Switch-Trail-SPEC.md
+├── Memory-Pairs-SPEC.md
 ├── AUDIT.md                         # repository audit — findings, what was/wasn't changed
 ├── IMPROVEMENT-PLAN.md              # phased plan this audit led to (this app's own changelog of sorts)
 ├── docker-compose.yml
@@ -387,6 +349,7 @@ stroop/
     │   ├── BenchmarkMenu.vue        # Benchmark Mode — fixed-config entry point per game
     │   ├── ActivityDashboard.vue    # Activity dashboard — engagement + benchmark performance
     │   ├── DataManagement.vue       # Your Data — export/import/delete
+    │   ├── AboutBrain.vue           # About — what Brain is, scientific-modesty note
     │   ├── MainMenu.vue             # Stroop
     │   ├── AboutPage.vue
     │   ├── HistoryPage.vue
@@ -503,6 +466,7 @@ stroop/
     │       └── useMemoryPairsStats.js  # per-difficulty best score/time/efficiency, stats + history
     └── constants/
         ├── benchmark.js             # Benchmark Mode: fixed per-game config + benchmarkVersion
+        ├── metricVersions.js        # per-game metricVersion numbers, see Metric Versioning above
         ├── colors.js                # Stroop: color palette, difficulty tiers, game modes
         ├── cellColors.js            # shared Random Color palette + WCAG-style contrast picker (Schulte, Switch Trail)
         ├── schulte/

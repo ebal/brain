@@ -19,9 +19,12 @@ export default defineConfig({
       injectRegister: false, // registered explicitly in main.js instead
       includeAssets: ['apple-touch-icon.png'],
       manifest: {
-        name: 'Cognitive Test Suite',
-        short_name: 'Cognitive Tests',
-        description: 'Six offline-capable cognitive tests: Stroop Effect, Schulte Tables, Number N-Back, Sudoku, SET, and Sequence Memory.',
+        name: 'Brain',
+        short_name: 'Brain',
+        // Deliberately doesn't enumerate the current game catalog — the
+        // manifest would go stale every time a game is added or removed
+        // otherwise. See README.md for the actual game list.
+        description: 'Offline cognitive games for attention, memory, reasoning and personal performance tracking.',
         start_url: '/',
         scope: '/',
         display: 'standalone',

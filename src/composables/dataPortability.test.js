@@ -56,6 +56,16 @@ describe('mergeValue', () => {
     const incoming = { bestStreak: 99 }
     expect(mergeValue(existing, incoming)).toEqual({ bestStreak: 10 })
   })
+
+  it('preserves metricVersion/appVersion on history entries through a merge — SPEC (improvement pass §4/§11): the field must survive export/import untouched', () => {
+    const existing = [{ completedAt: '2026-01-01', score: 1, metricVersion: 1, appVersion: '1.0.0' }]
+    const incoming = [{ completedAt: '2026-01-02', score: 2, metricVersion: 1, appVersion: '1.1.0' }]
+    const merged = mergeValue(existing, incoming)
+    expect(merged).toEqual([
+      { completedAt: '2026-01-01', score: 1, metricVersion: 1, appVersion: '1.0.0' },
+      { completedAt: '2026-01-02', score: 2, metricVersion: 1, appVersion: '1.1.0' },
+    ])
+  })
 })
 
 describe('csvEscape', () => {
@@ -79,6 +89,6 @@ describe('csvEscape', () => {
 describe('buildHistoryCSV', () => {
   it('produces at least a header row without throwing, even with no localStorage available', () => {
     const csv = buildHistoryCSV()
-    expect(csv.split('\n')[0]).toBe('game,difficulty,mode,completedAt,primaryMetric,accuracy,medianRT,mistakes,hints,duration')
+    expect(csv.split('\n')[0]).toBe('game,difficulty,mode,completedAt,primaryMetric,accuracy,medianRT,mistakes,hints,duration,metricVersion')
   })
 })

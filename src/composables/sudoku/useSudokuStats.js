@@ -1,4 +1,5 @@
 import { avg, median } from '../mathStats.js'
+import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
 
 const STATS_PREFIX = 'sudoku:stats:'
 const HISTORY_KEY = 'sudoku:history'
@@ -98,6 +99,8 @@ export function useSudokuStats() {
       hints: result.hints,
       cleanSolve,
       completedAt: new Date().toISOString(),
+      metricVersion: METRIC_VERSIONS.sudoku,
+      appVersion: __APP_VERSION__,
     })
     writeJSON(HISTORY_KEY, history.slice(-MAX_HISTORY))
 

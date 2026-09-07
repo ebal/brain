@@ -67,11 +67,11 @@
             <span class="value">{{ formatMetric(perf.game, perf.baseline.medianPrimaryMetric) }}</span>
           </div>
           <div class="perf-stat">
-            <span class="label">Rolling Median</span>
+            <span class="label">Rolling Median (n={{ perf.sampleSize }})</span>
             <span class="value">{{ formatMetric(perf.game, perf.rollingMedian) }}</span>
           </div>
           <div class="perf-stat">
-            <span class="label">Consistency (MAD)</span>
+            <span class="label">Consistency (MAD, n={{ perf.sampleSize }})</span>
             <span class="value">{{ formatMetric(perf.game, perf.mad) }}</span>
           </div>
           <div class="perf-stat">
@@ -83,7 +83,7 @@
             <span class="value">{{ formatMetric(perf.game, perf.mostRecent.primaryMetric) }}</span>
           </div>
           <div class="perf-stat" v-if="perf.recentDelta">
-            <span class="label">Recent vs. Baseline</span>
+            <span class="label">Recent vs. Baseline (n={{ perf.baseline.sampleSize }})</span>
             <span class="value" :class="perf.recentDelta.percentDelta >= 0 ? 'better' : 'worse'">
               {{ perf.recentDelta.percentDelta >= 0 ? '+' : '' }}{{ perf.recentDelta.percentDelta.toFixed(1) }}%
             </span>

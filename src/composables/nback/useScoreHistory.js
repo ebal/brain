@@ -1,3 +1,5 @@
+import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
+
 const PREFIX = 'nback:history:'
 const MAX_ENTRIES = 20
 
@@ -39,6 +41,8 @@ export function useScoreHistory() {
       avgRT: result.avgRT,
       medianRT: result.medianRT,
       date: new Date().toISOString(),
+      metricVersion: METRIC_VERSIONS.nback,
+      appVersion: __APP_VERSION__,
     })
     write(difficultyKey, entries.slice(-MAX_ENTRIES))
   }

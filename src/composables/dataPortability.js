@@ -170,7 +170,7 @@ export function storageFootprintChars() {
   return total
 }
 
-const CSV_COLUMNS = ['game', 'difficulty', 'mode', 'completedAt', 'primaryMetric', 'accuracy', 'medianRT', 'mistakes', 'hints', 'duration']
+const CSV_COLUMNS = ['game', 'difficulty', 'mode', 'completedAt', 'primaryMetric', 'accuracy', 'medianRT', 'mistakes', 'hints', 'duration', 'metricVersion']
 
 export function csvEscape(value) {
   if (value === null || value === undefined) return ''

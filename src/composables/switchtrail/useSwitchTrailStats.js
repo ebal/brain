@@ -4,6 +4,7 @@
 // schulte/useBestTimes.js + useScoreHistory.js.
 
 import { avg, median } from '../mathStats.js'
+import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
 
 const STATS_PREFIX = 'switchtrail:stats:'
 const HISTORY_PREFIX = 'switchtrail:history:'
@@ -153,6 +154,8 @@ export function useSwitchTrailStats() {
       fastestTransition: result.fastestTransition,
       slowestTransition: result.slowestTransition,
       completedAt: date,
+      metricVersion: METRIC_VERSIONS.switchtrail,
+      appVersion: __APP_VERSION__,
     })
     writeJSON(historyKeyFor(difficultyKey, variantKey), history.slice(-MAX_HISTORY))
 

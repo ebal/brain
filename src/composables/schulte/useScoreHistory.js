@@ -1,3 +1,5 @@
+import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
+
 const PREFIX = 'schulte:history:'
 const MAX_ENTRIES = 20
 
@@ -43,6 +45,8 @@ export function useScoreHistory() {
       avgSearchTime: result.avgSearchTime,
       medianSearchTime: result.medianSearchTime,
       date: new Date().toISOString(),
+      metricVersion: METRIC_VERSIONS.schulte,
+      appVersion: __APP_VERSION__,
     })
     write(difficultyKey, variantKey, entries.slice(-MAX_ENTRIES))
     return previous

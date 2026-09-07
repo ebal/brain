@@ -1,4 +1,5 @@
 import { avg, median } from '../mathStats.js'
+import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
 
 const STATS_PREFIX = 'set:stats:'
 const HISTORY_KEY = 'set:history'
@@ -107,6 +108,8 @@ export function useSetStats() {
       medianFindTime: result.medianFindTime,
       cleanGame: result.cleanGame,
       completedAt: new Date().toISOString(),
+      metricVersion: METRIC_VERSIONS.set,
+      appVersion: __APP_VERSION__,
     })
     writeJSON(HISTORY_KEY, history.slice(-MAX_HISTORY))
 

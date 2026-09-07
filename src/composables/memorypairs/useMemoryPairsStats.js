@@ -4,6 +4,7 @@
 
 import { avg, median } from '../mathStats.js'
 import { MEMORYPAIRS_DIFFICULTIES } from '../../constants/memorypairs/difficulties.js'
+import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
 
 const STATS_PREFIX = 'memorypairs:stats:'
 const HISTORY_PREFIX = 'memorypairs:history:'
@@ -146,6 +147,8 @@ export function useMemoryPairsStats() {
       moveEfficiency: result.moveEfficiency,
       pairs: result.totalPairs,
       completedAt: date,
+      metricVersion: METRIC_VERSIONS.memorypairs,
+      appVersion: __APP_VERSION__,
     })
     writeJSON(historyKeyFor(difficultyKey), history.slice(-MAX_HISTORY))
 
