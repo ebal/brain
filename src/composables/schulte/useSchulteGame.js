@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import { avg, median } from '../mathStats.js'
+import { randomCellColor } from '../../constants/cellColors.js'
 
 const WRONG_FLASH_MS = 300
 const ELAPSED_TICK_MS = 100
@@ -18,6 +19,7 @@ export function useSchulteGame() {
   const status = ref('idle') // idle | countdown | playing | finished
   const countdownValue = ref(0)
   const board = ref([]) // [{ number, state: 'pending' | 'correct' | 'wrong' }]
+  const cellColors = ref([]) // [hex, ...] per slot index, fixed for the round; [] when colorMode is off
   const target = ref(1)
   const selections = ref([])
   const elapsedMs = ref(0)
@@ -25,6 +27,8 @@ export function useSchulteGame() {
 
   let gridSize = 0
   let totalCells = 0
+  let colorMode = false
+  let dynamicMode = false
   let roundStartTime = 0
   let lastCorrectTime = 0
   let hiddenAt = 0
@@ -43,11 +47,40 @@ export function useSchulteGame() {
     board.value = numbers.map((number) => ({ number, state: 'pending' }))
   }
 
-  function start(difficulty) {
+  // Colors are tied to the SLOT (grid position), not the number — assigned
+  // once here and never touched again, even when dynamicMode later reshuffles
+  // which number sits in which slot. Keeps the "colorful board" effect
+  // simple: one fixed random palette per round, independent of repositioning.
+  function assignCellColors() {
+    cellColors.value = colorMode ? Array.from({ length: totalCells }, () => randomCellColor()) : []
+  }
+
+  // Dynamic mode (SPEC addition): after each correct tap, every still-
+  // pending cell's number is reshuffled among the still-pending slots — the
+  // just-solved cell and any earlier ones stay exactly where they are.
+  function reshufflePendingNumbers() {
+    const pendingIndices = []
+    const pendingNumbers = []
+    board.value.forEach((cell, i) => {
+      if (cell.state === 'pending') {
+        pendingIndices.push(i)
+        pendingNumbers.push(cell.number)
+      }
+    })
+    const reshuffled = shuffle(pendingNumbers)
+    pendingIndices.forEach((slotIndex, i) => {
+      board.value[slotIndex].number = reshuffled[i]
+    })
+  }
+
+  function start(difficulty, options = {}) {
     gridSize = difficulty.gridSize
     totalCells = gridSize * gridSize
+    colorMode = !!options.colorMode
+    dynamicMode = !!options.dynamicMode
     clearWrongTimeouts()
     buildBoard()
+    assignCellColors()
     target.value = 1
     selections.value = []
     elapsedMs.value = 0
@@ -87,6 +120,8 @@ export function useSchulteGame() {
       target.value += 1
       if (target.value > totalCells) {
         finish(now)
+      } else if (dynamicMode) {
+        reshufflePendingNumbers()
       }
     } else {
       selections.value.push({ expected: target.value, selected: cell.number, correct: false, elapsed, interval: null })
@@ -159,6 +194,7 @@ export function useSchulteGame() {
     status,
     countdownValue,
     board,
+    cellColors,
     target,
     elapsedMs,
     results,

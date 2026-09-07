@@ -745,5 +745,29 @@ No backend/database.
 
 Single Vite development container, matching the simplified architecture of the Stroop project.
 
+## 14. v2 addition: Random Color & Random Position variants
+
+Added after initial v1 implementation, at the user's request. Two independent checkboxes, shown
+before starting a round, available at every grid size alongside the existing Classic mode:
+
+- **Random Color** — each cell is assigned a random background color once, when the round starts.
+  Color is tied to the cell's grid position (not the number), so it stays fixed for the whole round
+  even when Random Position is also active. Only applies while a cell is `pending`; the existing
+  correct/wrong feedback colors always take priority. Uses a shared palette/contrast-picker module
+  (`constants/cellColors.js`, reused by Switch Trail's own Random Color variant) rather than a
+  Schulte-only color list.
+- **Random Position** — after every correct tap, the numbers still `pending` are reshuffled among
+  the still-pending cells (Fisher-Yates). Already-solved cells keep their number and position
+  exactly as found — this is the one deliberate, scoped exception to this spec's "the grid remains
+  completely fixed during play" rule (§1); that rule still holds exactly as written for Classic.
+- The two checkboxes are fully independent, so all four combinations (Classic, Color-only,
+  Position-only, Color+Position) are reachable, even though only the first three were explicitly
+  requested.
+- Scoring, timing, and the underlying grid-generation rules are otherwise unchanged. Each variant is
+  tracked as its own bucket per grid size (own best time, own history) — never merged with Classic's
+  or another variant's results. `classic` deliberately keeps the original, pre-existing storage key
+  shape (`schulte:best:<difficulty>`, `schulte:history:<difficulty>`) so no already-saved plain-
+  Schulte data changes format; only the new variants get an extra key segment.
+
 
 

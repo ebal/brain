@@ -4,12 +4,23 @@
     <h1>Schulte Tables</h1>
     <p class="subtitle">Find the numbers in order, as fast as you can.</p>
 
+    <div class="variant-toggles">
+      <label class="variant-check">
+        <input type="checkbox" v-model="colorMode" />
+        Random Color
+      </label>
+      <label class="variant-check">
+        <input type="checkbox" v-model="dynamicMode" />
+        Random Position (reshuffles after every correct tap)
+      </label>
+    </div>
+
     <div class="difficulty-grid">
       <button
         v-for="d in difficulties"
         :key="d.key"
         class="difficulty-card"
-        @click="$emit('start', d.key)"
+        @click="$emit('start', { difficultyKey: d.key, colorMode, dynamicMode })"
       >
         <div class="card-head">
           <h2>{{ d.label }}</h2>
@@ -31,20 +42,26 @@
 </template>
 
 <script setup>
-import { reactive, watchEffect } from 'vue'
+import { ref, reactive, watchEffect } from 'vue'
 import { SCHULTE_DIFFICULTIES } from '../../constants/schulte/difficulties.js'
+import { variantKeyFor } from '../../constants/schulte/variants.js'
 import { useBestTimes } from '../../composables/schulte/useBestTimes.js'
 
 defineEmits(['start', 'about', 'history', 'exit'])
 
 const difficulties = Object.values(SCHULTE_DIFFICULTIES)
+const colorMode = ref(false)
+const dynamicMode = ref(false)
 
 const { getBest } = useBestTimes()
 
+// Recomputes whenever the checkboxes change, so the "Best" preview on each
+// card always reflects the variant currently selected, not just Classic.
 const bestTimes = reactive({})
 watchEffect(() => {
+  const variantKey = variantKeyFor(colorMode.value, dynamicMode.value)
   for (const d of difficulties) {
-    bestTimes[d.key] = getBest(d.key)
+    bestTimes[d.key] = getBest(d.key, variantKey)
   }
 })
 </script>
@@ -80,6 +97,34 @@ h1 {
 .subtitle {
   color: var(--text-dim);
   margin-bottom: 1.5rem;
+}
+
+.variant-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.variant-check {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.variant-check input {
+  width: 1.15rem;
+  height: 1.15rem;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 .difficulty-grid {

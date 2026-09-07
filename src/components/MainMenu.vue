@@ -99,7 +99,7 @@ h1 {
 
 .mode-toggle {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.5rem;
   background: var(--surface);
   padding: 0.35rem;
@@ -111,9 +111,9 @@ h1 {
   background: none;
   border: none;
   color: var(--text-dim);
-  padding: 0.85rem 0.5rem;
+  padding: 0.85rem 0.4rem;
   border-radius: 9px;
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 700;
   cursor: pointer;
 }

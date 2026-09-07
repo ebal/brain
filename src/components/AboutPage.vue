@@ -24,14 +24,22 @@
         The rule: tap the button that matches the <strong>color the word is printed in</strong>
         — ignore what the word actually says. This is the classic, harder version of the test.
       </template>
-      <template v-else>
+      <template v-else-if="activeMode === 'word'">
         The rule: tap the button that matches <strong>what the word says</strong> — ignore the
         color it's printed in. This direction is much easier, since reading is automatic.
+      </template>
+      <template v-else>
+        The rule: same as Color Match — tap the <strong>ink color</strong> — except on the
+        {{ Math.round(underlineRatio * 100) }}% of trials where the word is
+        <strong style="text-decoration: underline">underlined</strong>. On those, tap
+        <strong>what the word says</strong> instead. You have to keep checking which rule applies,
+        trial by trial.
       </template>
     </div>
 
     <h2>Two kinds of trials</h2>
-    <div class="examples-static">
+
+    <div v-if="activeMode !== 'underline'" class="examples-static">
       <div v-for="(ex, i) in examples" :key="i" class="example-card">
         <div class="example-word" :style="{ color: ex.ink.hex }">{{ ex.display }}</div>
         <p class="example-caption">
@@ -45,6 +53,29 @@
             it's printed in {{ ex.ink.name }} ink, but the word itself says "{{ ex.wordName }}".
             Correct answer: <strong>{{ ex.wordName }}</strong>.
           </template>
+        </p>
+      </div>
+    </div>
+
+    <div v-else class="examples-static">
+      <div class="example-card">
+        <div class="example-word" :style="{ color: underlineExamples[0].ink.hex }">
+          {{ underlineExamples[0].display }}
+        </div>
+        <p class="example-caption">
+          <strong>Not underlined</strong> — behaves exactly like Color Match. Correct answer:
+          <strong :style="{ color: underlineExamples[0].ink.hex }">{{ underlineExamples[0].ink.name }}</strong>
+          (the ink color).
+        </p>
+      </div>
+      <div class="example-card">
+        <div class="example-word underline" :style="{ color: underlineExamples[1].ink.hex }">
+          {{ underlineExamples[1].display }}
+        </div>
+        <p class="example-caption">
+          <strong>Underlined</strong> — the rule flips for this one trial only. Correct answer:
+          <strong>{{ underlineExamples[1].wordName }}</strong> (what the word says), even though
+          it's printed in {{ underlineExamples[1].ink.name }} ink.
         </p>
       </div>
     </div>
@@ -84,7 +115,9 @@
 
     <div class="demo">
       <div class="stimulus-area" :class="feedback ? `feedback-${feedback}` : ''">
-        <div class="word" :style="{ color: example.color.hex }">{{ example.word }}</div>
+        <div class="word" :class="{ underline: example.underline }" :style="{ color: example.color.hex }">
+          {{ example.word }}
+        </div>
       </div>
 
       <p class="feedback-text" :class="feedback">
@@ -97,8 +130,14 @@
         <template v-else-if="activeMode === 'color'">
           Tap the button matching the ink color above.
         </template>
-        <template v-else>
+        <template v-else-if="activeMode === 'word'">
           Tap the button matching what the word says.
+        </template>
+        <template v-else-if="example.underline">
+          Underlined — tap what the word says.
+        </template>
+        <template v-else>
+          Not underlined — tap the ink color, same as Color Match.
         </template>
       </p>
 
@@ -121,7 +160,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import ColorButton from './ColorButton.vue'
-import { paletteFor, COLOR_PALETTE, DIFFICULTIES, MODES } from '../constants/colors.js'
+import { paletteFor, COLOR_PALETTE, DIFFICULTIES, MODES, UNDERLINE_RATIO } from '../constants/colors.js'
 
 const props = defineProps({
   initialMode: { type: String, default: 'color' },
@@ -132,6 +171,7 @@ const palette = paletteFor(4)
 const difficulties = Object.values(DIFFICULTIES)
 const modes = MODES
 const activeMode = ref(props.initialMode)
+const underlineRatio = UNDERLINE_RATIO
 
 function colorByName(name) {
   return COLOR_PALETTE.find((c) => c.name === name)
@@ -148,6 +188,14 @@ const examples = computed(() =>
   STATIC_EXAMPLES.map((ex) => ({ ...ex, congruent: ex.wordName === ex.ink.name }))
 )
 
+// Static, always incongruent (so the underline/ink distinction reads
+// clearly) — unlike `examples` above these two illustrate Underline Word
+// specifically, not word/ink congruency.
+const underlineExamples = [
+  { display: 'PURPLE', wordName: 'Purple', ink: colorByName('Orange') },
+  { display: 'BLUE', wordName: 'Blue', ink: colorByName('Red') },
+]
+
 function pickRandom(arr) {
   return arr[Math.floor(Math.random() * arr.length)]
 }
@@ -156,15 +204,17 @@ function generate() {
   const word = pickRandom(palette)
   const congruent = Math.random() < 0.5
   const color = congruent ? word : pickRandom(palette.filter((c) => c.name !== word.name))
-  return { word: word.name, color }
+  const underline = activeMode.value === 'underline' && Math.random() < UNDERLINE_RATIO
+  return { word: word.name, color, underline }
 }
 
 const example = ref(generate())
 const feedback = ref(null)
 
-const target = computed(() =>
-  activeMode.value === 'word' ? example.value.word : example.value.color.name
-)
+const target = computed(() => {
+  const respondToWord = activeMode.value === 'word' || example.value.underline
+  return respondToWord ? example.value.word : example.value.color.name
+})
 
 function answer(colorName) {
   feedback.value = colorName === target.value ? 'correct' : 'wrong'
@@ -194,7 +244,7 @@ h2 {
 
 .mode-toggle {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.5rem;
   background: var(--surface);
   padding: 0.35rem;
@@ -206,9 +256,9 @@ h2 {
   background: none;
   border: none;
   color: var(--text-dim);
-  padding: 0.85rem 0.5rem;
+  padding: 0.85rem 0.4rem;
   border-radius: 9px;
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 700;
   cursor: pointer;
 }
@@ -249,6 +299,12 @@ h2 {
   font-size: 2rem;
   font-weight: 800;
   margin-bottom: 0.75rem;
+}
+
+.example-word.underline {
+  text-decoration: underline;
+  text-decoration-thickness: 0.06em;
+  text-underline-offset: 0.16em;
 }
 
 .example-caption {
@@ -325,6 +381,12 @@ h2 {
   font-size: 2.75rem;
   font-weight: 800;
   letter-spacing: 0.02em;
+}
+
+.word.underline {
+  text-decoration: underline;
+  text-decoration-thickness: 0.07em;
+  text-underline-offset: 0.17em;
 }
 
 .feedback-text {

@@ -154,4 +154,89 @@ describe('useStroopGame', () => {
     expect(game.results.value.correct).toBeGreaterThan(0)
     expect(game.results.value.wrong).toBe(0)
   })
+
+  describe('"underline" mode', () => {
+    it('never flags underline in color or word mode', () => {
+      for (const mode of ['color', 'word']) {
+        const game = useStroopGame()
+        startAndReachPlaying(game, DIFFICULTIES.easy, mode)
+        for (let i = 0; i < 30 && game.status.value === 'playing'; i++) {
+          expect(game.currentTrial.value.underline).toBe(false)
+          game.answer(game.currentTrial.value.color.name)
+          advance(INTER_TRIAL_GAP_MS)
+        }
+      }
+    })
+
+    it('keeps the empirical underline ratio close to UNDERLINE_RATIO over many trials', () => {
+      const game = useStroopGame()
+      startAndReachPlaying(game, DIFFICULTIES.easy, 'underline')
+
+      let underlineCount = 0
+      let total = 0
+      for (let i = 0; i < 150 && game.status.value === 'playing'; i++) {
+        if (game.currentTrial.value.underline) underlineCount += 1
+        total += 1
+        // Answer with whichever is correct for this trial so the round runs to completion.
+        const trial = game.currentTrial.value
+        game.answer(trial.underline ? trial.word : trial.color.name)
+        advance(INTER_TRIAL_GAP_MS)
+      }
+
+      expect(total).toBeGreaterThan(80)
+      // UNDERLINE_RATIO is 0.25; binomial std dev at p=0.25, n~150 is ~5.6 — a
+      // generous window while still catching a badly broken ratio.
+      expect(underlineCount).toBeGreaterThan(total * 0.25 - 25)
+      expect(underlineCount).toBeLessThan(total * 0.25 + 25)
+    })
+
+    // Searches for a trial matching `predicate`, answering each skipped
+    // trial correctly (so the round doesn't rack up unrelated wrong answers)
+    // and bailing out if the round ends before one is found — a fresh Easy
+    // round fits well over 80 trials, and a joint condition like "underlined
+    // and incongruent" (~12.5% of trials) is overwhelmingly likely to turn
+    // up well within that, but this keeps the test from throwing on a null
+    // currentTrial in the unlucky tail instead of asserting something wrong.
+    function findTrial(game, predicate, maxAttempts = 80) {
+      for (let i = 0; i < maxAttempts && game.status.value === 'playing'; i++) {
+        const trial = game.currentTrial.value
+        if (predicate(trial)) return trial
+        game.answer(trial.underline ? trial.word : trial.color.name)
+        advance(INTER_TRIAL_GAP_MS)
+      }
+      return game.status.value === 'playing' ? game.currentTrial.value : null
+    }
+
+    it('a non-underlined trial is scored like Color Match: ink color is correct, the word is wrong', () => {
+      const game = useStroopGame()
+      startAndReachPlaying(game, DIFFICULTIES.easy, 'underline')
+
+      // congruent === false so word !== ink color is a meaningful distinction.
+      const trial = findTrial(game, (t) => !t.underline && !t.congruent)
+      expect(trial).not.toBeNull()
+
+      game.answer(trial.word) // wrong: target is the ink color, not the word
+      expect(game.results.value.wrong).toBe(1)
+    })
+
+    it('an underlined trial flips the target to the word: the ink color is wrong, the word is correct', () => {
+      const game = useStroopGame()
+      startAndReachPlaying(game, DIFFICULTIES.easy, 'underline')
+
+      const trial = findTrial(game, (t) => t.underline && !t.congruent)
+      expect(trial).not.toBeNull()
+
+      game.answer(trial.color.name) // wrong: target is the word on an underlined trial
+      expect(game.results.value.wrong).toBe(1)
+      advance(INTER_TRIAL_GAP_MS)
+
+      if (game.status.value !== 'playing') return // round ended right on that last trial
+      const nextTrial = findTrial(game, (t) => t.underline && !t.congruent)
+      expect(nextTrial).not.toBeNull()
+
+      const correctBefore = game.results.value.correct
+      game.answer(nextTrial.word)
+      expect(game.results.value.correct).toBe(correctBefore + 1)
+    })
+  })
 })

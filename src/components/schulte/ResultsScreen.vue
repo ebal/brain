@@ -1,7 +1,10 @@
 <template>
   <div class="results">
     <h1>Table Complete</h1>
-    <p class="difficulty-name">{{ difficultyLabel }} · {{ difficulty.gridSize }}×{{ difficulty.gridSize }}</p>
+    <p class="difficulty-name">
+      {{ difficultyLabel }} · {{ difficulty.gridSize }}×{{ difficulty.gridSize }}
+      <template v-if="variantLabel"> · {{ variantLabel }}</template>
+    </p>
 
     <div v-if="isNewBest" class="new-best-banner">New Best Time!</div>
 
@@ -38,7 +41,7 @@
     </div>
 
     <div class="best-compare" v-if="best">
-      <h3>Personal Best (zero-error) · {{ difficultyLabel }}</h3>
+      <h3>Personal Best (zero-error) · {{ difficultyLabel }}<template v-if="variantLabel"> · {{ variantLabel }}</template></h3>
       <p>{{ (best.completionTime / 1000).toFixed(2) }}s</p>
     </div>
     <div class="best-compare" v-else-if="results.errors > 0">
@@ -46,7 +49,7 @@
     </div>
 
     <div class="best-compare" v-if="previous">
-      <h3>Previous Round · {{ difficultyLabel }}</h3>
+      <h3>Previous Round · {{ difficultyLabel }}<template v-if="variantLabel"> · {{ variantLabel }}</template></h3>
       <p>{{ (previous.completionTime / 1000).toFixed(2) }}s</p>
     </div>
 
@@ -55,7 +58,7 @@
       <button class="secondary" @click="$emit('menu')">Back to Menu</button>
     </div>
 
-    <button class="history-link" @click="$emit('history', { difficultyKey })">
+    <button class="history-link" @click="$emit('history', { difficultyKey, colorMode, dynamicMode })">
       View Score History →
     </button>
   </div>
@@ -63,20 +66,32 @@
 
 <script setup>
 import { SCHULTE_DIFFICULTIES } from '../../constants/schulte/difficulties.js'
+import { variantKeyFor } from '../../constants/schulte/variants.js'
 import { useBestTimes } from '../../composables/schulte/useBestTimes.js'
 import { useScoreHistory } from '../../composables/schulte/useScoreHistory.js'
 
 const props = defineProps({
   results: { type: Object, required: true },
   difficultyKey: { type: String, required: true },
+  colorMode: { type: Boolean, default: false },
+  dynamicMode: { type: Boolean, default: false },
 })
 defineEmits(['replay', 'menu', 'history'])
 
+const variantKey = variantKeyFor(props.colorMode, props.dynamicMode)
+const variantLabel = props.colorMode && props.dynamicMode
+  ? 'Random Color + Position'
+  : props.colorMode
+    ? 'Random Color'
+    : props.dynamicMode
+      ? 'Random Position'
+      : null
+
 const { submitTime, getBest } = useBestTimes()
 const { addEntry } = useScoreHistory()
-const { isNewBest } = submitTime(props.difficultyKey, props.results)
-const previous = addEntry(props.difficultyKey, props.results)
-const best = getBest(props.difficultyKey)
+const { isNewBest } = submitTime(props.difficultyKey, props.results, variantKey)
+const previous = addEntry(props.difficultyKey, props.results, variantKey)
+const best = getBest(props.difficultyKey, variantKey)
 const difficulty = Object.values(SCHULTE_DIFFICULTIES).find((d) => d.key === props.difficultyKey)
 const difficultyLabel = difficulty.label
 </script>

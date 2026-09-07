@@ -9,6 +9,10 @@
       <span class="timer">{{ (elapsedMs / 1000).toFixed(1) }}s</span>
     </div>
 
+    <p v-if="colorMode || dynamicMode" class="variant-tag">
+      {{ colorMode && dynamicMode ? 'Random Color + Position' : colorMode ? 'Random Color' : 'Random Position' }}
+    </p>
+
     <div class="grid-wrap">
       <div class="schulte-grid" :style="{ '--grid-size': difficulty.gridSize }">
         <SchulteCell
@@ -17,6 +21,7 @@
           :number="cell.number"
           :state="cell.state"
           :interactive="status === 'playing'"
+          :color="cellColors[i]"
           @click="game.select(i)"
         />
       </div>
@@ -44,11 +49,13 @@ import { SCHULTE_DIFFICULTIES } from '../../constants/schulte/difficulties.js'
 
 const props = defineProps({
   difficultyKey: { type: String, required: true },
+  colorMode: { type: Boolean, default: false },
+  dynamicMode: { type: Boolean, default: false },
 })
 const emit = defineEmits(['finished', 'exit'])
 
 const game = useSchulteGame()
-const { status, countdownValue, board, target, elapsedMs, results } = game
+const { status, countdownValue, board, cellColors, target, elapsedMs, results } = game
 
 const difficulty = computed(() =>
   Object.values(SCHULTE_DIFFICULTIES).find((d) => d.key === props.difficultyKey)
@@ -67,7 +74,7 @@ function confirmExit() {
 }
 
 onMounted(() => {
-  game.start(difficulty.value)
+  game.start(difficulty.value, { colorMode: props.colorMode, dynamicMode: props.dynamicMode })
   document.addEventListener('visibilitychange', game.handleVisibilityChange)
 })
 
@@ -128,6 +135,14 @@ watch(status, (val) => {
   font-variant-numeric: tabular-nums;
   color: var(--text-dim);
   font-size: 0.95rem;
+}
+
+.variant-tag {
+  margin: -0.4rem 0 0.6rem;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent);
 }
 
 .grid-wrap {

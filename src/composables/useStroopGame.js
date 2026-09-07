@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import { paletteFor } from '../constants/colors.js'
+import { paletteFor, UNDERLINE_RATIO } from '../constants/colors.js'
 import { avg, median } from './mathStats.js'
 
 const INTER_TRIAL_GAP_MS = 250
@@ -47,10 +47,16 @@ export function useStroopGame() {
       last.colorName === color.name
     )
 
+    // Underline Word mode only: an independent per-trial coin flip, unrelated
+    // to word/ink congruency above — whether this trial's target flips to
+    // the word instead of the ink color (SPEC addition).
+    const underline = mode === 'underline' && Math.random() < UNDERLINE_RATIO
+
     currentTrial.value = {
       word: word.name,
       color,
       congruent: word.name === color.name,
+      underline,
     }
     trialStartTime = performance.now()
   }
@@ -93,13 +99,18 @@ export function useStroopGame() {
     if (status.value !== 'playing' || !currentTrial.value) return
 
     const rt = performance.now() - trialStartTime
-    const target = mode === 'word' ? currentTrial.value.word : currentTrial.value.color.name
+    // Underline Word: this trial's own flag flips the target to the word,
+    // same as Word Match, only for that one trial — otherwise (including
+    // every trial in Color Match) the target is the ink color.
+    const respondToWord = mode === 'word' || currentTrial.value.underline
+    const target = respondToWord ? currentTrial.value.word : currentTrial.value.color.name
     const correct = colorName === target
 
     trials.value.push({
       word: currentTrial.value.word,
       colorName: currentTrial.value.color.name,
       congruent: currentTrial.value.congruent,
+      underline: currentTrial.value.underline,
       answered: colorName,
       correct,
       rt,

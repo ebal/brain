@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { useSchulteGame } from './useSchulteGame.js'
 import { SCHULTE_DIFFICULTIES } from '../../constants/schulte/difficulties.js'
+import { CELL_COLOR_PALETTE } from '../../constants/cellColors.js'
 import { avg, median } from '../mathStats.js'
 
 // Same manually-driven virtual clock pattern as useStroopGame.test.js —
@@ -13,8 +14,8 @@ function advance(ms) {
 
 const COUNTDOWN_TO_PLAYING_MS = 700 * 3 + 500 + 10
 
-function startAndReachPlaying(game, difficulty) {
-  game.start(difficulty)
+function startAndReachPlaying(game, difficulty, options) {
+  game.start(difficulty, options)
   advance(COUNTDOWN_TO_PLAYING_MS)
 }
 
@@ -117,5 +118,78 @@ describe('useSchulteGame', () => {
     expect(game.results.value.completionTime).toBeCloseTo(elapsed, 5)
     expect(game.results.value.errors).toBe(0)
     expect(game.results.value.accuracy).toBe(100)
+  })
+
+  describe('Random Color variant', () => {
+    it('leaves cellColors empty when colorMode is off', () => {
+      const game = useSchulteGame()
+      startAndReachPlaying(game, SCHULTE_DIFFICULTIES.easy)
+      expect(game.cellColors.value).toEqual([])
+    })
+
+    it('assigns one valid palette color per cell when colorMode is on', () => {
+      const game = useSchulteGame()
+      startAndReachPlaying(game, SCHULTE_DIFFICULTIES.medium, { colorMode: true }) // 16 cells
+      const validHexes = CELL_COLOR_PALETTE.map((c) => c.hex)
+
+      expect(game.cellColors.value).toHaveLength(16)
+      for (const hex of game.cellColors.value) expect(validHexes).toContain(hex)
+    })
+
+    it('colors stay fixed per slot across selections, even with dynamicMode also on', () => {
+      const game = useSchulteGame()
+      startAndReachPlaying(game, SCHULTE_DIFFICULTIES.easy, { colorMode: true, dynamicMode: true })
+      const before = [...game.cellColors.value]
+
+      advance(200)
+      game.select(indexOfNumber(game, 1))
+
+      expect(game.cellColors.value).toEqual(before)
+    })
+  })
+
+  describe('Random Position (dynamic) variant', () => {
+    it('reshuffles every still-pending cell\'s number after a correct tap, leaving solved cells untouched', () => {
+      const game = useSchulteGame()
+      startAndReachPlaying(game, SCHULTE_DIFFICULTIES.medium, { dynamicMode: true }) // 16 cells
+
+      const solvedIdx = indexOfNumber(game, 1)
+      advance(200)
+      game.select(solvedIdx)
+
+      // The solved cell keeps its number and 'correct' state.
+      expect(game.board.value[solvedIdx].number).toBe(1)
+      expect(game.board.value[solvedIdx].state).toBe('correct')
+
+      // Every number 2..16 is still present exactly once, just reshuffled
+      // among the pending slots (identity, not value, is what's stable now).
+      const pendingNumbers = game.board.value
+        .filter((c) => c.state === 'pending')
+        .map((c) => c.number)
+        .sort((a, b) => a - b)
+      expect(pendingNumbers).toEqual(Array.from({ length: 15 }, (_, i) => i + 2))
+    })
+
+    it('does not reshuffle after a wrong tap', () => {
+      const game = useSchulteGame()
+      startAndReachPlaying(game, SCHULTE_DIFFICULTIES.medium, { dynamicMode: true })
+      const before = game.board.value.map((c) => c.number)
+
+      advance(200)
+      game.select(indexOfNumber(game, 16)) // wrong: target is 1
+
+      expect(game.board.value.map((c) => c.number)).toEqual(before)
+    })
+
+    it('classic (dynamicMode off) never reshuffles, matching pre-existing behavior', () => {
+      const game = useSchulteGame()
+      startAndReachPlaying(game, SCHULTE_DIFFICULTIES.easy, { dynamicMode: false })
+      const before = game.board.value.map((c) => c.number)
+
+      advance(200)
+      game.select(indexOfNumber(game, 1))
+
+      expect(game.board.value.map((c) => c.number)).toEqual(before)
+    })
   })
 })

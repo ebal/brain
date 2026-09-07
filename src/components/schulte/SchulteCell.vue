@@ -2,6 +2,7 @@
   <button
     class="schulte-cell"
     :class="[state, { interactive }]"
+    :style="cellStyle"
     :disabled="state === 'correct' || !interactive"
     @click="$emit('click')"
   >
@@ -10,12 +11,25 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+import { textColorFor } from '../../constants/cellColors.js'
+
+const props = defineProps({
   number: { type: Number, required: true },
   state: { type: String, default: 'pending' }, // pending | correct | wrong
   interactive: { type: Boolean, default: true },
+  color: { type: String, default: null }, // Random Color variant — a per-slot hex, or null
 })
 defineEmits(['click'])
+
+// Only applies while pending — correct/wrong keep their existing feedback
+// colors (defined in CSS below) so state feedback is never obscured by the
+// random background. Border is left alone (not overridden here) so the
+// existing :hover border-color feedback still shows through.
+const cellStyle = computed(() => {
+  if (props.state !== 'pending' || !props.color) return {}
+  return { background: props.color, color: textColorFor(props.color) }
+})
 </script>
 
 <style scoped>

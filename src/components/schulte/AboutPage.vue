@@ -55,6 +55,17 @@
       </div>
     </div>
 
+    <h2>Random Color &amp; Random Position</h2>
+    <p class="intro">
+      Two optional variants, toggled with checkboxes before you start — available at every grid
+      size, and tracked with their own separate best times/history so they never mix with your
+      Classic results.
+    </p>
+    <ul class="metrics-list">
+      <li><strong>Random Color</strong> — every cell gets a random background color when the round starts. Colors stay put for the whole round; only the numbers matter, but the extra visual noise makes scanning harder.</li>
+      <li><strong>Random Position</strong> — after every correct tap, every number you haven't found yet jumps to a new random cell. Numbers you've already found stay exactly where they were solved. You can't rely on remembering where anything is.</li>
+    </ul>
+
     <h2>Try it yourself</h2>
     <p class="intro">Untimed, unscored — just get a feel for it. Find: <strong>{{ practiceTarget }}</strong></p>
 

@@ -57,11 +57,15 @@
       <SchulteHistoryPage
         v-else-if="schulteScreen === 'history'"
         :initial-difficulty="schulteDifficulty || 'classic'"
+        :initial-color-mode="schulteColorMode"
+        :initial-dynamic-mode="schulteDynamicMode"
         @menu="schulteScreen = 'menu'"
       />
       <SchulteGameScreen
         v-else-if="schulteScreen === 'game'"
         :difficulty-key="schulteDifficulty"
+        :color-mode="schulteColorMode"
+        :dynamic-mode="schulteDynamicMode"
         @finished="handleSchulteFinished"
         @exit="schulteScreen = 'menu'; benchmarkActive = false"
       />
@@ -69,7 +73,9 @@
         v-else-if="schulteScreen === 'results'"
         :results="schulteResults"
         :difficulty-key="schulteDifficulty"
-        @replay="handleSchulteStart(schulteDifficulty)"
+        :color-mode="schulteColorMode"
+        :dynamic-mode="schulteDynamicMode"
+        @replay="handleSchulteStart({ difficultyKey: schulteDifficulty, colorMode: schulteColorMode, dynamicMode: schulteDynamicMode })"
         @menu="schulteScreen = 'menu'"
         @history="handleSchulteHistory"
       />
@@ -331,7 +337,7 @@ function handleBenchmarkStart(game) {
   activeGame.value = game
   const config = BENCHMARK_CONFIGS[game]
   if (game === 'stroop') handleStroopStart({ difficultyKey: config.difficultyKey, mode: config.mode })
-  else if (game === 'schulte') handleSchulteStart(config.difficultyKey)
+  else if (game === 'schulte') handleSchulteStart({ difficultyKey: config.difficultyKey, colorMode: false, dynamicMode: false })
   else if (game === 'nback') handleNBackStart(config.difficultyKey)
   else if (game === 'set') handleSetStart(config.difficultyKey)
   else if (game === 'sequence-memory') handleSequenceStart(config.difficultyKey)
@@ -379,15 +385,21 @@ function handleStroopFinished(results) {
 // --- Schulte Tables ---
 const schulteScreen = ref('menu')
 const schulteDifficulty = ref(null)
+const schulteColorMode = ref(false)
+const schulteDynamicMode = ref(false)
 const schulteResults = ref(null)
 
-function handleSchulteStart(difficultyKey) {
+function handleSchulteStart({ difficultyKey, colorMode, dynamicMode }) {
   schulteDifficulty.value = difficultyKey
+  schulteColorMode.value = !!colorMode
+  schulteDynamicMode.value = !!dynamicMode
   schulteScreen.value = 'game'
 }
 
 function handleSchulteHistory(payload) {
   if (payload?.difficultyKey) schulteDifficulty.value = payload.difficultyKey
+  if (payload?.colorMode !== undefined) schulteColorMode.value = payload.colorMode
+  if (payload?.dynamicMode !== undefined) schulteDynamicMode.value = payload.dynamicMode
   schulteScreen.value = 'history'
 }
 

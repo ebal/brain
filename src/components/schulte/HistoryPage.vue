@@ -2,6 +2,18 @@
   <div class="history">
     <h1>Score History</h1>
 
+    <div class="variant-toggle">
+      <button
+        v-for="v in variants"
+        :key="v.key"
+        class="variant-btn"
+        :class="{ active: activeVariantKey === v.key }"
+        @click="activeVariantKey = v.key"
+      >
+        {{ v.label }}
+      </button>
+    </div>
+
     <div class="difficulty-toggle">
       <button
         v-for="d in difficulties"
@@ -15,7 +27,7 @@
     </div>
 
     <div v-if="history.length === 0" class="empty">
-      No rounds played yet for {{ difficultyLabel }}.
+      No rounds played yet for {{ difficultyLabel }} · {{ variantLabel }}.
     </div>
 
     <template v-else>
@@ -71,27 +83,35 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { SCHULTE_DIFFICULTIES } from '../../constants/schulte/difficulties.js'
+import { SCHULTE_VARIANTS, variantKeyFor } from '../../constants/schulte/variants.js'
 import { useScoreHistory } from '../../composables/schulte/useScoreHistory.js'
 import { useBestTimes } from '../../composables/schulte/useBestTimes.js'
 
 const props = defineProps({
   initialDifficulty: { type: String, default: 'classic' },
+  initialColorMode: { type: Boolean, default: false },
+  initialDynamicMode: { type: Boolean, default: false },
 })
 defineEmits(['menu'])
 
 const difficulties = Object.values(SCHULTE_DIFFICULTIES)
+const variants = Object.values(SCHULTE_VARIANTS)
 const activeDifficulty = ref(props.initialDifficulty)
+const activeVariantKey = ref(variantKeyFor(props.initialColorMode, props.initialDynamicMode))
 
 const { getHistory } = useScoreHistory()
 const { getBest } = useBestTimes()
 
-const history = computed(() => getHistory(activeDifficulty.value))
+const history = computed(() => getHistory(activeDifficulty.value, activeVariantKey.value))
 const reversedHistory = computed(() => [...history.value].reverse())
 const latest = computed(() => history.value[history.value.length - 1])
-const best = computed(() => getBest(activeDifficulty.value))
+const best = computed(() => getBest(activeDifficulty.value, activeVariantKey.value))
 
 const difficultyLabel = computed(
   () => difficulties.find((d) => d.key === activeDifficulty.value).label
+)
+const variantLabel = computed(
+  () => variants.find((v) => v.key === activeVariantKey.value).label
 )
 
 const sparklinePoints = computed(() => {
@@ -123,6 +143,32 @@ function formatDate(iso) {
 h1 {
   text-align: center;
   margin-bottom: 1rem;
+}
+
+.variant-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  background: var(--surface);
+  padding: 0.35rem;
+  border-radius: 12px;
+  margin-bottom: 0.75rem;
+}
+
+.variant-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  padding: 0.6rem 0.35rem;
+  border-radius: 9px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.variant-btn.active {
+  background: var(--accent);
+  color: #10121a;
 }
 
 .difficulty-toggle {

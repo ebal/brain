@@ -15,6 +15,7 @@
 
 import { DIFFICULTIES as STROOP_DIFFICULTIES, MODES as STROOP_MODES } from '../constants/colors.js'
 import { SCHULTE_DIFFICULTIES } from '../constants/schulte/difficulties.js'
+import { SCHULTE_VARIANTS } from '../constants/schulte/variants.js'
 import { NBACK_DIFFICULTIES } from '../constants/nback/difficulties.js'
 import { SWITCHTRAIL_DIFFICULTIES } from '../constants/switchtrail/difficulties.js'
 import { SWITCHTRAIL_VARIANTS } from '../constants/switchtrail/variants.js'
@@ -45,11 +46,16 @@ export function mapStroopEntry(entry, mode, difficultyKey) {
   }
 }
 
-export function mapSchulteEntry(entry, difficultyKey) {
+// mode here is a Schulte variant key ('classic' | 'color' | 'dynamic' |
+// 'color-dynamic', see constants/schulte/variants.js) — named `mode` to
+// match mapStroopEntry's parameter, since both feed the same common
+// session-shape `mode` field.
+export function mapSchulteEntry(entry, difficultyKey, mode = 'classic') {
   return {
-    id: `schulte:${difficultyKey}:${entry.date}`,
+    id: `schulte:${mode}:${difficultyKey}:${entry.date}`,
     game: 'schulte',
     difficulty: difficultyKey,
+    mode,
     sessionType: 'play',
     startedAt: null,
     completedAt: entry.date,
@@ -175,9 +181,11 @@ export function getAllSessions() {
   }
 
   const schulteHistory = useSchulteHistory()
-  for (const difficultyKey of Object.keys(SCHULTE_DIFFICULTIES)) {
-    for (const entry of schulteHistory.getHistory(difficultyKey)) {
-      sessions.push(mapSchulteEntry(entry, difficultyKey))
+  for (const variant of Object.values(SCHULTE_VARIANTS)) {
+    for (const difficultyKey of Object.keys(SCHULTE_DIFFICULTIES)) {
+      for (const entry of schulteHistory.getHistory(difficultyKey, variant.key)) {
+        sessions.push(mapSchulteEntry(entry, difficultyKey, variant.key))
+      }
     }
   }
 

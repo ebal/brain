@@ -35,4 +35,19 @@ export const MODES = {
     label: 'Word Match',
     short: 'Tap what the WORD SAYS — ignore the ink color.',
   },
+  underline: {
+    key: 'underline',
+    label: 'Underline Word',
+    short: 'Tap the INK COLOR — but the WORD when it\'s underlined.',
+  },
 }
+
+// Underline Word mode (v2 addition, user-requested): a cued task-switching
+// variant. Most trials behave like Color Match, but this fraction are
+// randomly flagged `underline: true`, which flips that one trial's target to
+// the word instead — independent of (and orthogonal to) the existing
+// congruent/incongruent word-vs-ink axis. Fixed across all difficulties
+// rather than scaled per-tier, to keep the new mode's one axis easy to
+// reason about; the existing colorCount/congruentRatio scaling still applies
+// underneath it exactly as it does for Color/Word Match.
+export const UNDERLINE_RATIO = 0.25

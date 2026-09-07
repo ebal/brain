@@ -20,6 +20,7 @@
         <div
           v-if="currentTrial"
           class="word"
+          :class="{ underline: currentTrial.underline }"
           :style="{ color: currentTrial.color.hex }"
         >
           {{ currentTrial.word }}
@@ -188,6 +189,14 @@ watch(status, (val) => {
   font-size: 3rem;
   font-weight: 800;
   letter-spacing: 0.02em;
+}
+
+/* Underline Word mode's per-trial cue — offset/thickness tuned so it stays
+   clearly separate from the letters themselves at this font size. */
+.word.underline {
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.18em;
 }
 
 .options-grid {
