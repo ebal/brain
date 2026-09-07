@@ -16,4 +16,5 @@ export const BENCHMARK_CONFIGS = {
   nback: { label: 'Number N-Back', difficultyKey: 'classic', summary: '2-Back' },
   set: { label: 'SET', difficultyKey: 'medium', summary: 'Medium' },
   'sequence-memory': { label: 'Sequence Memory', difficultyKey: 'medium', summary: 'Medium' },
+  switchtrail: { label: 'Switch Trail', difficultyKey: 'medium', summary: 'Medium · 16 targets' },
 }

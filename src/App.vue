@@ -190,6 +190,39 @@
         @history="sequenceScreen = 'history'"
       />
     </template>
+
+    <template v-else-if="activeGame === 'switchtrail'">
+      <SwitchTrailMainMenu
+        v-if="switchtrailScreen === 'menu'"
+        @start="handleSwitchTrailStart"
+        @about="switchtrailScreen = 'about'"
+        @history="handleSwitchTrailHistory"
+        @exit="activeGame = null"
+      />
+      <SwitchTrailAboutPage v-else-if="switchtrailScreen === 'about'" @menu="switchtrailScreen = 'menu'" />
+      <SwitchTrailHistoryPage
+        v-else-if="switchtrailScreen === 'history'"
+        :initial-difficulty="switchtrailDifficulty || 'easy'"
+        :initial-color-mode="switchtrailColorMode"
+        @menu="switchtrailScreen = 'menu'"
+      />
+      <SwitchTrailGameScreen
+        v-else-if="switchtrailScreen === 'game'"
+        :difficulty-key="switchtrailDifficulty"
+        :color-mode="switchtrailColorMode"
+        @finished="handleSwitchTrailFinished"
+        @exit="switchtrailScreen = 'menu'; benchmarkActive = false"
+      />
+      <SwitchTrailResultsScreen
+        v-else-if="switchtrailScreen === 'results'"
+        :results="switchtrailResults"
+        :difficulty-key="switchtrailDifficulty"
+        :color-mode="switchtrailColorMode"
+        @replay="handleSwitchTrailStart({ difficultyKey: switchtrailDifficulty, colorMode: switchtrailColorMode })"
+        @menu="switchtrailScreen = 'menu'"
+        @history="handleSwitchTrailHistory"
+      />
+    </template>
   </div>
 </template>
 
@@ -208,6 +241,7 @@ import {
   mapNBackEntry,
   mapSetEntry,
   mapSequenceMemoryEntry,
+  mapSwitchTrailEntry,
 } from './composables/sessionModel.js'
 
 import MainMenu from './components/MainMenu.vue'
@@ -246,7 +280,13 @@ import SequenceHistoryPage from './components/sequence-memory/HistoryPage.vue'
 import SequenceGameScreen from './components/sequence-memory/GameScreen.vue'
 import SequenceResultsScreen from './components/sequence-memory/ResultsScreen.vue'
 
-const activeGame = ref(null) // null | 'stroop' | 'schulte' | 'nback' | 'sudoku' | 'set' | 'sequence-memory' | 'data' | 'benchmark-menu' | 'activity'
+import SwitchTrailMainMenu from './components/switchtrail/MainMenu.vue'
+import SwitchTrailAboutPage from './components/switchtrail/AboutPage.vue'
+import SwitchTrailHistoryPage from './components/switchtrail/HistoryPage.vue'
+import SwitchTrailGameScreen from './components/switchtrail/GameScreen.vue'
+import SwitchTrailResultsScreen from './components/switchtrail/ResultsScreen.vue'
+
+const activeGame = ref(null) // null | 'stroop' | 'schulte' | 'nback' | 'sudoku' | 'set' | 'sequence-memory' | 'switchtrail' | 'data' | 'benchmark-menu' | 'activity'
 
 // --- Benchmark mode (IMPROVEMENT-PLAN.md Phase 5) ---
 // A thin layer over normal play: launching from BenchmarkMenu reuses each
@@ -295,6 +335,7 @@ function handleBenchmarkStart(game) {
   else if (game === 'nback') handleNBackStart(config.difficultyKey)
   else if (game === 'set') handleSetStart(config.difficultyKey)
   else if (game === 'sequence-memory') handleSequenceStart(config.difficultyKey)
+  else if (game === 'switchtrail') handleSwitchTrailStart({ difficultyKey: config.difficultyKey, colorMode: false })
 }
 
 // --- Stroop Effect Test ---
@@ -487,6 +528,35 @@ function handleSequenceFinished(results) {
     const priorBaseline = getBaseline('sequence-memory')
     const session = recordBenchmarkSession(mapSequenceMemoryEntry({ ...results, completedAt: new Date().toISOString() }))
     benchmarkFeedback.value = { game: 'sequence-memory', message: describeBenchmarkFeedback('sequence-memory', priorBaseline, session.primaryMetric) }
+    benchmarkActive.value = false
+  }
+}
+
+// --- Switch Trail ---
+const switchtrailScreen = ref('menu')
+const switchtrailDifficulty = ref(null)
+const switchtrailColorMode = ref(false)
+const switchtrailResults = ref(null)
+
+function handleSwitchTrailStart({ difficultyKey, colorMode }) {
+  switchtrailDifficulty.value = difficultyKey
+  switchtrailColorMode.value = !!colorMode
+  switchtrailScreen.value = 'game'
+}
+
+function handleSwitchTrailHistory(payload) {
+  if (payload?.difficultyKey) switchtrailDifficulty.value = payload.difficultyKey
+  if (payload?.colorMode !== undefined) switchtrailColorMode.value = payload.colorMode
+  switchtrailScreen.value = 'history'
+}
+
+function handleSwitchTrailFinished(results) {
+  switchtrailResults.value = results
+  switchtrailScreen.value = 'results'
+  if (benchmarkActive.value) {
+    const priorBaseline = getBaseline('switchtrail')
+    const session = recordBenchmarkSession(mapSwitchTrailEntry({ ...results, completedAt: new Date().toISOString() }))
+    benchmarkFeedback.value = { game: 'switchtrail', message: describeBenchmarkFeedback('switchtrail', priorBaseline, session.primaryMetric) }
     benchmarkActive.value = false
   }
 }

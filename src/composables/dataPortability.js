@@ -4,7 +4,7 @@
 
 import { getAllSessions } from './sessionModel.js'
 
-const GAME_PREFIXES = ['stroop:', 'schulte:', 'nback:', 'sudoku:', 'set:', 'sequence-memory:']
+const GAME_PREFIXES = ['stroop:', 'schulte:', 'nback:', 'sudoku:', 'set:', 'sequence-memory:', 'switchtrail:']
 export const SCHEMA_VERSION = 1
 
 function safeGet(key) {

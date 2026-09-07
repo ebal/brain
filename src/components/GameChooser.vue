@@ -27,6 +27,10 @@
         <h2>Sequence Memory</h2>
         <p>Watch the pattern, then repeat it. Visual &amp; spatial memory.</p>
       </button>
+      <button class="game-card" @click="$emit('choose', 'switchtrail')">
+        <h2>Switch Trail</h2>
+        <p>Alternate between numbers and letters before time runs out. Cognitive flexibility &amp; visual attention.</p>
+      </button>
     </div>
 
     <div class="footer-links">

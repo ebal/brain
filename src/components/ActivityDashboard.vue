@@ -138,6 +138,7 @@ const GAME_LABELS = {
   sudoku: 'Sudoku',
   set: 'SET',
   'sequence-memory': 'Sequence Memory',
+  switchtrail: 'Switch Trail',
 }
 function gameLabel(game) {
   return GAME_LABELS[game] || game

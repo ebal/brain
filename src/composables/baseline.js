@@ -21,6 +21,7 @@ export const METRIC_DIRECTION = {
   nback: 'higher',
   set: 'lower',
   'sequence-memory': 'higher',
+  switchtrail: 'higher',
 }
 
 function medianOrNull(values) {

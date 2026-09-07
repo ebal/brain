@@ -143,6 +143,7 @@ function gameLabel(game) {
     sudoku: 'Sudoku',
     set: 'SET',
     'sequence-memory': 'Sequence Memory',
+    switchtrail: 'Switch Trail',
   }
   return labels[game] || game
 }

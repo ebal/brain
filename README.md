@@ -147,13 +147,38 @@ it's never regenerated — so the game measures how long a pattern you can hold,
 
 See [`Sequence-Memory-SPEC.md`](./Sequence-Memory-SPEC.md) for the full design rationale.
 
+## Switch Trail
+
+A Trail Making-inspired task-switching game: tap spatially scattered targets in alternating order —
+`1 → A → 2 → B → 3 → C ...` — before the time limit expires. Targets are placed once per round with
+random (non-overlapping) positions and never move, so the task measures visual search, sequencing,
+and switching between numbers and letters, not memory of where things are.
+
+- **Three difficulties**: Easy (12 targets / 30s), Medium (16 / 45s), Hard (24 / 90s) — difficulty
+  comes from target density and switching, not tiny circles or poor contrast.
+- **Rejection-sampling board generation** guarantees no overlaps, readable labels, and practical
+  mobile tap targets; layouts support an internal deterministic seed for reproducibility/testing.
+- **A wrong tap costs points and flashes red** but never ends the round or resets progress — only
+  running out of time or completing every target ends a round.
+- **Score rewards both speed and accuracy**: +100 per correct target, −50 per error, a
+  remaining-time bonus and a +250 clean-completion bonus on a fully completed trail (incomplete
+  rounds get no time bonus), floored at 0.
+- **Best Score and Best Completion Time tracked separately** per difficulty, plus per-target
+  transition timing (average/median/fastest/slowest, and number→letter vs. letter→number direction).
+- **Pausing (tab-hidden) hides the board and shows Resume/Restart/Quit**, with a fresh 3-2-1 before
+  the board reappears — time spent hidden never counts against the round.
+- **About / How to Play** page with an untimed six-target practice trail.
+
+See [`Switch-Trail-SPEC.md`](./Switch-Trail-SPEC.md) for the full design rationale.
+
 ## Benchmark Mode
 
-Standardized, fixed-difficulty runs of five of the six games, reachable via **Run a Benchmark**
+Standardized, fixed-difficulty runs of six of the seven games, reachable via **Run a Benchmark**
 below the game grid — so a result from today is genuinely comparable to one from months ago, not
 just a personal best set on whatever difficulty you happened to pick that day. Starting a benchmark
 bypasses each game's own difficulty picker entirely and locks the configuration: Stroop (Medium,
-Color Match), Schulte (5×5 Classic), N-Back (2-Back), SET (Medium), Sequence Memory (Medium).
+Color Match), Schulte (5×5 Classic), N-Back (2-Back), SET (Medium), Sequence Memory (Medium),
+Switch Trail (Medium, 16 targets).
 
 - **Sudoku is deliberately excluded.** Puzzle-to-puzzle difficulty genuinely varies even within one
   labeled tier — a Hard puzzle needing quads is a measurably different task from one only needing
@@ -265,7 +290,7 @@ npm test
 ```
 
 Runs the automated test suite ([Vitest](https://vitest.dev/)) — deterministic unit tests for the
-actual game math and generation logic across all six games (trial/board/sequence generation,
+actual game math and generation logic across all seven games (trial/board/sequence generation,
 validators, difficulty classification, scoring, statistics), plus the shared session model,
 Benchmark, and Baseline logic. No component/DOM testing yet — everything covered so far is plain
 JS logic, testable without mounting a Vue component. Each tested module has a co-located
@@ -305,8 +330,8 @@ Compose picks up `.env` automatically from then on — no need to pass anything 
 
 ## Project structure
 
-All six games live in one Vue app, picked from a landing screen (`GameChooser.vue`) in `App.vue`.
-Stroop's files stay flat under `components/`/`composables/`/`constants/`; the other five each live
+All seven games live in one Vue app, picked from a landing screen (`GameChooser.vue`) in `App.vue`.
+Stroop's files stay flat under `components/`/`composables/`/`constants/`; the other six each live
 in their own subfolder, so filenames that repeat across games (`MainMenu.vue`, `GameScreen.vue`,
 `useScoreHistory.js`, ...) never collide. Benchmark Mode, the Activity dashboard, and Data
 Management are cross-cutting (not per-game), so their components/composables stay top-level
@@ -375,14 +400,22 @@ stroop/
     │   │   ├── ResultsScreen.vue
     │   │   ├── SetBoard.vue
     │   │   └── SetCard.vue           # inline-SVG card rendering — no images
-    │   └── sequence-memory/         # Sequence Memory
+    │   ├── sequence-memory/         # Sequence Memory
+    │   │   ├── MainMenu.vue
+    │   │   ├── AboutPage.vue
+    │   │   ├── HistoryPage.vue
+    │   │   ├── GameScreen.vue
+    │   │   ├── ResultsScreen.vue
+    │   │   ├── MemoryGrid.vue
+    │   │   └── MemoryCell.vue
+    │   └── switchtrail/              # Switch Trail
     │       ├── MainMenu.vue
     │       ├── AboutPage.vue
     │       ├── HistoryPage.vue
     │       ├── GameScreen.vue
     │       ├── ResultsScreen.vue
-    │       ├── MemoryGrid.vue
-    │       └── MemoryCell.vue
+    │       ├── TrailBoard.vue
+    │       └── TrailTarget.vue
     ├── composables/
     │   ├── mathStats.js             # avg/median — shared by every game's results/stats calc
     │   ├── sessionModel.js          # common session shape, derived on-demand from each game's history
@@ -418,11 +451,17 @@ stroop/
     │   │   ├── useSetGame.js        # selection, board expansion/replenish, hints, timer/pause
     │   │   ├── useSetStorage.js     # autosave / Continue Game
     │   │   └── useSetStats.js       # per-difficulty stats + combined history
-    │   └── sequence-memory/
-    │       ├── sequenceGenerator.js # pure, seedable sequence generation (no consecutive repeats)
-    │       ├── useSequenceMemory.js # playback/input state machine, lives, timer/pause
-    │       ├── useMemoryStorage.js  # autosave / Continue Game
-    │       └── useMemoryStats.js    # per-difficulty stats + combined history
+    │   ├── sequence-memory/
+    │   │   ├── sequenceGenerator.js # pure, seedable sequence generation (no consecutive repeats)
+    │   │   ├── useSequenceMemory.js # playback/input state machine, lives, timer/pause
+    │   │   ├── useMemoryStorage.js  # autosave / Continue Game
+    │   │   └── useMemoryStats.js    # per-difficulty stats + combined history
+    │   └── switchtrail/
+    │       ├── trailSequence.js     # pure: 1-A-2-B... sequence generation per difficulty
+    │       ├── trailLayout.js       # pure, seedable: rejection-sampling board placement
+    │       ├── scoring.js           # pure: score + transition-time stats
+    │       ├── useSwitchTrailGame.js # countdown/playing/paused state machine, timing, pause/resume
+    │       └── useSwitchTrailStats.js # per-difficulty best score/time, stats + history
     └── constants/
         ├── benchmark.js             # Benchmark Mode: fixed per-game config + benchmarkVersion
         ├── colors.js                # Stroop: color palette, difficulty tiers, game modes
@@ -436,8 +475,10 @@ stroop/
         │   └── hardPool.json        # pre-vetted Hard puzzles (see above)
         ├── set/
         │   └── cardProperties.js    # SET: property names/colors, difficulty labels
-        └── sequence-memory/
-            └── difficulties.js      # Sequence Memory: lives + flash/gap timing per difficulty
+        ├── sequence-memory/
+        │   └── difficulties.js      # Sequence Memory: lives + flash/gap timing per difficulty
+        └── switchtrail/
+            └── difficulties.js      # Switch Trail: target count + time limit per difficulty
 ```
 
 ## License

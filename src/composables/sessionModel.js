@@ -16,12 +16,15 @@
 import { DIFFICULTIES as STROOP_DIFFICULTIES, MODES as STROOP_MODES } from '../constants/colors.js'
 import { SCHULTE_DIFFICULTIES } from '../constants/schulte/difficulties.js'
 import { NBACK_DIFFICULTIES } from '../constants/nback/difficulties.js'
+import { SWITCHTRAIL_DIFFICULTIES } from '../constants/switchtrail/difficulties.js'
+import { SWITCHTRAIL_VARIANTS } from '../constants/switchtrail/variants.js'
 import { useScoreHistory as useStroopHistory } from './useScoreHistory.js'
 import { useScoreHistory as useSchulteHistory } from './schulte/useScoreHistory.js'
 import { useScoreHistory as useNBackHistory } from './nback/useScoreHistory.js'
 import { useSudokuStats } from './sudoku/useSudokuStats.js'
 import { useSetStats } from './set/useSetStats.js'
 import { useMemoryStats } from './sequence-memory/useMemoryStats.js'
+import { useSwitchTrailStats } from './switchtrail/useSwitchTrailStats.js'
 
 export function mapStroopEntry(entry, mode, difficultyKey) {
   return {
@@ -132,6 +135,28 @@ export function mapSequenceMemoryEntry(entry) {
   }
 }
 
+// mode here is a Switch Trail variant key ('classic' | 'color', see
+// constants/switchtrail/variants.js) — named `mode` to match mapStroopEntry's
+// parameter, since both feed the same common session-shape `mode` field.
+export function mapSwitchTrailEntry(entry, mode = 'classic') {
+  return {
+    id: `switchtrail:${mode}:${entry.difficulty}:${entry.completedAt}`,
+    game: 'switchtrail',
+    difficulty: entry.difficulty,
+    mode,
+    sessionType: 'play',
+    startedAt: null,
+    completedAt: entry.completedAt,
+    duration: entry.completionTime,
+    completed: entry.completed,
+    primaryMetric: entry.score,
+    accuracy: entry.accuracy,
+    medianRT: entry.medianTransitionTime,
+    mistakes: entry.errors,
+    hints: null, // Switch Trail has no hint concept
+  }
+}
+
 // Touches localStorage (via each game's own history/stats composable) to
 // aggregate every session across all six games into one common-shape list,
 // sorted oldest first. Nothing here is unit-tested directly — correctness
@@ -171,6 +196,15 @@ export function getAllSessions() {
 
   const memoryStats = useMemoryStats()
   for (const entry of memoryStats.getHistory('all')) sessions.push(mapSequenceMemoryEntry(entry))
+
+  const switchTrailStats = useSwitchTrailStats()
+  for (const variant of Object.values(SWITCHTRAIL_VARIANTS)) {
+    for (const difficultyKey of Object.keys(SWITCHTRAIL_DIFFICULTIES)) {
+      for (const entry of switchTrailStats.getHistory(difficultyKey, variant.key)) {
+        sessions.push(mapSwitchTrailEntry(entry, variant.key))
+      }
+    }
+  }
 
   sessions.sort((a, b) => new Date(a.completedAt) - new Date(b.completedAt))
   return sessions
