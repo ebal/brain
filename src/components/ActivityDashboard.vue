@@ -139,6 +139,7 @@ const GAME_LABELS = {
   set: 'SET',
   'sequence-memory': 'Sequence Memory',
   switchtrail: 'Switch Trail',
+  memorypairs: 'Memory Pairs',
 }
 function gameLabel(game) {
   return GAME_LABELS[game] || game

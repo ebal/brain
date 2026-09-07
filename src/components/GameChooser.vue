@@ -31,6 +31,10 @@
         <h2>Switch Trail</h2>
         <p>Alternate between numbers and letters before time runs out. Cognitive flexibility &amp; visual attention.</p>
       </button>
+      <button class="game-card" @click="$emit('choose', 'memorypairs')">
+        <h2>Memory Pairs</h2>
+        <p>Flip tiles and find matching emoji pairs. Visual memory &amp; spatial recall.</p>
+      </button>
     </div>
 
     <div class="footer-links">

@@ -17,4 +17,5 @@ export const BENCHMARK_CONFIGS = {
   set: { label: 'SET', difficultyKey: 'medium', summary: 'Medium' },
   'sequence-memory': { label: 'Sequence Memory', difficultyKey: 'medium', summary: 'Medium' },
   switchtrail: { label: 'Switch Trail', difficultyKey: 'medium', summary: 'Medium · 16 targets' },
+  memorypairs: { label: 'Memory Pairs', difficultyKey: 'medium', summary: 'Medium · 8 pairs' },
 }

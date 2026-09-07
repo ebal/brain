@@ -144,6 +144,7 @@ function gameLabel(game) {
     set: 'SET',
     'sequence-memory': 'Sequence Memory',
     switchtrail: 'Switch Trail',
+    memorypairs: 'Memory Pairs',
   }
   return labels[game] || game
 }

@@ -155,8 +155,11 @@ A Trail Making-inspired task-switching game: tap spatially scattered targets in 
 random (non-overlapping) positions and never move, so the task measures visual search, sequencing,
 and switching between numbers and letters, not memory of where things are.
 
-- **Three difficulties**: Easy (12 targets / 30s), Medium (16 / 45s), Hard (24 / 90s) — difficulty
+- **Four difficulties**: Easy (12 targets / 30s), Medium (16 / 45s), Hard (24 / 90s), and Extreme
+  (24 / 90s, plus every remaining target reshuffles position after each correct tap) — difficulty
   comes from target density and switching, not tiny circles or poor contrast.
+- **Optional Random Color variant**, available at every difficulty: each target gets a random
+  background color, tracked with its own separate best score/time.
 - **Rejection-sampling board generation** guarantees no overlaps, readable labels, and practical
   mobile tap targets; layouts support an internal deterministic seed for reproducibility/testing.
 - **A wrong tap costs points and flashes red** but never ends the round or resets progress — only
@@ -172,14 +175,35 @@ and switching between numbers and letters, not memory of where things are.
 
 See [`Switch-Trail-SPEC.md`](./Switch-Trail-SPEC.md) for the full design rationale.
 
+## Memory Pairs
+
+A classic emoji Concentration/Memory Match game: flip two face-down tiles at a time, and find every
+matching pair. The board is generated once and never changes — the task measures visual memory and
+spatial recall, not tracking a moving target.
+
+- **Five difficulties**: Easy (12 tiles / 6 pairs) through Extreme (36 / 18), scaling purely through
+  how many tile locations you have to remember — never tiny tiles or a shorter mismatch delay. Hard
+  and Very Hard render narrower-but-taller in portrait (tile/pair count never changes, only the grid
+  shape).
+- **Score rewards completion, fewer Moves, a faster time, and fewer Mistakes** — a mismatch is both
+  an extra Move *and* a Mistake, so it costs more than random guessing is worth. Floored at 0.
+- **Move Efficiency** (theoretical minimum Moves ÷ actual Moves) is tracked and shown separately
+  from Score, alongside raw Time, Moves, and Mistakes.
+- **Best Score, Best Time, and Best Move Efficiency tracked separately** per difficulty.
+- **Autosave & Continue Game** — pausing (manual or tab-hidden) cancels any in-flight tile selection
+  without penalty and hides unmatched tile faces; resuming shows a fresh 3-2-1 with the same board.
+- **About / How to Play** page with an untimed 2-pair practice board.
+
+See [`Memory-Pairs-SPEC.md`](./Memory-Pairs-SPEC.md) for the full design rationale.
+
 ## Benchmark Mode
 
-Standardized, fixed-difficulty runs of six of the seven games, reachable via **Run a Benchmark**
+Standardized, fixed-difficulty runs of seven of the eight games, reachable via **Run a Benchmark**
 below the game grid — so a result from today is genuinely comparable to one from months ago, not
 just a personal best set on whatever difficulty you happened to pick that day. Starting a benchmark
 bypasses each game's own difficulty picker entirely and locks the configuration: Stroop (Medium,
 Color Match), Schulte (5×5 Classic), N-Back (2-Back), SET (Medium), Sequence Memory (Medium),
-Switch Trail (Medium, 16 targets).
+Switch Trail (Medium, 16 targets), Memory Pairs (Medium, 8 pairs).
 
 - **Sudoku is deliberately excluded.** Puzzle-to-puzzle difficulty genuinely varies even within one
   labeled tier — a Hard puzzle needing quads is a measurably different task from one only needing
@@ -291,7 +315,7 @@ npm test
 ```
 
 Runs the automated test suite ([Vitest](https://vitest.dev/)) — deterministic unit tests for the
-actual game math and generation logic across all seven games (trial/board/sequence generation,
+actual game math and generation logic across all eight games (trial/board/sequence generation,
 validators, difficulty classification, scoring, statistics), plus the shared session model,
 Benchmark, and Baseline logic. No component/DOM testing yet — everything covered so far is plain
 JS logic, testable without mounting a Vue component. Each tested module has a co-located
@@ -331,8 +355,8 @@ Compose picks up `.env` automatically from then on — no need to pass anything 
 
 ## Project structure
 
-All seven games live in one Vue app, picked from a landing screen (`GameChooser.vue`) in `App.vue`.
-Stroop's files stay flat under `components/`/`composables/`/`constants/`; the other six each live
+All eight games live in one Vue app, picked from a landing screen (`GameChooser.vue`) in `App.vue`.
+Stroop's files stay flat under `components/`/`composables/`/`constants/`; the other seven each live
 in their own subfolder, so filenames that repeat across games (`MainMenu.vue`, `GameScreen.vue`,
 `useScoreHistory.js`, ...) never collide. Benchmark Mode, the Activity dashboard, and Data
 Management are cross-cutting (not per-game), so their components/composables stay top-level
@@ -409,14 +433,22 @@ stroop/
     │   │   ├── ResultsScreen.vue
     │   │   ├── MemoryGrid.vue
     │   │   └── MemoryCell.vue
-    │   └── switchtrail/              # Switch Trail
+    │   ├── switchtrail/              # Switch Trail
+    │   │   ├── MainMenu.vue
+    │   │   ├── AboutPage.vue
+    │   │   ├── HistoryPage.vue
+    │   │   ├── GameScreen.vue
+    │   │   ├── ResultsScreen.vue
+    │   │   ├── TrailBoard.vue
+    │   │   └── TrailTarget.vue
+    │   └── memorypairs/              # Memory Pairs
     │       ├── MainMenu.vue
     │       ├── AboutPage.vue
     │       ├── HistoryPage.vue
     │       ├── GameScreen.vue
     │       ├── ResultsScreen.vue
-    │       ├── TrailBoard.vue
-    │       └── TrailTarget.vue
+    │       ├── MemoryBoard.vue
+    │       └── MemoryTile.vue
     ├── composables/
     │   ├── mathStats.js             # avg/median — shared by every game's results/stats calc
     │   ├── sessionModel.js          # common session shape, derived on-demand from each game's history
@@ -457,12 +489,18 @@ stroop/
     │   │   ├── useSequenceMemory.js # playback/input state machine, lives, timer/pause
     │   │   ├── useMemoryStorage.js  # autosave / Continue Game
     │   │   └── useMemoryStats.js    # per-difficulty stats + combined history
-    │   └── switchtrail/
-    │       ├── trailSequence.js     # pure: 1-A-2-B... sequence generation per difficulty
-    │       ├── trailLayout.js       # pure, seedable: rejection-sampling board placement
-    │       ├── scoring.js           # pure: score + transition-time stats
-    │       ├── useSwitchTrailGame.js # countdown/playing/paused state machine, timing, pause/resume
-    │       └── useSwitchTrailStats.js # per-difficulty best score/time, stats + history
+    │   ├── switchtrail/
+    │   │   ├── trailSequence.js     # pure: 1-A-2-B... sequence generation per difficulty
+    │   │   ├── trailLayout.js       # pure, seedable: rejection-sampling board placement
+    │   │   ├── scoring.js           # pure: score + transition-time stats
+    │   │   ├── useSwitchTrailGame.js # countdown/playing/paused state machine, timing, pause/resume
+    │   │   └── useSwitchTrailStats.js # per-difficulty best score/time, stats + history
+    │   └── memorypairs/
+    │       ├── memoryDeck.js        # pure, seedable: emoji selection + deck shuffle
+    │       ├── scoring.js           # pure: score + Move Efficiency
+    │       ├── useMemoryPairsGame.js # countdown/playing/paused state machine, tile matching, timing
+    │       ├── useMemoryPairsStorage.js # autosave / Continue Game
+    │       └── useMemoryPairsStats.js  # per-difficulty best score/time/efficiency, stats + history
     └── constants/
         ├── benchmark.js             # Benchmark Mode: fixed per-game config + benchmarkVersion
         ├── colors.js                # Stroop: color palette, difficulty tiers, game modes
@@ -480,9 +518,12 @@ stroop/
         │   └── cardProperties.js    # SET: property names/colors, difficulty labels
         ├── sequence-memory/
         │   └── difficulties.js      # Sequence Memory: lives + flash/gap timing per difficulty
-        └── switchtrail/
-            ├── difficulties.js      # Switch Trail: target count + time limit per difficulty
-            └── variants.js          # Switch Trail: Classic/Random Color variant keys
+        ├── switchtrail/
+        │   ├── difficulties.js      # Switch Trail: target count + time limit per difficulty
+        │   └── variants.js          # Switch Trail: Classic/Random Color variant keys
+        └── memorypairs/
+            ├── difficulties.js      # Memory Pairs: grid/pairs/base score per difficulty
+            └── emoji.js             # Memory Pairs: the local emoji pool (no remote images)
 ```
 
 ## License

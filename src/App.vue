@@ -229,6 +229,34 @@
         @history="handleSwitchTrailHistory"
       />
     </template>
+
+    <template v-else-if="activeGame === 'memorypairs'">
+      <MemoryPairsMainMenu
+        v-if="memoryPairsScreen === 'menu'"
+        @start="handleMemoryPairsStart"
+        @continue="handleMemoryPairsContinue"
+        @about="memoryPairsScreen = 'about'"
+        @history="memoryPairsScreen = 'history'"
+        @exit="activeGame = null"
+      />
+      <MemoryPairsAboutPage v-else-if="memoryPairsScreen === 'about'" @menu="memoryPairsScreen = 'menu'" />
+      <MemoryPairsHistoryPage v-else-if="memoryPairsScreen === 'history'" @menu="memoryPairsScreen = 'menu'" />
+      <MemoryPairsGameScreen
+        v-else-if="memoryPairsScreen === 'game'"
+        :difficulty-key="memoryPairsDifficulty"
+        :continue-game="memoryPairsContinue"
+        @finished="handleMemoryPairsFinished"
+        @exit="memoryPairsScreen = 'menu'; benchmarkActive = false"
+      />
+      <MemoryPairsResultsScreen
+        v-else-if="memoryPairsScreen === 'results'"
+        :results="memoryPairsResults"
+        :difficulty-key="memoryPairsDifficulty"
+        @replay="handleMemoryPairsStart(memoryPairsDifficulty)"
+        @menu="memoryPairsScreen = 'menu'"
+        @history="memoryPairsScreen = 'history'"
+      />
+    </template>
   </div>
 </template>
 
@@ -248,6 +276,7 @@ import {
   mapSetEntry,
   mapSequenceMemoryEntry,
   mapSwitchTrailEntry,
+  mapMemoryPairsEntry,
 } from './composables/sessionModel.js'
 
 import MainMenu from './components/MainMenu.vue'
@@ -292,7 +321,13 @@ import SwitchTrailHistoryPage from './components/switchtrail/HistoryPage.vue'
 import SwitchTrailGameScreen from './components/switchtrail/GameScreen.vue'
 import SwitchTrailResultsScreen from './components/switchtrail/ResultsScreen.vue'
 
-const activeGame = ref(null) // null | 'stroop' | 'schulte' | 'nback' | 'sudoku' | 'set' | 'sequence-memory' | 'switchtrail' | 'data' | 'benchmark-menu' | 'activity'
+import MemoryPairsMainMenu from './components/memorypairs/MainMenu.vue'
+import MemoryPairsAboutPage from './components/memorypairs/AboutPage.vue'
+import MemoryPairsHistoryPage from './components/memorypairs/HistoryPage.vue'
+import MemoryPairsGameScreen from './components/memorypairs/GameScreen.vue'
+import MemoryPairsResultsScreen from './components/memorypairs/ResultsScreen.vue'
+
+const activeGame = ref(null) // null | 'stroop' | 'schulte' | 'nback' | 'sudoku' | 'set' | 'sequence-memory' | 'switchtrail' | 'memorypairs' | 'data' | 'benchmark-menu' | 'activity'
 
 // --- Benchmark mode (IMPROVEMENT-PLAN.md Phase 5) ---
 // A thin layer over normal play: launching from BenchmarkMenu reuses each
@@ -342,6 +377,7 @@ function handleBenchmarkStart(game) {
   else if (game === 'set') handleSetStart(config.difficultyKey)
   else if (game === 'sequence-memory') handleSequenceStart(config.difficultyKey)
   else if (game === 'switchtrail') handleSwitchTrailStart({ difficultyKey: config.difficultyKey, colorMode: false })
+  else if (game === 'memorypairs') handleMemoryPairsStart(config.difficultyKey)
 }
 
 // --- Stroop Effect Test ---
@@ -569,6 +605,35 @@ function handleSwitchTrailFinished(results) {
     const priorBaseline = getBaseline('switchtrail')
     const session = recordBenchmarkSession(mapSwitchTrailEntry({ ...results, completedAt: new Date().toISOString() }))
     benchmarkFeedback.value = { game: 'switchtrail', message: describeBenchmarkFeedback('switchtrail', priorBaseline, session.primaryMetric) }
+    benchmarkActive.value = false
+  }
+}
+
+// --- Memory Pairs ---
+const memoryPairsScreen = ref('menu')
+const memoryPairsDifficulty = ref(null)
+const memoryPairsContinue = ref(false)
+const memoryPairsResults = ref(null)
+
+function handleMemoryPairsStart(difficultyKey) {
+  memoryPairsDifficulty.value = difficultyKey
+  memoryPairsContinue.value = false
+  memoryPairsScreen.value = 'game'
+}
+
+function handleMemoryPairsContinue() {
+  memoryPairsContinue.value = true
+  memoryPairsScreen.value = 'game'
+}
+
+function handleMemoryPairsFinished(results) {
+  memoryPairsResults.value = results
+  memoryPairsDifficulty.value = results.difficulty
+  memoryPairsScreen.value = 'results'
+  if (benchmarkActive.value) {
+    const priorBaseline = getBaseline('memorypairs')
+    const session = recordBenchmarkSession(mapMemoryPairsEntry({ ...results, completedAt: new Date().toISOString() }))
+    benchmarkFeedback.value = { game: 'memorypairs', message: describeBenchmarkFeedback('memorypairs', priorBaseline, session.primaryMetric) }
     benchmarkActive.value = false
   }
 }

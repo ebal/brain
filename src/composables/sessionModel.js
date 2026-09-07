@@ -26,6 +26,7 @@ import { useSudokuStats } from './sudoku/useSudokuStats.js'
 import { useSetStats } from './set/useSetStats.js'
 import { useMemoryStats } from './sequence-memory/useMemoryStats.js'
 import { useSwitchTrailStats } from './switchtrail/useSwitchTrailStats.js'
+import { useMemoryPairsStats } from './memorypairs/useMemoryPairsStats.js'
 
 export function mapStroopEntry(entry, mode, difficultyKey) {
   return {
@@ -163,6 +164,24 @@ export function mapSwitchTrailEntry(entry, mode = 'classic') {
   }
 }
 
+export function mapMemoryPairsEntry(entry) {
+  return {
+    id: `memorypairs:${entry.difficulty}:${entry.completedAt}`,
+    game: 'memorypairs',
+    difficulty: entry.difficulty,
+    sessionType: 'play',
+    startedAt: null,
+    completedAt: entry.completedAt,
+    duration: entry.completionTime,
+    completed: true,
+    primaryMetric: entry.score,
+    accuracy: null, // Memory Pairs tracks Move Efficiency, not an accuracy percentage
+    medianRT: null, // no per-selection RT is stored, only aggregate moves/time
+    mistakes: entry.mistakes,
+    hints: null, // Memory Pairs has no hint concept
+  }
+}
+
 // Touches localStorage (via each game's own history/stats composable) to
 // aggregate every session across all six games into one common-shape list,
 // sorted oldest first. Nothing here is unit-tested directly — correctness
@@ -213,6 +232,9 @@ export function getAllSessions() {
       }
     }
   }
+
+  const memoryPairsStats = useMemoryPairsStats()
+  for (const entry of memoryPairsStats.getHistory('all')) sessions.push(mapMemoryPairsEntry(entry))
 
   sessions.sort((a, b) => new Date(a.completedAt) - new Date(b.completedAt))
   return sessions
