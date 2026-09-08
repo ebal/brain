@@ -15,7 +15,24 @@
       </div>
 
       <div class="stimulus-area">
-        <div class="number" :style="{ color: currentColor }">{{ currentNumber }}</div>
+        <TransitionGroup
+          name="nback-card"
+          tag="div"
+          class="card-row"
+          :style="{ '--flip-ms': `${CARD_FLIP_MS}ms` }"
+        >
+          <div
+            v-for="card in visibleCards"
+            :key="card.index"
+            class="nback-card"
+            :class="{ current: card.isCurrent }"
+          >
+            <div class="card-inner" :class="{ revealed: card.isCurrent }">
+              <div class="card-face card-back" aria-hidden="true"></div>
+              <div class="card-face card-front" :style="{ color: card.color }">{{ card.number }}</div>
+            </div>
+          </div>
+        </TransitionGroup>
         <div v-if="feedback" class="feedback-icon" :class="feedback" aria-live="polite">
           {{ feedback === 'correct' ? '✓' : '✕' }}
         </div>
@@ -37,7 +54,7 @@
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import ResponseButtons from './ResponseButtons.vue'
 import ConfirmDialog from '../ConfirmDialog.vue'
-import { useNBackGame } from '../../composables/nback/useNBackGame.js'
+import { useNBackGame, CARD_FLIP_MS } from '../../composables/nback/useNBackGame.js'
 import { NBACK_DIFFICULTIES } from '../../constants/nback/difficulties.js'
 
 const props = defineProps({
@@ -46,7 +63,7 @@ const props = defineProps({
 const emit = defineEmits(['finished', 'exit'])
 
 const game = useNBackGame()
-const { status, countdownValue, currentNumber, currentColor, isSetupPhase, scoredAnswered, totalScored, feedback, awaitingResponse, results } = game
+const { status, countdownValue, visibleCards, isSetupPhase, scoredAnswered, totalScored, feedback, awaitingResponse, results } = game
 
 const difficulty = computed(() =>
   Object.values(NBACK_DIFFICULTIES).find((d) => d.key === props.difficultyKey)
@@ -74,11 +91,13 @@ function handleKeydown(e) {
 onMounted(() => {
   game.start(difficulty.value)
   window.addEventListener('keydown', handleKeydown)
+  document.addEventListener('visibilitychange', game.handleVisibilityChange)
 })
 
 onUnmounted(() => {
   game.reset()
   window.removeEventListener('keydown', handleKeydown)
+  document.removeEventListener('visibilitychange', game.handleVisibilityChange)
 })
 
 watch(status, (val) => {
@@ -146,14 +165,98 @@ watch(status, (val) => {
   justify-content: center;
   background: var(--surface);
   border-radius: 16px;
+  padding: 0 0.75rem;
   user-select: none;
+  overflow: hidden;
 }
 
-.number {
-  font-size: clamp(4rem, 22vw, 6.5rem);
+.card-row {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+.nback-card {
+  position: relative;
+  flex: 0 1 clamp(3.75rem, 18vw, 5.5rem);
+  aspect-ratio: 0.72;
+  perspective: 1000px;
+}
+
+/* Existing cards sliding into their new slot as the window advances. */
+.nback-card-move {
+  transition: transform 0.3s ease;
+}
+
+/* At rest, only the current card (being answered) is revealed — the trailing
+   N cards sit face-down, so recalling what's under them (not re-checking by
+   eye) is still the actual task. Both the initial flip-up on arrival and the
+   flip-back-down once a newer card demotes this one to history are driven by
+   this single, always-on transition. */
+.card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transform: rotateY(180deg);
+  transition: transform var(--flip-ms, 350ms) ease;
+}
+
+.card-inner.revealed {
+  transform: rotateY(0deg);
+}
+
+.card-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid var(--surface-2);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.card-front {
+  background: var(--surface-2);
+  font-size: clamp(1.6rem, 8vw, 2.5rem);
   font-weight: 800;
-  color: var(--text);
   line-height: 1;
+}
+
+.nback-card.current .card-front {
+  border-color: var(--accent);
+}
+
+.card-back {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--surface-2) 100%);
+  transform: rotateY(180deg);
+}
+
+/* Force a newly-arrived card (which mounts already "current"/revealed) to
+   start back-first, so there's something to visibly flip from — without
+   this override the card would just appear face-up with no animation. */
+.nback-card-enter-from .card-inner {
+  transform: rotateY(180deg);
+}
+
+/* Leave = discard: the oldest (now more than N back) card slides off to the
+   side and fades once it drops out of the visible window, instead of just
+   disappearing. Taken out of flow so remaining cards can slide into its
+   spot (the .nback-card-move transition above) at the same time. */
+.nback-card-leave-active {
+  position: absolute;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.nback-card-leave-to {
+  transform: translate(-60%, 15%) rotate(-14deg);
+  opacity: 0;
 }
 
 .feedback-icon {

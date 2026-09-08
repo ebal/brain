@@ -6,6 +6,10 @@ import { avg, median } from '../mathStats.js'
 const SETUP_DISPLAY_MS = 1200
 const INTER_STIMULUS_GAP_MS = 300
 
+// Exported so the card-flip UI's CSS transition duration can stay in sync
+// with the delay below that gates when the RT clock actually starts.
+export const CARD_FLIP_MS = 350
+
 export function useNBackGame() {
   const status = ref('idle') // idle | countdown | playing | finished
   const countdownValue = ref(0)
@@ -22,18 +26,26 @@ export function useNBackGame() {
   let n = 0
   let scoredTrials = 0
   let sequence = null
+  // Colors are randomized per presentation (unlike sequence.numbers, which is
+  // fixed upfront) so a re-displayed card in the visible history row needs
+  // its originally-assigned color recorded, not a freshly rerolled one.
+  let presentedColors = []
   let stimulusShownTime = 0
+  let hiddenAt = 0
   let countdownId = null
   let goTimeoutId = null
   let advanceTimeoutId = null
+  let flipTimeoutId = null
 
   function clearTimers() {
     clearInterval(countdownId)
     clearTimeout(goTimeoutId)
     clearTimeout(advanceTimeoutId)
+    clearTimeout(flipTimeoutId)
     countdownId = null
     goTimeoutId = null
     advanceTimeoutId = null
+    flipTimeoutId = null
   }
 
   function nextStimulusColor() {
@@ -48,18 +60,25 @@ export function useNBackGame() {
   function presentStimulus() {
     currentNumber.value = sequence.numbers[currentIndex.value]
     currentColor.value = nextStimulusColor()
+    presentedColors[currentIndex.value] = currentColor.value
     isSetupPhase.value = currentIndex.value < n
+    awaitingResponse.value = false
 
-    if (isSetupPhase.value) {
-      awaitingResponse.value = false
-      advanceTimeoutId = setTimeout(() => {
-        currentIndex.value += 1
-        presentStimulus()
-      }, SETUP_DISPLAY_MS)
-    } else {
-      stimulusShownTime = performance.now()
-      awaitingResponse.value = true
-    }
+    // The card's flip-reveal animation (CARD_FLIP_MS, driven by the
+    // TransitionGroup enter transition in GameScreen.vue) runs for this same
+    // duration, so the RT clock (and the setup-phase display timer) start
+    // only once the flip finishes — its duration never leaks into measured RTs.
+    flipTimeoutId = setTimeout(() => {
+      if (isSetupPhase.value) {
+        advanceTimeoutId = setTimeout(() => {
+          currentIndex.value += 1
+          presentStimulus()
+        }, SETUP_DISPLAY_MS)
+      } else {
+        stimulusShownTime = performance.now()
+        awaitingResponse.value = true
+      }
+    }, CARD_FLIP_MS)
   }
 
   function start(difficulty, seed) {
@@ -67,6 +86,7 @@ export function useNBackGame() {
     scoredTrials = difficulty.scoredTrials
     sequence = generateSequence(n, scoredTrials, seed)
     validateSequence(sequence)
+    presentedColors = []
 
     currentIndex.value = 0
     currentNumber.value = null
@@ -132,6 +152,21 @@ export function useNBackGame() {
     }, INTER_STIMULUS_GAP_MS)
   }
 
+  // Backgrounding the tab doesn't pause performance.now(), so without this a
+  // stimulus answered after returning from background would measure the
+  // entire hidden wall-clock gap as reaction time. Shifting the anchor
+  // forward by the hidden duration excludes it without needing any new
+  // paused UI. Mirrors the same fix in useStroopGame.js.
+  function handleVisibilityChange() {
+    if (document.hidden) {
+      hiddenAt = performance.now()
+    } else if (hiddenAt) {
+      const gap = performance.now() - hiddenAt
+      if (status.value === 'playing') stimulusShownTime += gap
+      hiddenAt = 0
+    }
+  }
+
   function finish() {
     clearTimers()
     awaitingResponse.value = false
@@ -142,6 +177,27 @@ export function useNBackGame() {
     clearTimers()
     status.value = 'idle'
   }
+
+  // The trailing N presented cards plus the current one — lets the player
+  // see the exact card N positions back next to the one they're answering,
+  // rather than recalling it from memory. Deliberately a design choice made
+  // for this UI: it changes what N-Back measures (visual matching, not
+  // working-memory recall), by request.
+  const visibleCards = computed(() => {
+    if (!sequence || currentNumber.value === null) return []
+    const end = currentIndex.value
+    const start = Math.max(0, end - n)
+    const cards = []
+    for (let i = start; i <= end; i++) {
+      cards.push({
+        index: i,
+        number: sequence.numbers[i],
+        color: presentedColors[i],
+        isCurrent: i === end,
+      })
+    }
+    return cards
+  })
 
   const results = computed(() => {
     const answered = trials.value
@@ -169,8 +225,10 @@ export function useNBackGame() {
   return {
     status,
     countdownValue,
+    currentIndex,
     currentNumber,
     currentColor,
+    visibleCards,
     isSetupPhase,
     scoredAnswered,
     totalScored,
@@ -180,5 +238,6 @@ export function useNBackGame() {
     start,
     answer,
     reset,
+    handleVisibilityChange,
   }
 }

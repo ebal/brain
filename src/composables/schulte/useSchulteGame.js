@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import { avg, median } from '../mathStats.js'
-import { randomCellColor } from '../../constants/cellColors.js'
+import { randomSchulteCellColor } from '../../constants/schulte/cellColors.js'
 
 const WRONG_FLASH_MS = 300
 const ELAPSED_TICK_MS = 100
@@ -52,7 +52,7 @@ export function useSchulteGame() {
   // which number sits in which slot. Keeps the "colorful board" effect
   // simple: one fixed random palette per round, independent of repositioning.
   function assignCellColors() {
-    cellColors.value = colorMode ? Array.from({ length: totalCells }, () => randomCellColor()) : []
+    cellColors.value = colorMode ? Array.from({ length: totalCells }, () => randomSchulteCellColor()) : []
   }
 
   // Dynamic mode (SPEC addition): after each correct tap, every still-

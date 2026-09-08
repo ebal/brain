@@ -64,7 +64,7 @@
 
     <div class="n-toggle">
       <button
-        v-for="opt in [1, 2, 3]"
+        v-for="opt in [2, 3, 4]"
         :key="opt"
         class="n-btn"
         :class="{ active: practiceN === opt }"

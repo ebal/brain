@@ -18,7 +18,12 @@ The task primarily exercises working-memory updating, sustained attention, and r
 
 Design decision this implies for the app
 
-The app presents one number at a time in the center of the screen.
+The app presents each number as a flipping playing card, laid out in a row alongside the trailing
+N cards from earlier in the sequence — so the player can see exactly how many steps back N is.
+Only the current card (the one being answered) is face-up; the N history cards sit face-down,
+their content already hidden again, so recalling what's under them — not re-checking by eye — is
+still the actual task. The row is a spatial memory aid for *how far back* to think, not a way to
+skip remembering *what* was there.
 
 For each scored stimulus the player answers:
 
@@ -55,20 +60,6 @@ Task
 
 
 Meaning
-
-
-
-
-
-Easy
-
-
-
-1-back
-
-
-
-Compare with the previous number
 
 
 
@@ -139,20 +130,6 @@ N
 
 
 Scored trials
-
-
-
-
-
-Easy
-
-
-
-1
-
-
-
-30
 
 
 
@@ -718,7 +695,7 @@ Explain the task using a 2-back example:
 
 In 2-back, compare the current number with the number shown two positions earlier. Press MATCH only when they are the same.
 
-Include untimed practice examples for 1-back, 2-back, and 3-back.
+Include untimed practice examples for 2-back, 3-back, and 4-back.
 
 Practice results are never stored.
 
@@ -902,7 +879,7 @@ Numbers 1–9 only.
 
 
 
-Difficulty = 1-back, 2-back, 3-back, 4-back.
+Difficulty = 2-back, 3-back, 4-back.
 
 
 

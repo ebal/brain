@@ -58,10 +58,13 @@ See [`Schulte-SPEC.md`](./Schulte-SPEC.md) for the full design rationale.
 
 ## Number N-Back
 
-A continuous working-memory task: does the number shown now match the one shown **N positions
-earlier** — not just whether it's appeared before at all?
+Numbers appear one at a time as flipping playing cards: does the current card match the one shown
+**N positions earlier** — not just whether it's appeared before at all? The trailing N cards stay
+laid out face-down next to the current one, so you can see exactly how far back N is, but their
+content is hidden again the moment a newer card arrives — recalling what's under them is still the
+whole task, this just makes "how many steps" easier to track than the number itself.
 
-- **Four N levels**, 1-back through 4-back, with 2-back as the Classic reference difficulty.
+- **Three N levels**, 2-back through 4-back, with 2-back as the Classic reference difficulty.
   Difficulty comes purely from how far back you have to remember, never a larger number pool.
 - **Self-paced** — the stimulus waits for your response; no live reaction-time pressure.
 - Deliberately generated/validated sequences keep the target-match ratio stable across rounds.
