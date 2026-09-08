@@ -1,0 +1,39 @@
+# Reference cache-header config for serving ./dist in production.
+#
+# Not wired into docker-compose.yml on purpose — that file runs Vite's own
+# dev server (see README.md), and this project's actual production
+# deployment (brain.ebal.gr) is external to this repo, handled by whatever
+# reverse proxy/static host sits in front of it. Copy the two `location`
+# blocks below into that host's config; the rest is boilerplate to make the
+# example runnable standalone (`nginx -t -c deploy/nginx.conf.example`, path
+# adjusted).
+#
+# Why these two rules and nothing else:
+# - Every file Vite writes to dist/assets/ has a content hash in its
+#   filename (index-IU-Q1wnn.js, GameScreen-BR3ZWZxg.css, ...). A code change
+#   always produces a new filename, so it's always safe to cache these
+#   forever — a stale cached copy can never be served for changed content.
+# - index.html, manifest.webmanifest and sw.js are the three files whose
+#   *filename never changes*. index.html references the current build's
+#   hashed asset names, and Workbox's own update check re-fetches sw.js by
+#   URL — so all three must be revalidated on every request, never served
+#   stale from a shared/browser cache, or a visitor can get stuck on an old
+#   build (or, worse, sw.js caching that never lets a new Service Worker
+#   install at all — a well-known PWA footgun).
+server {
+    listen 80;
+    root /path/to/brain/dist;
+    index index.html;
+
+    location /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    location ~ ^/(index\.html|manifest\.webmanifest|sw\.js|workbox-.*\.js)$ {
+        add_header Cache-Control "no-cache";
+    }
+
+    location / {
+        try_files $uri /index.html;
+    }
+}

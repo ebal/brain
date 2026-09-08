@@ -68,7 +68,7 @@
     </div>
 
     <button class="history-link" @click="$emit('history', { difficultyKey })">
-      View Score History →
+      View Score History
     </button>
   </div>
 </template>

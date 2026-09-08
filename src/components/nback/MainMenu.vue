@@ -1,6 +1,5 @@
 <template>
   <div class="menu">
-    <button class="exit-link" @click="$emit('exit')">← All Games</button>
     <h1>Number N-Back</h1>
     <p class="subtitle">Does the current number match the one N positions back?</p>
 
@@ -26,8 +25,13 @@
     </div>
 
     <div class="footer-links">
-      <button class="about-link" @click="$emit('about')">New here? How to Play →</button>
-      <button class="about-link" @click="$emit('history')">Score History →</button>
+      <button class="home-link" @click="$emit('exit')" aria-label="All Games">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+          <path fill-rule="evenodd" fill="currentColor" d="M8 1L1 7V15H15V7Z M6.5 15V9H9.5V15Z" />
+        </svg>
+      </button>
+      <button class="about-link" @click="$emit('about')">Learn to Play</button>
+      <button class="about-link" @click="$emit('history')">Scores</button>
     </div>
   </div>
 </template>
@@ -56,23 +60,6 @@ watchEffect(() => {
   max-width: 640px;
   width: 100%;
   text-align: center;
-  position: relative;
-}
-
-.exit-link {
-  position: absolute;
-  top: 0;
-  left: 0;
-  background: none;
-  border: none;
-  color: var(--text-dim);
-  font-size: 0.85rem;
-  cursor: pointer;
-  text-decoration: underline;
-}
-
-.exit-link:hover {
-  color: var(--accent);
 }
 
 h1 {
@@ -156,9 +143,23 @@ h1 {
 
 .footer-links {
   display: flex;
+  align-items: center;
   justify-content: center;
   gap: 1.5rem;
   margin-top: 1.5rem;
+}
+
+.home-link {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 0;
+  line-height: 0;
+}
+
+.home-link:hover {
+  color: var(--accent);
 }
 
 .about-link {
@@ -177,13 +178,6 @@ h1 {
 @media (max-width: 480px) {
   .difficulty-grid {
     grid-template-columns: 1fr;
-  }
-
-  .exit-link {
-    position: static;
-    display: block;
-    margin-bottom: 0.75rem;
-    text-align: left;
   }
 }
 </style>

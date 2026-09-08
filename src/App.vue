@@ -264,12 +264,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, defineAsyncComponent } from 'vue'
 import GameChooser from './components/GameChooser.vue'
-import DataManagement from './components/DataManagement.vue'
-import BenchmarkMenu from './components/BenchmarkMenu.vue'
-import ActivityDashboard from './components/ActivityDashboard.vue'
-import AboutBrain from './components/AboutBrain.vue'
+import LoadingScreen from './components/LoadingScreen.vue'
 import { BENCHMARK_CONFIGS } from './constants/benchmark.js'
 import { useBenchmarkHistory } from './composables/benchmarkHistory.js'
 import { getBaseline, compareToBaseline } from './composables/baseline.js'
@@ -283,53 +280,70 @@ import {
   mapMemoryPairsEntry,
 } from './composables/sessionModel.js'
 
-import MainMenu from './components/MainMenu.vue'
-import AboutPage from './components/AboutPage.vue'
-import HistoryPage from './components/HistoryPage.vue'
-import GameScreen from './components/GameScreen.vue'
-import ResultsScreen from './components/ResultsScreen.vue'
+// GameChooser (the landing screen) is the only component the initial page
+// load actually needs, so it's the only one imported eagerly above.
+// Everything below — every game and every cross-cutting screen — is only
+// reachable by clicking through from that landing screen, so each is its
+// own lazily-loaded chunk: the homepage no longer pays for code (or scoped
+// CSS) belonging to games/screens the visitor hasn't opened. A short delay
+// avoids flashing "Loading…" for chunks that resolve near-instantly (already
+// cached by the Service Worker, or a fast connection).
+function lazy(loader) {
+  return defineAsyncComponent({ loader, loadingComponent: LoadingScreen, delay: 150 })
+}
 
-import SchulteMainMenu from './components/schulte/MainMenu.vue'
-import SchulteAboutPage from './components/schulte/AboutPage.vue'
-import SchulteHistoryPage from './components/schulte/HistoryPage.vue'
-import SchulteGameScreen from './components/schulte/GameScreen.vue'
-import SchulteResultsScreen from './components/schulte/ResultsScreen.vue'
+const DataManagement = lazy(() => import('./components/DataManagement.vue'))
+const BenchmarkMenu = lazy(() => import('./components/BenchmarkMenu.vue'))
+const ActivityDashboard = lazy(() => import('./components/ActivityDashboard.vue'))
+const AboutBrain = lazy(() => import('./components/AboutBrain.vue'))
 
-import NBackMainMenu from './components/nback/MainMenu.vue'
-import NBackAboutPage from './components/nback/AboutPage.vue'
-import NBackHistoryPage from './components/nback/HistoryPage.vue'
-import NBackGameScreen from './components/nback/GameScreen.vue'
-import NBackResultsScreen from './components/nback/ResultsScreen.vue'
+const MainMenu = lazy(() => import('./components/MainMenu.vue'))
+const AboutPage = lazy(() => import('./components/AboutPage.vue'))
+const HistoryPage = lazy(() => import('./components/HistoryPage.vue'))
+const GameScreen = lazy(() => import('./components/GameScreen.vue'))
+const ResultsScreen = lazy(() => import('./components/ResultsScreen.vue'))
 
-import SudokuMainMenu from './components/sudoku/MainMenu.vue'
-import SudokuAboutPage from './components/sudoku/AboutPage.vue'
-import SudokuHistoryPage from './components/sudoku/HistoryPage.vue'
-import SudokuGameScreen from './components/sudoku/GameScreen.vue'
-import SudokuResultsScreen from './components/sudoku/ResultsScreen.vue'
+const SchulteMainMenu = lazy(() => import('./components/schulte/MainMenu.vue'))
+const SchulteAboutPage = lazy(() => import('./components/schulte/AboutPage.vue'))
+const SchulteHistoryPage = lazy(() => import('./components/schulte/HistoryPage.vue'))
+const SchulteGameScreen = lazy(() => import('./components/schulte/GameScreen.vue'))
+const SchulteResultsScreen = lazy(() => import('./components/schulte/ResultsScreen.vue'))
 
-import SetMainMenu from './components/set/MainMenu.vue'
-import SetAboutPage from './components/set/AboutPage.vue'
-import SetHistoryPage from './components/set/HistoryPage.vue'
-import SetGameScreen from './components/set/GameScreen.vue'
-import SetResultsScreen from './components/set/ResultsScreen.vue'
+const NBackMainMenu = lazy(() => import('./components/nback/MainMenu.vue'))
+const NBackAboutPage = lazy(() => import('./components/nback/AboutPage.vue'))
+const NBackHistoryPage = lazy(() => import('./components/nback/HistoryPage.vue'))
+const NBackGameScreen = lazy(() => import('./components/nback/GameScreen.vue'))
+const NBackResultsScreen = lazy(() => import('./components/nback/ResultsScreen.vue'))
 
-import SequenceMainMenu from './components/sequence-memory/MainMenu.vue'
-import SequenceAboutPage from './components/sequence-memory/AboutPage.vue'
-import SequenceHistoryPage from './components/sequence-memory/HistoryPage.vue'
-import SequenceGameScreen from './components/sequence-memory/GameScreen.vue'
-import SequenceResultsScreen from './components/sequence-memory/ResultsScreen.vue'
+const SudokuMainMenu = lazy(() => import('./components/sudoku/MainMenu.vue'))
+const SudokuAboutPage = lazy(() => import('./components/sudoku/AboutPage.vue'))
+const SudokuHistoryPage = lazy(() => import('./components/sudoku/HistoryPage.vue'))
+const SudokuGameScreen = lazy(() => import('./components/sudoku/GameScreen.vue'))
+const SudokuResultsScreen = lazy(() => import('./components/sudoku/ResultsScreen.vue'))
 
-import SwitchTrailMainMenu from './components/switchtrail/MainMenu.vue'
-import SwitchTrailAboutPage from './components/switchtrail/AboutPage.vue'
-import SwitchTrailHistoryPage from './components/switchtrail/HistoryPage.vue'
-import SwitchTrailGameScreen from './components/switchtrail/GameScreen.vue'
-import SwitchTrailResultsScreen from './components/switchtrail/ResultsScreen.vue'
+const SetMainMenu = lazy(() => import('./components/set/MainMenu.vue'))
+const SetAboutPage = lazy(() => import('./components/set/AboutPage.vue'))
+const SetHistoryPage = lazy(() => import('./components/set/HistoryPage.vue'))
+const SetGameScreen = lazy(() => import('./components/set/GameScreen.vue'))
+const SetResultsScreen = lazy(() => import('./components/set/ResultsScreen.vue'))
 
-import MemoryPairsMainMenu from './components/memorypairs/MainMenu.vue'
-import MemoryPairsAboutPage from './components/memorypairs/AboutPage.vue'
-import MemoryPairsHistoryPage from './components/memorypairs/HistoryPage.vue'
-import MemoryPairsGameScreen from './components/memorypairs/GameScreen.vue'
-import MemoryPairsResultsScreen from './components/memorypairs/ResultsScreen.vue'
+const SequenceMainMenu = lazy(() => import('./components/sequence-memory/MainMenu.vue'))
+const SequenceAboutPage = lazy(() => import('./components/sequence-memory/AboutPage.vue'))
+const SequenceHistoryPage = lazy(() => import('./components/sequence-memory/HistoryPage.vue'))
+const SequenceGameScreen = lazy(() => import('./components/sequence-memory/GameScreen.vue'))
+const SequenceResultsScreen = lazy(() => import('./components/sequence-memory/ResultsScreen.vue'))
+
+const SwitchTrailMainMenu = lazy(() => import('./components/switchtrail/MainMenu.vue'))
+const SwitchTrailAboutPage = lazy(() => import('./components/switchtrail/AboutPage.vue'))
+const SwitchTrailHistoryPage = lazy(() => import('./components/switchtrail/HistoryPage.vue'))
+const SwitchTrailGameScreen = lazy(() => import('./components/switchtrail/GameScreen.vue'))
+const SwitchTrailResultsScreen = lazy(() => import('./components/switchtrail/ResultsScreen.vue'))
+
+const MemoryPairsMainMenu = lazy(() => import('./components/memorypairs/MainMenu.vue'))
+const MemoryPairsAboutPage = lazy(() => import('./components/memorypairs/AboutPage.vue'))
+const MemoryPairsHistoryPage = lazy(() => import('./components/memorypairs/HistoryPage.vue'))
+const MemoryPairsGameScreen = lazy(() => import('./components/memorypairs/GameScreen.vue'))
+const MemoryPairsResultsScreen = lazy(() => import('./components/memorypairs/ResultsScreen.vue'))
 
 const activeGame = ref(null) // null | 'stroop' | 'schulte' | 'nback' | 'sudoku' | 'set' | 'sequence-memory' | 'switchtrail' | 'memorypairs' | 'data' | 'benchmark-menu' | 'activity' | 'about'
 

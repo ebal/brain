@@ -1,5 +1,7 @@
 # Brain
 
+![Brain landing screen](docs/screenshots/brain_00_intro.png)
+
 Brain is a small collection of offline cognitive games for attention, memory, visual search,
 reasoning and pattern recognition. The idea: instead of opening social media when you have a few
 minutes free, open Brain and play a small game instead.
@@ -32,6 +34,8 @@ file, linked from each section below.
 
 ## Stroop Effect Test
 
+![Stroop Effect Test](docs/screenshots/brain_01_stroop.png)
+
 The classic [Stroop effect](https://en.wikipedia.org/wiki/Stroop_effect) task: name the **ink
 color** a word is printed in, not what the word says. Most trials are deliberately incongruent,
 which is what produces the measurable slowdown the test is named for.
@@ -47,6 +51,8 @@ See [`SPEC.md`](./SPEC.md) for the full design rationale and changelog.
 
 ## Schulte Tables
 
+![Schulte Tables](docs/screenshots/brain_02_schulte.png)
+
 A [Schulte Table](https://en.wikipedia.org/wiki/Schulte_table) visual-search drill: find numbers 1
 to N² in order on a grid that's generated once and never moves. It measures scanning and
 attention, not memory.
@@ -61,6 +67,8 @@ attention, not memory.
 See [`Schulte-SPEC.md`](./Schulte-SPEC.md) for the full design rationale.
 
 ## Number N-Back
+
+![Number N-Back](docs/screenshots/brain_03_nback.png)
 
 Numbers appear one at a time as flipping playing cards: does the current card match the one shown
 **N positions earlier**? The trailing N cards stay laid out face-down next to the current one, so
@@ -80,6 +88,8 @@ See [`NBack-SPEC.md`](./NBack-SPEC.md) for the full design rationale.
 
 ## Sudoku
 
+![Sudoku](docs/screenshots/brain_04_sudoku.png)
+
 Classic 9×9 Sudoku, rated by an actual logical solver rather than clue count. Easy/Medium/Hard
 reflects the hardest technique genuinely needed to solve it, not a guess. Every puzzle is verified
 to have exactly one solution.
@@ -95,6 +105,8 @@ to have exactly one solution.
 See [`Sudoku-SPEC.md`](./Sudoku-SPEC.md) for the full design rationale.
 
 ## SET
+
+![SET](docs/screenshots/brain_05_set.png)
 
 The classic pattern-recognition card game, rendered entirely with inline SVG so it stays
 offline-capable. Find three cards where every property (number, shape, color, shading) is all the
@@ -114,6 +126,8 @@ See [`SET-SPEC.md`](./SET-SPEC.md) for the full design rationale.
 
 ## Sequence Memory
 
+![Sequence Memory](docs/screenshots/brain_06_seq.png)
+
 A "Simon Says"-style memory game: watch a sequence of flashes on a 3×3 grid, then tap the same
 cells back in order. Each success extends the same sequence by one step, so it measures how long
 a pattern you can hold, not luck.
@@ -129,6 +143,8 @@ See [`Sequence-Memory-SPEC.md`](./Sequence-Memory-SPEC.md) for the full design r
 
 ## Switch Trail
 
+![Switch Trail](docs/screenshots/brain_07_switch.png)
+
 A Trail Making-inspired task-switching game: tap scattered targets in alternating order (1, A, 2,
 B, 3, C...) before time runs out. Targets are placed once per round and never move, so it measures
 visual search and switching, not memory of positions.
@@ -142,6 +158,8 @@ visual search and switching, not memory of positions.
 See [`Switch-Trail-SPEC.md`](./Switch-Trail-SPEC.md) for the full design rationale.
 
 ## Memory Pairs
+
+![Memory Pairs](docs/screenshots/brain_08_memory.png)
 
 A classic emoji Concentration game: flip two face-down tiles at a time and find every matching
 pair. The board is generated once and never changes, so it measures visual memory and spatial
@@ -271,6 +289,8 @@ npm run build   # outputs static files to ./dist
 npm run preview # serve the build locally to sanity-check it
 ```
 
+Every file under `dist/assets/` is content-hashed (a code change always produces a new filename), so whatever serves `./dist` in production should cache that folder as `public, max-age=31536000, immutable` and revalidate `index.html`, `manifest.webmanifest` and `sw.js` on every request instead (their filenames never change, and Workbox's own update check depends on `sw.js` never being served stale). See [`deploy/nginx.conf.example`](./deploy/nginx.conf.example) for a copy-pasteable version of those two rules — not wired into `docker-compose.yml`, since that runs the dev server and this project's actual deployment is external to this repo (see the warning below).
+
 ### Docker (dev server, no build step)
 
 Runs the Vite dev server itself inside the container, directly against the bind-mounted source,
@@ -320,6 +340,15 @@ seven each have their own subfolder (`schulte/`, `nback/`, `sudoku/`, `set/`, `s
 composables, and a `difficulties.js` constants file. Benchmark Mode, the Activity dashboard and
 Data Management are cross-cutting rather than per-game, so they live top-level alongside
 `GameChooser.vue`.
+
+`GameChooser.vue` (the landing screen) is the only one of those components `App.vue` imports
+eagerly — every game screen and every cross-cutting screen (Benchmark, Activity, Data Management,
+About) is loaded via `defineAsyncComponent`, so the homepage's initial JS/CSS payload doesn't
+include code for games or screens the visitor hasn't opened yet. `LoadingScreen.vue` is the shared
+fallback shown if a chunk takes more than 150ms to arrive — normally invisible once the Service
+Worker has this cached. This changes nothing about offline support: `vite.config.js`'s Workbox
+`globPatterns` already precaches every build output file by extension, so it picks up the extra
+chunk files without needing to know they exist.
 
 ```
 brain/

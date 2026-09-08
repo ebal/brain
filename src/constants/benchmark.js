@@ -13,7 +13,10 @@ export const BENCHMARK_VERSION = 1
 export const BENCHMARK_CONFIGS = {
   stroop: { label: 'Stroop Effect Test', difficultyKey: 'medium', mode: 'color', summary: 'Medium · Color Match' },
   schulte: { label: 'Schulte Tables', difficultyKey: 'classic', summary: '5×5 Classic' },
-  nback: { label: 'Number N-Back', difficultyKey: 'classic', summary: '2-Back' },
+  // '2' (not 'classic') — NBACK_DIFFICULTIES.classic.key is '2', the literal
+  // localStorage suffix; unlike every other game here, N-Back's `.key` does
+  // not match its object property name.
+  nback: { label: 'Number N-Back', difficultyKey: '2', summary: '2-Back' },
   set: { label: 'SET', difficultyKey: 'medium', summary: 'Medium' },
   'sequence-memory': { label: 'Sequence Memory', difficultyKey: 'medium', summary: 'Medium' },
   switchtrail: { label: 'Switch Trail', difficultyKey: 'medium', summary: 'Medium · 16 targets' },
