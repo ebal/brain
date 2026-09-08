@@ -63,7 +63,7 @@ End-of-round summary:
 
 ## 4. Persistence: best scores
 
-Since this is a single-user, no-login, container-based app, the simplest correct choice is **browser `localStorage`**, keyed per difficulty (`stroop:best:easy`, `...:medium`, etc.), storing `{ score, accuracy, avgRT, date }`. This persists across container restarts (it lives in the browser, not the container) and requires no backend, no database, and no volume mounts.
+Since this is a single-user, no-login, container-based app, the simplest correct choice is **browser `localStorage`**, keyed per mode and difficulty (`stroop:best:color:easy`, `...:word:medium`, etc. — see §9's game-mode changelog entry), storing `{ score, accuracy, avgRT, date }`. This persists across container restarts (it lives in the browser, not the container) and requires no backend, no database, and no volume mounts.
 
 *Trade-off noted for the future*: localStorage is per-browser/per-device — best scores won't sync between your laptop and phone. If that's ever wanted, see §7 (future changes).
 
@@ -74,7 +74,7 @@ Since this is a single-user, no-login, container-based app, the simplest correct
 - **Vue 3** (Composition API) + **Vite** for the build.
 - Single-page app, no router needed (one screen: menu → game → results, controlled by local state).
 - No backend/API — pure static frontend. Vite builds static files.
-- **Docker (revised again — single dev service, see §9)**: one plain `node:20-alpine` image, no Dockerfile, no build step at all. `dev` bind-mounts the whole project and runs `npm install && npm run dev -- --host 0.0.0.0`, exposing Vite's own dev server (with hot-reload) on `5173:5173`. Runs as `${DOCKER_UID:-1000}:${DOCKER_GID:-1000}` (overridable via a local, gitignored `.env`) instead of root, since it writes into the bind-mounted project (`node_modules`, `.npm-cache`). No backend database; app state (best scores, history) lives in the browser via `localStorage`, so the container stays stateless.
+- **Docker (revised again — single dev service, see §9)**: one plain `node:26-trixie-slim` image, no Dockerfile, no build step at all. The `brain` service bind-mounts the whole project and runs `npm install && npm run dev -- --host 0.0.0.0`, exposing Vite's own dev server (with hot-reload) on `5173:5173`. Runs as `${DOCKER_UID:-1000}:${DOCKER_GID:-1000}` (overridable via a local, gitignored `.env`) instead of root, since it writes into the bind-mounted project (`node_modules`, `.npm-cache`). No backend database; app state (best scores, history) lives in the browser via `localStorage`, so the container stays stateless.
 - Superseded: an earlier revision ran two services — an always-on `nginx:alpine` serving a pre-built `./dist` plus an on-demand `node:20-alpine` `builder` profile to (re)produce it — trading instant dev iteration for a hardened, minified production artifact. Dropped because the only real usage was local/personal iteration, where the manual build-then-serve cycle was pure friction; the dev server is a straight downgrade in production-readiness (unminified, dev-only tooling, not meant to be exposed publicly) that this project's actual usage doesn't need. `npm run build && npm run preview` remains the closest built-in equivalent if a production-like check is ever needed.
 
 ```
@@ -169,7 +169,7 @@ Requirements:
 - Web App Manifest (`vite.config.js` → `VitePWA({ manifest: ... })`), standalone display mode, app name/icons/theme color.
 - Service Worker precaching the entire built app shell (HTML, JS, CSS, manifest, icons) via Workbox — generated automatically from the production build, not hand-written.
 - No runtime network dependency exists for gameplay in the first place — audited: zero `fetch`/`axios`/`WebSocket`/CDN/remote-font references anywhere in `src/`, so there was nothing to special-case for offline; the precached shell *is* the whole app.
-- Existing `localStorage` persistence (best scores, history, stats — all three games) is untouched and works identically offline, since it was never network-backed to begin with.
+- Existing `localStorage` persistence (best scores, history, stats — every game in the suite) is untouched and works identically offline, since it was never network-backed to begin with.
 - Registration is explicit (`src/main.js`, via `virtual:pwa-register`) rather than auto-injected, so success/failure is visible in the console.
 - **Only present in the production build** (`npm run build` + serving `dist/`, e.g. via `npm run preview`) — the `dev` service (`npm run dev`) intentionally serves the app without a Service Worker, exactly as before; nothing about local development changed.
 - **Secure context requirement**: Service Worker registration and installability require HTTPS (or `localhost`), a browser-enforced rule with no app-level workaround. The `dev`/build setup itself stays HTTP-only; reaching it as a real secure-context HTTPS origin (for installing on a physical phone) is handled by whatever's in front of it (e.g. a reverse proxy doing TLS termination), not by this project.

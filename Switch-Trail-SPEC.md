@@ -568,19 +568,20 @@ Requirements:
 
 The game must introduce **zero new runtime network dependencies**.
 
-## 30. Future Benchmark compatibility
+## 30. Benchmark mode (implemented)
 
-Do not implement suite-wide Benchmark mode solely for this game, but keep Switch Trail compatible with it.
-
-A future benchmark could use:
+Suite-wide Benchmark mode (see the top-level app spec) now includes Switch Trail, using:
 
 ```text
-Switch Trail Benchmark v1
 Medium
 16 targets
 45 seconds
-fixed seed
 ```
+
+No fixed seed — each benchmark run gets a freshly generated board, same as normal play. Only the
+difficulty (Medium) and variant (Classic, not Random Color) are pinned. A benchmark run is also
+recorded as a normal play session (own history/stats/best), plus separately in benchmark history,
+matching every other benchmark-eligible game.
 
 ## 31. Future changes
 

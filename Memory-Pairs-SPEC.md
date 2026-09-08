@@ -399,7 +399,7 @@ Keep the last **30 completed games** per difficulty.
 
 History filters:
 
-`All | Easy | Medium | Hard`
+`All | Easy | Medium | Hard | Very Hard | Extreme`
 
 Useful trends:
 
@@ -423,6 +423,10 @@ Track per difficulty:
 - average Mistakes
 - average Move Efficiency
 - total pairs found
+
+Average/median figures are computed over each difficulty's most recent 50 completions, kept
+separately from the 30-entry history cap above, so long-run averages don't require retaining
+unbounded history.
 
 Do not combine difficulties into a universal score.
 
@@ -579,7 +583,7 @@ Conceptually:
 ```text
 components/memorypairs/
 composables/memorypairs/
-game/memorypairs/
+constants/memorypairs/
 ```
 
 Useful pure functions:
@@ -731,7 +735,7 @@ Not part of v1:
 14. No mistake-based game over.
 15. No hard time limit.
 16. Time, Moves, and Mistakes all affect Score.
-17. Base scores: **3000 / 5000 / 8000**.
+17. Base scores: **3000 / 5000 / 8000 / 11000 / 14000**.
 18. Time penalty = **25 per whole second**.
 19. Extra-Move penalty = **75**.
 20. Mistake penalty = **100**.

@@ -333,7 +333,7 @@ import MemoryPairsResultsScreen from './components/memorypairs/ResultsScreen.vue
 
 const activeGame = ref(null) // null | 'stroop' | 'schulte' | 'nback' | 'sudoku' | 'set' | 'sequence-memory' | 'switchtrail' | 'memorypairs' | 'data' | 'benchmark-menu' | 'activity' | 'about'
 
-// --- Benchmark mode (IMPROVEMENT-PLAN.md Phase 5) ---
+// --- Benchmark mode ---
 // A thin layer over normal play: launching from BenchmarkMenu reuses each
 // game's own handleXStart with the difficulty/mode pinned from
 // BENCHMARK_CONFIGS, and each handleXFinished below additionally records a
@@ -344,9 +344,9 @@ const { recordBenchmarkSession } = useBenchmarkHistory()
 const benchmarkActive = ref(false)
 const benchmarkConfigLabel = computed(() => BENCHMARK_CONFIGS[activeGame.value]?.label || '')
 
-// Personal baseline (IMPROVEMENT-PLAN.md Phase 6) — shown as a small,
-// dismissible banner right after a benchmark session finishes, rather than
-// wiring a prop into every game's own ResultsScreen.vue.
+// Personal baseline: shown as a small, dismissible banner right after a
+// benchmark session finishes, rather than wiring a prop into every game's
+// own ResultsScreen.vue.
 const benchmarkFeedback = ref(null) // { game, message } | null
 watch(activeGame, () => { benchmarkFeedback.value = null })
 

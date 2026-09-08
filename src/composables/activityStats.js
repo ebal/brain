@@ -1,11 +1,10 @@
-// Longitudinal statistics / Activity dashboard (IMPROVEMENT-PLAN.md Phase
-// 7) — the payoff phase that Phase 3 (common session model) and Phase 6
-// (personal baseline) were built toward. Purely a read/aggregation layer:
+// Longitudinal statistics / Activity dashboard, built on top of the common
+// session model and personal baseline. Purely a read/aggregation layer:
 // no new storage, nothing here is ever written back.
 //
 // Deliberately NOT doing: a unified cross-game "Brain Score," fake
 // population percentiles, or any framing beyond "your performance on these
-// six specific tasks, over time" (see IMPROVEMENT-PLAN.md Phase 7).
+// specific tasks, over time."
 
 import { median } from './mathStats.js'
 import { computeBaseline, compareToBaseline, METRIC_DIRECTION } from './baseline.js'

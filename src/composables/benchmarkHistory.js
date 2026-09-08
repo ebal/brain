@@ -1,4 +1,4 @@
-// Storage for Benchmark-mode sessions (IMPROVEMENT-PLAN.md Phase 5) — kept
+// Storage for Benchmark-mode sessions, kept
 // entirely separate from each game's normal play history/stats/best-scores,
 // so an ordinary Play round can never silently feed a Benchmark comparison
 // and vice versa. Sessions are built via sessionModel.js's mapper functions

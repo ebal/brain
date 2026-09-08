@@ -77,6 +77,8 @@ The puzzle should still progress without long periods of guessing.
 May additionally require:
 
 - triples
+- quads (naked/hidden quad elimination) — added after generation showed genuine "needs triples and
+  nothing more" puzzles are vanishingly rare; most puzzles past the pair stage need this too
 - repeated candidate interactions
 - more involved locked-candidate reasoning
 - several logical steps chained together
@@ -339,6 +341,7 @@ Store:
 
 ```text
 {
+  puzzleId,
   puzzle,
   solution,
   difficulty,
@@ -457,9 +460,15 @@ Each entry:
   mistakes,
   hints,
   cleanSolve,
-  completedAt
+  completedAt,
+  metricVersion,
+  appVersion
 }
 ```
+
+`metricVersion`/`appVersion` are a later, suite-wide addition (see the app-level README) that lets a
+future change to the scoring/measurement definition be told apart from older entries without
+rewriting them; entries written before this existed are simply treated as version 1.
 
 History screen supports difficulty filtering:
 
@@ -618,7 +627,7 @@ Also explain difficulty simply:
 
 ## 21. Architecture
 
-Keep the project consistent with Stroop, Schulte, and Number N-Back:
+Keep the project consistent with the rest of the suite (all games share one app):
 
 - **Vue 3** Composition API
 - **Vite**
@@ -627,7 +636,7 @@ Keep the project consistent with Stroop, Schulte, and Number N-Back:
 - `localStorage`
 - mobile-first
 - single Docker Compose development service
-- `node:20-alpine`
+- `node:26-trixie-slim`
 - Vite port **5173**
 - bind-mounted source / hot reload
 - `${DOCKER_UID:-1000}:${DOCKER_GID:-1000}`

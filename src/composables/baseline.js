@@ -1,5 +1,5 @@
-// Personal baseline (IMPROVEMENT-PLAN.md Phase 6) — "current performance vs.
-// your own baseline," never "vs. a population." There is no normative
+// Personal baseline: "current performance vs. your own baseline," never
+// "vs. a population." There is no normative
 // dataset, and none is fabricated here: a baseline only exists once at least
 // MIN_SESSIONS benchmark sessions have been recorded for that game, and it
 // is always the median of that game's own benchmark history — derived

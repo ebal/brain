@@ -133,6 +133,23 @@ Very Hard
 
 Extended challenge
 
+
+
+
+Extreme
+
+
+
+8×8
+
+
+
+1–64
+
+
+
+Maximum density challenge (v2 addition — see §14 for the other v2 addition, the Random Color/Position variants)
+
 Classic 5×5 is the reference difficulty and should be visually identified as such in the menu.
 
 There is no countdown timer limiting the round. A round ends when the player successfully selects the final number.
@@ -300,6 +317,7 @@ schulte:best:medium
 schulte:best:classic
 schulte:best:hard
 schulte:best:very-hard
+schulte:best:extreme
 
 A best entry stores:
 
@@ -659,7 +677,7 @@ optional sound/haptic feedback
 
 
 
-CSV/JSON history export
+CSV/JSON history export (later implemented, but app-wide rather than Schulte-specific — see the top-level SPEC.md's Data export/import section)
 
 
 
@@ -695,7 +713,7 @@ Ascending numbers only.
 
 
 
-Difficulty scales through 3×3, 4×4, 5×5, 6×6, 7×7 grids.
+Difficulty scales through 3×3, 4×4, 5×5, 6×6, 7×7, and (v2 addition) 8×8 grids.
 
 
 

@@ -1,8 +1,7 @@
-// Common session-metadata model (IMPROVEMENT-PLAN.md Phase 3) — a shared
-// shape for "a session happened," used only to support suite-wide views
-// (a future Activity/Statistics dashboard, Benchmark/Baseline comparisons).
-// Each game keeps writing and reading its own detailed history exactly as it
-// always has; nothing here replaces that.
+// Common session-metadata model: a shared shape for "a session happened,"
+// used only to support suite-wide views (the Activity dashboard, Benchmark/
+// Baseline comparisons). Each game keeps writing and reading its own
+// detailed history exactly as it always has; nothing here replaces that.
 //
 // Deliberately derive-on-demand rather than stored: the mapper functions
 // below are pure (entry in, common-shape session out), so a session record

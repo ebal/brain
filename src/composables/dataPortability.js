@@ -1,6 +1,6 @@
-// Data export / import / delete (IMPROVEMENT-PLAN.md Phase 4) — the one
-// place a cross-game shared utility genuinely earns its keep, since backup
-// and recovery need to see every game's localStorage keys at once.
+// Data export / import / delete: the one place a cross-game shared utility
+// genuinely earns its keep, since backup and recovery need to see every
+// game's localStorage keys at once.
 
 import { getAllSessions } from './sessionModel.js'
 
@@ -108,8 +108,8 @@ export function validateImportFile(parsed) {
 // rules, e.g. "is this completion time actually better") keep the LOCAL
 // value whenever one already exists: incoming data only fills a gap where
 // nothing local exists yet. This never discards local data on merge, at the
-// cost of not picking the objectively-better side of a conflict — a fully
-// domain-aware merge is out of scope for this pass (see IMPROVEMENT-PLAN.md).
+// cost of not picking the objectively-better side of a conflict; a fully
+// domain-aware merge is intentionally out of scope.
 export function mergeValue(existing, incoming) {
   if (existing === null || existing === undefined) return incoming
   if (Array.isArray(existing) && Array.isArray(incoming)) {
