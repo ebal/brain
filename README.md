@@ -299,6 +299,16 @@ production deployment (e.g. nginx serving a minified `npm run build` output), th
 step back up in complexity this repo no longer ships out of the box; `npm run build && npm run
 preview` (below) is the closest built-in equivalent.
 
+> **Don't expose this dev server on a public host.** It never serves a Service Worker (`main.js`
+> skips registration under `vite dev`), so none of the PWA/offline support applies, and a
+> `git pull` + `docker compose down && up` cycle is the only way to pick up new code. Worse, if that
+> same origin ever *did* serve a production build at some point (e.g. a manual `npm run build &&
+> npm run preview` test), browsers that registered its Service Worker then will keep serving that
+> old cached build forever — the dev server never sends a new one to replace it. For a real
+> deployment, build a static artifact and serve it (e.g. an on-demand `builder` service running
+> `npm run build`, feeding an always-on `nginx:alpine` serving `./dist`) instead of running the dev
+> server as "production."
+
 #### File ownership
 
 The container bind-mounts the whole project and writes into it (`node_modules`, `.npm-cache`), so

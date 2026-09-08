@@ -1,8 +1,8 @@
 services:
   # Runs the Vite dev server directly against the bind-mounted source, with
   # hot-reload. No build step, ever — just `docker compose up` and edit files.
-  dev:
-    image: node:20-alpine
+  brain:
+    image: node:26-trixie-slim
     container_name: brain-dev
     working_dir: /app
     volumes:
