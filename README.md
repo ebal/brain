@@ -66,6 +66,9 @@ whole task, this just makes "how many steps" easier to track than the number its
 
 - **Three N levels**, 2-back through 4-back, with 2-back as the Classic reference difficulty.
   Difficulty comes purely from how far back you have to remember, never a larger number pool.
+- **Extreme**: the same 2-back distance as Classic, but numbers are swapped for a fixed
+  consonant pool (C, H, K, L, Q, R, S, T — vowels excluded as too memorable/distinctive) over a
+  longer, 70-trial round — harder because the pool is less familiar, not because N is bigger.
 - **Self-paced** — the stimulus waits for your response; no live reaction-time pressure.
 - Deliberately generated/validated sequences keep the target-match ratio stable across rounds.
 - Score and accuracy are tracked separately from raw hit/miss/false-alarm counts.
@@ -94,9 +97,13 @@ it stays offline-capable for free). Find three cards where every property (numbe
 shading) is all-same or all-different, using the actual mathematical rule rather than a lookup
 list.
 
-- Easy/Medium/Hard change only how much help you get on a wrong guess — never the underlying
-  math or board-size behavior.
-- **Progressive hints**, unlimited but any use disqualifies that game from a new **Clean Best**.
+- **Four difficulties**: Easy (9 cards, explains wrong guesses, starts every board with one free
+  hint card already revealed), Medium (12 cards), Hard (12 cards, no explanation), and Extreme (15
+  cards, same assistance as Hard) — the underlying math never changes, only board size and help.
+- **Progressive hints**, unlimited but any use disqualifies that game from a new **Clean Best**
+  (Easy's one free starting card is exempt, so a Clean Best stays reachable there too).
+- Optional **Light Colors** toggle swaps the card colors for a softer palette — purely cosmetic.
+- A direct exit button (with confirmation) is available mid-game, not just from Pause.
 - Autosave & Continue Game, auto-pause on tab-hidden, per-difficulty stats and history.
 - No synthetic score — completion time, mistakes, hints, and find time are the primary measurements.
 

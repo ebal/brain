@@ -30,13 +30,16 @@ function shuffle(arr, rng) {
   return a
 }
 
-// Generates a sequence of `n + scoredTrials` numbers. The first `n` are
-// unscored setup stimuli (no valid n-back comparison exists yet). Among the
-// scored positions, exactly round(scoredTrials * TARGET_RATIO) are real
-// n-back matches (targets); every other scored position is deliberately NOT
-// a match, and setup positions avoid an immediate back-to-back repeat where
+// Generates a sequence of `n + scoredTrials` stimuli drawn from `pool`
+// (numbers by default; a letters difficulty passes LETTER_POOL instead —
+// the generation/validation logic itself doesn't care what the symbols are,
+// only that they can be compared for equality). The first `n` are unscored
+// setup stimuli (no valid n-back comparison exists yet). Among the scored
+// positions, exactly round(scoredTrials * TARGET_RATIO) are real n-back
+// matches (targets); every other scored position is deliberately NOT a
+// match, and setup positions avoid an immediate back-to-back repeat where
 // practical (SPEC §4).
-export function generateSequence(n, scoredTrials, seed) {
+export function generateSequence(n, scoredTrials, seed, pool = NUMBER_POOL) {
   const rng = makeRng(seed)
   const total = n + scoredTrials
   const targetCount = Math.round(scoredTrials * TARGET_RATIO)
@@ -52,7 +55,7 @@ export function generateSequence(n, scoredTrials, seed) {
       let num
       let attempts = 0
       do {
-        num = pickRandom(NUMBER_POOL, rng)
+        num = pickRandom(pool, rng)
         attempts += 1
       } while (attempts < 20 && i > 0 && num === numbers[i - 1])
       numbers.push(num)
@@ -67,7 +70,7 @@ export function generateSequence(n, scoredTrials, seed) {
       let num
       let attempts = 0
       do {
-        num = pickRandom(NUMBER_POOL, rng)
+        num = pickRandom(pool, rng)
         attempts += 1
       } while (attempts < 20 && (num === numbers[i - n] || num === numbers[i - 1]))
       numbers.push(num)

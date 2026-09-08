@@ -84,7 +84,7 @@ export function useNBackGame() {
   function start(difficulty, seed) {
     n = difficulty.n
     scoredTrials = difficulty.scoredTrials
-    sequence = generateSequence(n, scoredTrials, seed)
+    sequence = generateSequence(n, scoredTrials, seed, difficulty.pool)
     validateSequence(sequence)
     presentedColors = []
 

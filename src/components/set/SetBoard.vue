@@ -11,6 +11,7 @@
       :hinted="hintCardIds.includes(card.id)"
       :wrong="feedback === 'invalid' && selected.includes(card.id)"
       :valid="feedback === 'valid' && selected.includes(card.id)"
+      :light-colors="lightColors"
       @click="$emit('select', card.id)"
     />
   </div>
@@ -24,6 +25,7 @@ defineProps({
   selected: { type: Array, default: () => [] },
   hintCardIds: { type: Array, default: () => [] },
   feedback: { type: String, default: null },
+  lightColors: { type: Boolean, default: false },
 })
 defineEmits(['select'])
 </script>

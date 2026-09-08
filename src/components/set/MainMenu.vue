@@ -9,9 +9,17 @@
       <span class="continue-meta">{{ activeSave.difficulty }} · {{ formatTime(activeSave.elapsedTime) }}</span>
     </button>
 
+    <div class="variant-toggles">
+      <label class="variant-check">
+        <input type="checkbox" v-model="lightColors" />
+        Light Colors
+      </label>
+    </div>
+
     <div class="difficulty-grid">
       <button v-for="d in difficulties" :key="d.key" class="difficulty-card" @click="handleStart(d.key)">
         <h2>{{ d.label }}</h2>
+        <p class="meta">{{ d.boardSize }}-card board</p>
         <div class="stat-line" v-if="stats(d.key).completed > 0">
           Best (clean): {{ stats(d.key).bestCleanTime ? formatTime(stats(d.key).bestCleanTime.time) : '—' }}
         </div>
@@ -30,6 +38,7 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import { SET_DIFFICULTIES } from '../../constants/set/cardProperties.js'
 import { useSetStorage } from '../../composables/set/useSetStorage.js'
 import { useSetStats } from '../../composables/set/useSetStats.js'
@@ -41,6 +50,7 @@ const { getActive, clearActive } = useSetStorage()
 const { getDerivedStats, recordAbandon } = useSetStats()
 
 const activeSave = getActive()
+const lightColors = ref(false)
 
 function stats(difficultyKey) {
   return getDerivedStats(difficultyKey)
@@ -62,7 +72,7 @@ function handleStart(difficultyKey) {
     recordAbandon(activeSave.difficulty)
     clearActive()
   }
-  emit('start', difficultyKey)
+  emit('start', { difficultyKey, lightColors: lightColors.value })
 }
 </script>
 
@@ -122,9 +132,43 @@ h1 {
   opacity: 0.85;
 }
 
+.variant-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.variant-check {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.variant-check input {
+  width: 1.15rem;
+  height: 1.15rem;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.meta {
+  margin: 0 0 0.5rem;
+  color: var(--text-dim);
+  font-size: 0.75rem;
+}
+
 .difficulty-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
 }
 

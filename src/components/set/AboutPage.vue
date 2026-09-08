@@ -29,11 +29,13 @@
 
     <h2>Difficulty</h2>
     <p class="intro">
-      The SET rule itself never changes — difficulty only changes how much help you get.
-      <strong>Easy</strong> explains exactly which property failed on a wrong guess.
-      <strong>Medium</strong> just tells you "Not a SET." <strong>Hard</strong> drops the
-      explanation and visual assistance entirely, but never changes the math or artificially
-      stuffs the board with extra cards.
+      The SET rule itself never changes — difficulty changes how many cards are on the board and
+      how much help you get. <strong>Easy</strong> deals a smaller 9-card board, explains exactly
+      which property failed on a wrong guess, and starts every board with one card of a real SET
+      already highlighted for free. <strong>Medium</strong> is the standard 12-card board and just
+      tells you "Not a SET." <strong>Hard</strong> drops the explanation and visual assistance
+      entirely. <strong>Extreme</strong> is the same as Hard but with a larger 15-card board — more
+      cards to scan, not a different rule.
     </p>
 
     <h2>Hints</h2>
@@ -41,7 +43,8 @@
       Hints are progressive: the first press highlights one card from a real SET on the board, the
       second press highlights a second card from that same set, and the third reveals all three.
       Hints are unlimited but a game that used any hints can't set a new <strong>Clean Best</strong>
-      time.
+      time — except on Easy, the one free card every board starts with doesn't count as a hint, so
+      a Clean Best is still reachable there even if you never press the Hint button yourself.
     </p>
 
     <h2>Try it yourself</h2>

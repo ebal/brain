@@ -9,7 +9,8 @@
     </template>
 
     <template v-else>
-      <div class="hud">
+      <div class="hud hud-top">
+        <button class="exit-icon-btn" aria-label="Exit to menu" @click="requestExit">✕</button>
         <span class="difficulty-label">{{ difficultyLabel }}</span>
         <span class="timer">{{ formattedTime }}</span>
       </div>
@@ -37,6 +38,7 @@
         :selected="selected"
         :hint-card-ids="hintCardIds"
         :feedback="feedback"
+        :light-colors="props.lightColors"
         @select="handleSelect"
       />
 
@@ -51,12 +53,20 @@
         </button>
       </div>
     </template>
+
+    <ConfirmDialog
+      v-if="showExitConfirm"
+      message="Exit this game? Your progress will be lost."
+      @confirm="confirmExit"
+      @cancel="showExitConfirm = false"
+    />
   </div>
 </template>
 
 <script setup>
-import { onMounted, onUnmounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import SetBoard from './SetBoard.vue'
+import ConfirmDialog from '../ConfirmDialog.vue'
 import { useSetGame } from '../../composables/set/useSetGame.js'
 import { useSetStorage } from '../../composables/set/useSetStorage.js'
 import { useSetStats } from '../../composables/set/useSetStats.js'
@@ -65,8 +75,20 @@ import { SET_DIFFICULTIES, PROPERTY_DISPLAY } from '../../constants/set/cardProp
 const props = defineProps({
   difficultyKey: { type: String, default: null },
   continueGame: { type: Boolean, default: false },
+  lightColors: { type: Boolean, default: false },
 })
 const emit = defineEmits(['finished', 'exit'])
+
+const showExitConfirm = ref(false)
+
+function requestExit() {
+  showExitConfirm.value = true
+}
+
+function confirmExit() {
+  showExitConfirm.value = false
+  handleExit()
+}
 
 const { getActive, saveActive, clearActive } = useSetStorage()
 const { recordStart, recordCompletion, recordAbandon } = useSetStats()
@@ -223,11 +245,29 @@ watch(status, (val) => {
   align-items: center;
 }
 
+.hud-top {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.5rem;
+}
+
+.exit-icon-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.35rem;
+  justify-self: start;
+}
+
 .difficulty-label {
   font-size: 0.95rem;
   font-weight: 700;
   color: var(--accent);
   text-transform: capitalize;
+  text-align: center;
 }
 
 .timer {

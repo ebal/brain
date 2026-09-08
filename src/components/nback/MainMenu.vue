@@ -14,6 +14,7 @@
         <div class="card-head">
           <h2>{{ d.label }}</h2>
           <span v-if="d.isClassic" class="classic-badge">Classic</span>
+          <span v-if="d.isLetters" class="letters-badge">Letters</span>
         </div>
         <p class="meta">{{ d.n }}-back · {{ d.scoredTrials }} scored trials</p>
         <div v-if="bestScores[d.key]" class="best">
@@ -123,6 +124,16 @@ h1 {
   font-size: 0.7rem;
   font-weight: 700;
   padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+
+.letters-badge {
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.1rem 0.45rem;
   border-radius: 999px;
 }
 

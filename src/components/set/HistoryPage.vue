@@ -54,6 +54,7 @@ const filters = [
   { key: 'easy', label: 'Easy' },
   { key: 'medium', label: 'Medium' },
   { key: 'hard', label: 'Hard' },
+  { key: 'extreme', label: 'Extreme' },
 ]
 const activeFilter = ref('all')
 

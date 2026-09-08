@@ -103,13 +103,30 @@ Very Hard
 
 Compare with four numbers earlier
 
+
+
+
+Extreme (Letters)
+
+
+
+2-back
+
+
+
+Compare with two letters earlier, using a consonant pool instead of numbers
+
 2-back is the reference / Classic mode.
 
 The number pool for v1 is:
 
 1 2 3 4 5 6 7 8 9
 
-All difficulties use the same pool. Difficulty comes from working-memory load rather than larger numbers.
+All difficulties use the same pool, except Extreme, which swaps in a fixed consonant pool
+(C H K L Q R S T — the letter set used in Jaeggi et al.'s dual n-back research; vowels are
+excluded because they're more distinctive/memorable than consonants and would make the pool
+inconsistently easier than the number pool it's meant to be harder than). Difficulty otherwise
+comes from working-memory load rather than larger numbers or a longer N.
 
 
 
@@ -172,6 +189,19 @@ Very Hard
 
 
 60
+
+
+
+
+Extreme (Letters)
+
+
+
+2
+
+
+
+70
 
 The initial N setup stimuli are additional and unscored.
 
@@ -875,11 +905,11 @@ Dual n-back should remain a separate future mode, not be mixed into the simple n
 
 
 
-Numbers 1–9 only.
+Numbers 1–9 only, except Extreme, which uses a fixed 8-consonant letter pool instead.
 
 
 
-Difficulty = 2-back, 3-back, 4-back.
+Difficulty = 2-back, 3-back, 4-back, plus Extreme (2-back, letters, 70 scored trials).
 
 
 

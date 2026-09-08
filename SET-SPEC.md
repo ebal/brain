@@ -101,14 +101,18 @@ The game ends when the deck is exhausted and no SET remains on the table.
 
 ## 5. Difficulty
 
-Difficulty changes assistance, not the mathematical SET rule.
+Difficulty changes the board size and assistance, not the mathematical SET rule (v2 addition: the
+original spec's Easy/Medium/Hard were all a fixed 12-card board — Easy is now 9 cards and Extreme
+is a new 15-card tier, both added after real-user feedback that even Easy felt overwhelming).
 
 ### Easy
 
-- normal 12-card board
+- smaller 9-card board
 - timer
 - invalid selections explain why they failed
-- progressive Hint button
+- every new board starts with one card of a real SET already highlighted, for free — this reveal
+  does NOT count toward the hint total, so a Clean Best stays reachable without ever touching it
+- progressive Hint button (further presses beyond the free card count normally)
 - automatic no-SET detection
 - strong selection highlighting
 
@@ -122,7 +126,7 @@ Difficulty changes assistance, not the mathematical SET rule.
 
 ### Hard
 
-- same standard SET rules
+- same standard 12-card board
 - timer
 - no detailed invalid-selection explanation
 - hints available but counted
@@ -130,6 +134,22 @@ Difficulty changes assistance, not the mathematical SET rule.
 - no artificial increase in normal card count
 
 Hard should remain enjoyable. Do not make it difficult using confusing colors, tiny cards or excessive visual density.
+
+### Extreme
+
+- larger 15-card board — same assistance profile as Hard otherwise (no explanation, hints counted,
+  reduced visual assistance)
+- difficulty comes purely from more cards to scan, not a different rule or removed safety valve
+
+---
+
+## 5a. Light Colors option
+
+An optional, non-difficulty toggle (any difficulty) that swaps the three card colors for a
+lighter/pastel palette instead of the default bolder Red/Green/Purple. Purely a rendering choice —
+`color` is still stored and compared as the same 0/1/2 index either way, so switching it never
+touches deck/validator/finder logic. Not persisted between sessions; the player re-picks it each
+time from the menu, same as Schulte's Random Color/Random Position checkboxes.
 
 ---
 
@@ -143,6 +163,9 @@ SET
 Easy
 Medium
 Hard
+Extreme
+
+Light Colors (checkbox)
 
 Continue Game
 History
@@ -151,7 +174,9 @@ How to Play
 
 `Continue Game` appears when an unfinished game exists.
 
-Starting a game creates and shuffles the 81-card deck, deals 12 cards, verifies whether a SET exists, automatically adds three if necessary, and starts timing when the board becomes interactive.
+Starting a game creates and shuffles the 81-card deck, deals that difficulty's board size (9 for
+Easy, 12 for Medium/Hard, 15 for Extreme), verifies whether a SET exists, automatically adds three
+if necessary, and starts timing when the board becomes interactive.
 
 ---
 
@@ -244,6 +269,10 @@ Pause when the player presses Pause or the app/browser becomes hidden. Hide the 
 
 Persist accumulated elapsed time for Continue Game.
 
+A direct ✕ exit icon is also available in the HUD during play (not just inside the Pause screen),
+confirmed via a dialog before discarding the game — added so a player who wants to leave mid-game
+doesn't have to pause first.
+
 ---
 
 ## 13. Metrics
@@ -294,7 +323,7 @@ Primary measurements are completion time, Sets found, mistakes, hints and median
 
 A **Clean Game** means `hints used = 0`. Mistakes remain recorded but do not disqualify it.
 
-Personal best is tracked separately for Easy, Medium and Hard. Primary comparison is the lowest clean completion time, with fewer mistakes as the tie-breaker.
+Personal best is tracked separately per difficulty (Easy, Medium, Hard, Extreme). Primary comparison is the lowest clean completion time, with fewer mistakes as the tie-breaker.
 
 ---
 
@@ -333,7 +362,7 @@ Each history entry stores:
 }
 ```
 
-History filters: `All | Easy | Medium | Hard`.
+History filters: `All | Easy | Medium | Hard | Extreme`.
 
 ---
 
@@ -532,25 +561,26 @@ Not part of v1:
 3. Three values per property.
 4. A SET requires every property to be **all same or all different**.
 5. Single-player.
-6. Start with **12 cards**.
+6. Start with **12 cards** (Medium/Hard) — Easy starts with 9, Extreme with 15 (v2 addition).
 7. Automatically add three cards when no SET exists.
-8. Follow standard board-size replacement behavior.
-9. Easy / Medium / Hard.
-10. Hard remains enjoyable rather than artificially extreme.
+8. Follow standard board-size replacement behavior, topping up to that difficulty's own board size.
+9. Easy / Medium / Hard / Extreme (v2 addition).
+10. Hard remains enjoyable rather than artificially extreme; Extreme only adds more cards, nothing else.
 11. Three-card selection validates automatically.
 12. Invalid selections count as mistakes.
-13. Easy explains invalid SETs.
+13. Easy explains invalid SETs, and starts every board with one free (uncounted) hint card revealed.
 14. Progressive hints: one card → two cards → complete SET.
-15. Hint-assisted games cannot replace Clean Best.
-16. No synthetic points score.
-17. Completion and SET-find times are primary metrics.
-18. Record average and **median** SET-find time.
-19. Autosave active game.
-20. Keep last **30 completed games**.
-21. Generate cards locally with HTML/CSS/SVG.
-22. Browser `localStorage`.
-23. Mobile-first.
-24. No backend/database.
-25. Docker Compose / Vue / Vite architecture.
-26. Full offline/PWA support.
-27. Core SET mathematics isolated and unit tested.
+15. Hint-assisted games cannot replace Clean Best (Easy's free starting card is exempt from this).
+16. Optional Light Colors palette toggle (any difficulty, not persisted, purely cosmetic).
+17. No synthetic points score.
+18. Completion and SET-find times are primary metrics.
+19. Record average and **median** SET-find time.
+20. Autosave active game.
+21. Keep last **30 completed games**.
+22. Generate cards locally with HTML/CSS/SVG.
+23. Browser `localStorage`.
+24. Mobile-first.
+25. No backend/database.
+26. Docker Compose / Vue / Vite architecture.
+27. Full offline/PWA support.
+28. Core SET mathematics isolated and unit tested.

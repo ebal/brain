@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { generateSequence, validateSequence } from './sequence.js'
-import { NBACK_DIFFICULTIES, TARGET_RATIO } from '../../constants/nback/difficulties.js'
+import { NBACK_DIFFICULTIES, TARGET_RATIO, LETTER_POOL } from '../../constants/nback/difficulties.js'
 
 describe('generateSequence', () => {
   it('produces n + scoredTrials numbers, and passes its own validation, for every difficulty and many seeds', () => {
@@ -45,6 +45,15 @@ describe('generateSequence', () => {
         const isRealMatch = sequence.numbers[i] === sequence.numbers[i - n]
         expect(isRealMatch).toBe(sequence.isTarget[i])
       }
+    }
+  })
+
+  it('draws every stimulus from the given pool (Extreme/Letters) instead of the number default', () => {
+    const { n, scoredTrials } = NBACK_DIFFICULTIES.extreme
+    for (let seed = 0; seed < 25; seed++) {
+      const sequence = generateSequence(n, scoredTrials, seed, LETTER_POOL)
+      for (const value of sequence.numbers) expect(LETTER_POOL).toContain(value)
+      expect(() => validateSequence(sequence)).not.toThrow()
     }
   })
 })

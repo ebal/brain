@@ -55,7 +55,7 @@ let patternIdCounter = 0
 
 <script setup>
 import { computed } from 'vue'
-import { COLOR_HEX } from '../../constants/set/cardProperties.js'
+import { COLOR_HEX, COLOR_HEX_LIGHT } from '../../constants/set/cardProperties.js'
 
 const patternId = `set-stripe-${patternIdCounter++}`
 
@@ -68,10 +68,11 @@ const props = defineProps({
   wrong: { type: Boolean, default: false },
   hinted: { type: Boolean, default: false },
   valid: { type: Boolean, default: false },
+  lightColors: { type: Boolean, default: false },
 })
 defineEmits(['click'])
 
-const colorHex = computed(() => COLOR_HEX[props.color])
+const colorHex = computed(() => (props.lightColors ? COLOR_HEX_LIGHT : COLOR_HEX)[props.color])
 
 const fillValue = computed(() => {
   if (props.shading === 0) return colorHex.value // solid

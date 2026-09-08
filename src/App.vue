@@ -156,6 +156,7 @@
         v-else-if="setScreen === 'game'"
         :difficulty-key="setDifficulty"
         :continue-game="setContinue"
+        :light-colors="setLightColors"
         @finished="handleSetFinished"
         @exit="setScreen = 'menu'; benchmarkActive = false"
       />
@@ -529,10 +530,18 @@ function handleSudokuFinished(results) {
 const setScreen = ref('menu')
 const setDifficulty = ref(null)
 const setContinue = ref(false)
+const setLightColors = ref(false)
 const setResults = ref(null)
 
-function handleSetStart(difficultyKey) {
+// Accepts either a plain difficultyKey string (ResultsScreen's replay,
+// Benchmark mode) or { difficultyKey, lightColors } (MainMenu's emit, which
+// also carries the Light Colors checkbox) — the string form reuses whatever
+// lightColors was last set, since it isn't a benchmark-relevant setting.
+function handleSetStart(payload) {
+  const { difficultyKey, lightColors } =
+    typeof payload === 'string' ? { difficultyKey: payload, lightColors: setLightColors.value } : payload
   setDifficulty.value = difficultyKey
+  setLightColors.value = !!lightColors
   setContinue.value = false
   setScreen.value = 'game'
 }

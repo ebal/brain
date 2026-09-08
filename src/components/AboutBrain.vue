@@ -29,6 +29,8 @@
       or delete all of it at any time from Manage Your Data.
     </p>
 
+    <p class="author">Made by Evaggelos Balaskas</p>
+
     <button class="back-btn" @click="$emit('menu')">Back to Menu</button>
   </div>
 </template>
@@ -45,10 +47,10 @@ defineEmits(['menu'])
 }
 
 .brand {
-  margin: 0 0 0.25rem;
-  font-size: 0.85rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  margin: 0 0 0.5rem;
+  font-size: clamp(2.25rem, 9vw, 3rem);
+  font-weight: 800;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
   color: var(--accent);
 }
@@ -78,6 +80,12 @@ h1 {
   line-height: 1.5;
   text-align: left;
   color: var(--text);
+}
+
+.author {
+  margin: 1.5rem 0 0;
+  color: var(--text-dim);
+  font-size: 0.85rem;
 }
 
 .back-btn {

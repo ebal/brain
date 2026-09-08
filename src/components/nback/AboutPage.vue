@@ -45,6 +45,8 @@
     <p class="intro">
       2-back is the Classic, reference difficulty — the best one for tracking progress over time.
       Difficulty comes purely from how far back you have to remember, not from harder numbers.
+      Extreme keeps the same 2-back distance but swaps numbers for consonants (C, H, K, L, Q, R,
+      S, T) over a longer round — a different, less familiar pool rather than a longer memory gap.
     </p>
     <div class="difficulty-table">
       <div class="difficulty-row difficulty-row--head">
@@ -53,7 +55,11 @@
         <span>Scored trials</span>
       </div>
       <div v-for="d in difficulties" :key="d.key" class="difficulty-row">
-        <span>{{ d.label }}<span v-if="d.isClassic" class="classic-tag">Classic</span></span>
+        <span>
+          {{ d.label }}
+          <span v-if="d.isClassic" class="classic-tag">Classic</span>
+          <span v-if="d.isLetters" class="classic-tag">Letters</span>
+        </span>
         <span>{{ d.n }}-back</span>
         <span>{{ d.scoredTrials }}</span>
       </div>

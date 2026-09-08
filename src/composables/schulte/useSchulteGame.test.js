@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { useSchulteGame } from './useSchulteGame.js'
 import { SCHULTE_DIFFICULTIES } from '../../constants/schulte/difficulties.js'
-import { SCHULTE_CELL_COLOR_PALETTE } from '../../constants/schulte/cellColors.js'
+import { CELL_COLOR_PALETTE } from '../../constants/cellColors.js'
 import { avg, median } from '../mathStats.js'
 
 // Same manually-driven virtual clock pattern as useStroopGame.test.js —
@@ -130,7 +130,7 @@ describe('useSchulteGame', () => {
     it('assigns one valid palette color per cell when colorMode is on', () => {
       const game = useSchulteGame()
       startAndReachPlaying(game, SCHULTE_DIFFICULTIES.medium, { colorMode: true }) // 16 cells
-      const validHexes = SCHULTE_CELL_COLOR_PALETTE.map((c) => c.hex)
+      const validHexes = CELL_COLOR_PALETTE.map((c) => c.hex)
 
       expect(game.cellColors.value).toHaveLength(16)
       for (const hex of game.cellColors.value) expect(validHexes).toContain(hex)

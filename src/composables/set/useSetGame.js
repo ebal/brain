@@ -2,7 +2,7 @@ import { ref, computed } from 'vue'
 import { createDeck, shuffleDeck, makeRng } from './deck.js'
 import { isSet, firstFailingProperty } from './setValidator.js'
 import { findAllSets } from './setFinder.js'
-import { BOARD_SIZE, DEAL_INCREMENT } from '../../constants/set/cardProperties.js'
+import { SET_DIFFICULTIES, DEAL_INCREMENT } from '../../constants/set/cardProperties.js'
 import { avg, median } from '../mathStats.js'
 
 const TIMER_TICK_MS = 250
@@ -31,6 +31,7 @@ export function useSetGame(onChange) {
   let lastResumeTime = 0
   let lastFindTime = 0
   let feedbackTimeoutId = null
+  let boardSize = SET_DIFFICULTIES.medium.boardSize
 
   const hintCardIds = computed(() => (hintSetIds.value ? hintSetIds.value.slice(0, hintLevel.value) : []))
 
@@ -60,6 +61,20 @@ export function useSetGame(onChange) {
     hintLevel.value = 0
   }
 
+  // Easy only: reveals one card of an available SET automatically, without
+  // counting toward `hints` (so a clean-game best time is still reachable
+  // even if the player never touches this free reveal). Meant to soften
+  // Easy's first-look overwhelm — real SET-finding is hard for newcomers
+  // regardless of assistance, so this is a head start, not the whole answer.
+  function maybeAutoHint() {
+    if (difficulty.value !== 'easy' || status.value !== 'playing') return
+    const sets = findAllSets(board.value)
+    if (!sets.length) return
+    const chosen = sets[Math.floor(Math.random() * sets.length)]
+    hintSetIds.value = chosen.map((idx) => board.value[idx].id)
+    hintLevel.value = 1
+  }
+
   // Deals 3 more cards whenever the board has zero SETs, repeatedly, until
   // one exists or the deck is exhausted (SPEC §10); ends the game if the
   // deck is exhausted with no SET remaining (SPEC §4/§10).
@@ -74,9 +89,10 @@ export function useSetGame(onChange) {
 
   function start(difficultyKey, seed) {
     difficulty.value = difficultyKey
+    boardSize = SET_DIFFICULTIES[difficultyKey]?.boardSize ?? SET_DIFFICULTIES.medium.boardSize
     deck.value = shuffleDeck(createDeck(), makeRng(seed))
     board.value = []
-    dealCards(Math.min(BOARD_SIZE, deck.value.length))
+    dealCards(Math.min(boardSize, deck.value.length))
 
     selected.value = []
     setsFound.value = 0
@@ -92,6 +108,7 @@ export function useSetGame(onChange) {
 
     status.value = 'playing'
     ensureSetsExist() // may deal more, or (vanishingly rarely) finish immediately
+    maybeAutoHint()
 
     if (status.value === 'playing') {
       startTimer()
@@ -101,6 +118,7 @@ export function useSetGame(onChange) {
 
   function resumeFromSave(saved) {
     difficulty.value = saved.difficulty
+    boardSize = SET_DIFFICULTIES[saved.difficulty]?.boardSize ?? SET_DIFFICULTIES.medium.boardSize
     deck.value = saved.deck
     board.value = saved.board
     selected.value = saved.selected
@@ -134,11 +152,12 @@ export function useSetGame(onChange) {
 
   function removeFoundCards(ids) {
     board.value = board.value.filter((c) => !ids.includes(c.id))
-    if (board.value.length < BOARD_SIZE && deck.value.length > 0) {
-      dealCards(Math.min(BOARD_SIZE - board.value.length, deck.value.length))
+    if (board.value.length < boardSize && deck.value.length > 0) {
+      dealCards(Math.min(boardSize - board.value.length, deck.value.length))
     }
     clearHint()
     ensureSetsExist()
+    maybeAutoHint()
   }
 
   function validateSelection() {

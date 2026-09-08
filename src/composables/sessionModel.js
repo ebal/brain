@@ -220,7 +220,10 @@ export function getAllSessions() {
 
   const schulteHistory = useSchulteHistory()
   for (const variant of Object.values(SCHULTE_VARIANTS)) {
-    for (const difficultyKey of Object.keys(SCHULTE_DIFFICULTIES)) {
+    // Object.values (not .keys) — SCHULTE_DIFFICULTIES.veryHard's actual
+    // storage key is the hyphenated 'very-hard', not the object property
+    // name 'veryHard'; only .key is guaranteed to match what's on disk.
+    for (const { key: difficultyKey } of Object.values(SCHULTE_DIFFICULTIES)) {
       for (const entry of schulteHistory.getHistory(difficultyKey, variant.key)) {
         sessions.push(mapSchulteEntry(entry, difficultyKey, variant.key))
       }
@@ -228,7 +231,10 @@ export function getAllSessions() {
   }
 
   const nbackHistory = useNBackHistory()
-  for (const difficultyKey of Object.keys(NBACK_DIFFICULTIES)) {
+  // Object.values (not .keys) — every NBACK_DIFFICULTIES storage key ('2',
+  // '3', '4', '2L') differs from its object property name ('classic',
+  // 'hard', 'veryHard', 'extreme'); only .key matches what's on disk.
+  for (const { key: difficultyKey } of Object.values(NBACK_DIFFICULTIES)) {
     for (const entry of nbackHistory.getHistory(difficultyKey)) {
       sessions.push(mapNBackEntry(entry, difficultyKey))
     }
