@@ -36,6 +36,14 @@
         <h2>Memory Pairs</h2>
         <p>Flip tiles and find matching emoji pairs. Visual memory &amp; spatial recall.</p>
       </button>
+      <button class="game-card" @click="$emit('choose', 'marblejump')">
+        <h2>Marble Jump</h2>
+        <p>Jump over marbles and remove them. Planning, look-ahead &amp; spatial reasoning.</p>
+      </button>
+      <button class="game-card" @click="$emit('choose', 'mentalrotation')">
+        <h2>Mental Rotation</h2>
+        <p>Find the same shape after it's been rotated. Spatial reasoning &amp; visualization.</p>
+      </button>
     </div>
 
     <div class="footer-links">

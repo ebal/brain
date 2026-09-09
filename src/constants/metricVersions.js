@@ -21,4 +21,6 @@ export const METRIC_VERSIONS = {
   'sequence-memory': 1,
   switchtrail: 1,
   memorypairs: 1,
+  marblejump: 1,
+  mentalrotation: 1,
 }
