@@ -473,3 +473,52 @@ Not v1:
 28. No backend/database.
 29. Full offline/PWA support.
 30. Not part of Brain Benchmark v1.
+
+---
+
+## 35. v2: Hard/Very Hard redesign, and two new tiers (Extreme, Master)
+
+User feedback after playing: Emoji Mahjong felt easy, even on Very Hard. Investigation confirmed
+it — the original Hard/Very Hard layouts topped out at 2-4 layers with **20-33% of all tiles
+simultaneously free** at the start of a game. With that much visibly open at once, a board plays
+like a visual-search task (scan the open tiles, spot a match) rather than genuine Mahjong Solitaire
+layering/blocking, where most of the board should stay locked behind other tiles for a good while.
+
+Fix: a new `plazaPeak()` layout builder (constants/emojimahjong/layouts.js) — a flat base "plaza"
+with a proper multi-layer tapering peak on top (each layer 1 column/row narrower than the one
+below), instead of 2-4 hand-picked rect() sizes. Hard and Very Hard were rebuilt on it:
+
+```text
+                    before -> after
+Hard        layers    2-4  ->  5      free-at-start  21-25%  ->  8-15%
+Very Hard   layers    2-4  ->  5      free-at-start  20-25%  ->  3-13%
+```
+
+Tile/pair counts (48/24 and 64/32) are unchanged — only the layout geometry got deeper and
+tighter. One real design trap surfaced and was fixed during this work: a peak whose first layer
+exactly matches the plaza's own size (e.g. a naive 5x5-on-5x5 attempt at a 6-layer Extreme layout)
+covers the *entire* plaza no matter how it's offset, sealing almost the whole board down to a
+single free tile — the generator couldn't even find a clearing order for it. Every shipped layout
+keeps the peak strictly narrower than the plaza in at least one dimension to avoid this.
+
+Two new, harder tiers were added above Very Hard, per the same request ("add a couple levels
+more"):
+
+| Difficulty | Tiles | Pairs | Layout layers | Free at start |
+|---|---:|---:|---:|---:|
+| Extreme | 80 | 40 | 5 | 4-13% |
+| Master | 100 | 50 | 6 | 2-11% |
+
+Master is the new hardest difficulty in the game, reaching 6 layers with as little as 2% of the
+board free at the start. The emoji pool (constants/emojimahjong/emojiPool.js) was expanded from 40
+to 56 entries so Master's 50 distinct pairs still have headroom, using the same visually-distinct,
+no-flags/skin-tones/ZWJ criteria as the original pool (SPEC §10).
+
+Every layout — old and new — is still solver-verified as solvable by construction (§8), unchanged;
+this redesign only changed board *geometry*, not the generation guarantee. All existing tests
+(parameterized over every difficulty/layout) cover the new tiers automatically; no test hardcodes a
+difficulty list or layout count.
+
+Not changed: scoring formula shape (§21 — extreme/master just get their own base scores, 12500 and
+15000, continuing the existing progression), Hint/Undo/Restart behavior, offline/PWA guarantees,
+and Benchmark exclusion (§32 — still excluded, now for six difficulties instead of four).

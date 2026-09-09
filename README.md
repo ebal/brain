@@ -230,9 +230,12 @@ A Mahjong Solitaire-style puzzle using emoji instead of traditional tiles: tap t
 **free** tiles — nothing covers them from above, and at least one horizontal side is open — to
 remove them, until the board is cleared.
 
-- Four difficulties (Easy/Medium/Hard/Very Hard), scaling via tile count and layering (24/36/48/64
-  tiles) across a small curated set of layered layout templates per tier, never tiny tiles or
-  timers.
+- Six difficulties (Easy/Medium/Hard/Very Hard/Extreme/Master), scaling via tile count and layering
+  (24/36/48/64/80/100 tiles) across a small curated set of layered layout templates per tier, never
+  tiny tiles or timers. Hard and up use a proper multi-layer tapering "plaza + peak" shape reaching
+  5-6 stacked layers with as little as 2% of the board free at once — redesigned after Very Hard
+  turned out too easy even at its original 2-4-layer depth, and Extreme/Master were added on top of
+  that redesign for more room to grow into.
 - Every generated board is solvable by construction: a full clearing order is built first (any two
   currently-free tiles, geometry only), then emoji pairs are assigned onto that exact order — never
   a naive shuffle-and-hope. Player choices can still reach a dead end mid-game; a small solver

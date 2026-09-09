@@ -55,6 +55,8 @@ const filters = [
   { key: 'medium', label: 'Medium' },
   { key: 'hard', label: 'Hard' },
   { key: 'very-hard', label: 'Very Hard' },
+  { key: 'extreme', label: 'Extreme' },
+  { key: 'master', label: 'Master' },
 ]
 const activeFilter = ref('all')
 
@@ -98,7 +100,7 @@ h1 {
 
 .filter-toggle {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 0.4rem;
   margin-bottom: 1.5rem;
 }
