@@ -1035,3 +1035,20 @@ Keep v1 as a robust 2D rotation game.
 30. No backend/database.
 31. Full offline/PWA support.
 32. Do not add to Brain Benchmark v1.
+
+---
+
+## 40. Changelog since initial build
+
+- **Added an Untimed round mode**, requested for stress-free/kid-friendly play. A menu toggle
+  (Timed / Untimed) sits alongside the existing difficulty grid; Untimed reuses the exact same
+  difficulties, shapes and distractor logic — only the round-end condition changes, from "time
+  runs out" to "a fixed number of questions answered" (10, `MENTALROTATION_UNTIMED_TRIAL_COUNT`).
+  No timer is shown during an Untimed round, and Score is not shown live during play either (it
+  still contributes the same speed-bonus formula and appears on Results afterward, same as every
+  other mode) — the goal was removing visible time pressure, not removing the score entirely.
+  Personal bests and history are tracked separately per mode (`mentalrotation:stats:<mode>:<key>`,
+  `mentalrotation:history[:<mode>]`), with 'timed' kept on the original pre-existing key shape so
+  no already-saved data changes format or goes missing.
+- This is distinct from the pre-existing untimed Practice mode (§26), which remains a tiny fixed
+  3-shape teaching demo on the About page with no score/history at all.

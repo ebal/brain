@@ -213,12 +213,14 @@
         v-else-if="switchtrailScreen === 'history'"
         :initial-difficulty="switchtrailDifficulty || 'easy'"
         :initial-color-mode="switchtrailColorMode"
+        :initial-untimed="switchtrailUntimed"
         @menu="switchtrailScreen = 'menu'"
       />
       <SwitchTrailGameScreen
         v-else-if="switchtrailScreen === 'game'"
         :difficulty-key="switchtrailDifficulty"
         :color-mode="switchtrailColorMode"
+        :untimed="switchtrailUntimed"
         @finished="handleSwitchTrailFinished"
         @exit="switchtrailScreen = 'menu'; benchmarkActive = false"
       />
@@ -227,7 +229,8 @@
         :results="switchtrailResults"
         :difficulty-key="switchtrailDifficulty"
         :color-mode="switchtrailColorMode"
-        @replay="handleSwitchTrailStart({ difficultyKey: switchtrailDifficulty, colorMode: switchtrailColorMode })"
+        :untimed="switchtrailUntimed"
+        @replay="handleSwitchTrailStart({ difficultyKey: switchtrailDifficulty, colorMode: switchtrailColorMode, untimed: switchtrailUntimed })"
         @menu="switchtrailScreen = 'menu'"
         @history="handleSwitchTrailHistory"
       />
@@ -294,14 +297,19 @@
         v-if="mentalRotationScreen === 'menu'"
         @start="handleMentalRotationStart"
         @about="mentalRotationScreen = 'about'"
-        @history="mentalRotationScreen = 'history'"
+        @history="handleMentalRotationHistory"
         @exit="activeGame = null"
       />
       <MentalRotationAboutPage v-else-if="mentalRotationScreen === 'about'" @menu="mentalRotationScreen = 'menu'" />
-      <MentalRotationHistoryPage v-else-if="mentalRotationScreen === 'history'" @menu="mentalRotationScreen = 'menu'" />
+      <MentalRotationHistoryPage
+        v-else-if="mentalRotationScreen === 'history'"
+        :initial-mode="mentalRotationMode"
+        @menu="mentalRotationScreen = 'menu'"
+      />
       <MentalRotationGameScreen
         v-else-if="mentalRotationScreen === 'game'"
         :difficulty-key="mentalRotationDifficulty"
+        :mode="mentalRotationMode"
         @finished="handleMentalRotationFinished"
         @exit="mentalRotationScreen = 'menu'; benchmarkActive = false"
       />
@@ -309,9 +317,10 @@
         v-else-if="mentalRotationScreen === 'results'"
         :results="mentalRotationResults"
         :difficulty-key="mentalRotationDifficulty"
-        @replay="handleMentalRotationStart(mentalRotationDifficulty)"
+        :mode="mentalRotationMode"
+        @replay="handleMentalRotationStart({ difficultyKey: mentalRotationDifficulty, mode: mentalRotationMode })"
         @menu="mentalRotationScreen = 'menu'"
-        @history="mentalRotationScreen = 'history'"
+        @history="handleMentalRotationHistory"
       />
     </template>
 
@@ -710,17 +719,20 @@ function handleSequenceFinished(results) {
 const switchtrailScreen = ref('menu')
 const switchtrailDifficulty = ref(null)
 const switchtrailColorMode = ref(false)
+const switchtrailUntimed = ref(false)
 const switchtrailResults = ref(null)
 
-function handleSwitchTrailStart({ difficultyKey, colorMode }) {
+function handleSwitchTrailStart({ difficultyKey, colorMode, untimed }) {
   switchtrailDifficulty.value = difficultyKey
   switchtrailColorMode.value = !!colorMode
+  switchtrailUntimed.value = !!untimed
   switchtrailScreen.value = 'game'
 }
 
 function handleSwitchTrailHistory(payload) {
   if (payload?.difficultyKey) switchtrailDifficulty.value = payload.difficultyKey
   if (payload?.colorMode !== undefined) switchtrailColorMode.value = payload.colorMode
+  if (payload?.untimed !== undefined) switchtrailUntimed.value = payload.untimed
   switchtrailScreen.value = 'history'
 }
 
@@ -795,11 +807,18 @@ function handleMarbleJumpFinished(results) {
 // (via useMentalRotationStats) — App.vue just routes screens.
 const mentalRotationScreen = ref('menu')
 const mentalRotationDifficulty = ref(null)
+const mentalRotationMode = ref('timed')
 const mentalRotationResults = ref(null)
 
-function handleMentalRotationStart(difficultyKey) {
+function handleMentalRotationStart({ difficultyKey, mode }) {
   mentalRotationDifficulty.value = difficultyKey
+  mentalRotationMode.value = mode
   mentalRotationScreen.value = 'game'
+}
+
+function handleMentalRotationHistory(payload) {
+  if (payload?.mode) mentalRotationMode.value = payload.mode
+  mentalRotationScreen.value = 'history'
 }
 
 function handleMentalRotationFinished(results) {

@@ -26,6 +26,7 @@ export function useSwitchTrailGame() {
   const timedOut = ref(false)
 
   let timeLimitMs = 0
+  let untimed = false // v3: round never times out, only ends by completing the trail
   let dynamic = false // Extreme: reshuffle every still-pending target after each correct tap
   let rng = null // persists across the round so a seeded round's reshuffles stay reproducible
   let transitions = [] // [{ duration, direction }]
@@ -84,7 +85,9 @@ export function useSwitchTrailGame() {
       const tickNow = performance.now()
       elapsedTime.value += tickNow - lastResumeTime
       lastResumeTime = tickNow
-      if (elapsedTime.value >= timeLimitMs) {
+      // Untimed rounds keep the clock running (for the elapsed-time display)
+      // but never time out — the round only ends by completing the trail.
+      if (!untimed && elapsedTime.value >= timeLimitMs) {
         elapsedTime.value = timeLimitMs
         clearTimerId()
         finish(false)
@@ -96,6 +99,7 @@ export function useSwitchTrailGame() {
     const config = SWITCHTRAIL_DIFFICULTIES[difficultyKey]
     difficulty.value = difficultyKey
     timeLimitMs = config.timeLimit * 1000
+    untimed = !!options.untimed
     dynamic = !!config.dynamic
     const colorMode = !!options.colorMode
     sequence.value = createTrailSequence(config)
@@ -204,7 +208,10 @@ export function useSwitchTrailGame() {
 
   const results = computed(() => {
     const completed = totalTargets.value > 0 && targetsCompleted.value >= totalTargets.value
-    const remainingSeconds = remainingTime.value / 1000
+    // Untimed rounds never earn the remaining-time bonus (SPEC §10) — that
+    // wouldn't make sense without a time limit, and awarding one anyway
+    // would quietly reintroduce the "hurry up" pressure Untimed removes.
+    const remainingSeconds = untimed ? 0 : remainingTime.value / 1000
     const score = calculateScore({
       correctTargets: targetsCompleted.value,
       errors: errors.value,

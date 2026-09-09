@@ -3,6 +3,7 @@
     <h1>{{ results.completed ? 'Trail Complete' : 'Time!' }}</h1>
     <p class="difficulty-name">
       {{ difficultyLabel }} · {{ results.targetsCompleted }} / {{ results.totalTargets }} targets
+      <template v-if="untimed"> · Untimed</template>
       <template v-if="colorMode"> · Random Color</template>
     </p>
 
@@ -71,7 +72,7 @@
       <button class="secondary" @click="$emit('menu')">Back to Menu</button>
     </div>
 
-    <button class="history-link" @click="$emit('history', { difficultyKey, colorMode })">
+    <button class="history-link" @click="$emit('history', { difficultyKey, colorMode, untimed })">
       View History
     </button>
   </div>
@@ -86,10 +87,11 @@ const props = defineProps({
   results: { type: Object, required: true },
   difficultyKey: { type: String, required: true },
   colorMode: { type: Boolean, default: false },
+  untimed: { type: Boolean, default: false },
 })
 defineEmits(['replay', 'menu', 'history'])
 
-const variantKey = variantKeyFor(props.colorMode)
+const variantKey = variantKeyFor(props.colorMode, props.untimed)
 const { recordCompletion, getStats } = useSwitchTrailStats()
 const { isNewBestScore, isNewBestCompletionTime } = recordCompletion(props.difficultyKey, props.results, variantKey)
 

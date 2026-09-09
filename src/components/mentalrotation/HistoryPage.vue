@@ -2,6 +2,18 @@
   <div class="history">
     <h1>History</h1>
 
+    <div class="mode-toggle">
+      <button
+        v-for="m in modes"
+        :key="m.key"
+        class="mode-btn"
+        :class="{ active: activeMode === m.key }"
+        @click="activeMode = m.key"
+      >
+        {{ m.label }}
+      </button>
+    </div>
+
     <div class="filter-toggle">
       <button
         v-for="f in filters"
@@ -44,9 +56,18 @@
 import { ref, computed } from 'vue'
 import { useMentalRotationStats } from '../../composables/mentalrotation/useMentalRotationStats.js'
 
+const props = defineProps({
+  initialMode: { type: String, default: 'timed' },
+})
 defineEmits(['menu'])
 
 const { getHistory } = useMentalRotationStats()
+
+const modes = [
+  { key: 'timed', label: 'Timed' },
+  { key: 'untimed', label: 'Untimed' },
+]
+const activeMode = ref(props.initialMode)
 
 const filters = [
   { key: 'all', label: 'All' },
@@ -57,7 +78,7 @@ const filters = [
 ]
 const activeFilter = ref('all')
 
-const entries = computed(() => getHistory(activeFilter.value))
+const entries = computed(() => getHistory(activeFilter.value, activeMode.value))
 const reversedEntries = computed(() => [...entries.value].reverse())
 
 const sparklinePoints = computed(() => {
@@ -86,6 +107,32 @@ function formatDate(iso) {
 h1 {
   text-align: center;
   margin-bottom: 1rem;
+}
+
+.mode-toggle {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+  background: var(--surface);
+  padding: 0.35rem;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+
+.mode-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  padding: 0.65rem 0.4rem;
+  border-radius: 9px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mode-btn.active {
+  background: var(--accent);
+  color: #10121a;
 }
 
 .filter-toggle {

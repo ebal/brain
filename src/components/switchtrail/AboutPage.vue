@@ -23,6 +23,13 @@
     </p>
 
     <p class="intro">
+      <strong>Untimed</strong> is an optional checkbox available at every difficulty (including
+      Extreme, and combinable with Random Color): the round never times out — it only ends once you
+      finish the whole trail. No clock on screen and Score stays hidden until you're done, so
+      there's nothing to rush. Your Untimed results are tracked separately from timed rounds.
+    </p>
+
+    <p class="intro">
       <strong>Random Color</strong> is an optional checkbox available at every difficulty
       (including Extreme): each target gets a random background color when it appears. Colors
       travel with the target — if it's repositioned by Extreme's reshuffle, its color comes with

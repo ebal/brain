@@ -11,6 +11,12 @@
 //   'mirror'     — the reference mirrored across one axis, then rotated
 //   'structural' — the reference with one cell moved/added/removed, then rotated
 //   'mirror2'    — a second mirrored-and-rotated distractor (different axis/angle than 'mirror')
+// Untimed mode (requested for stress-free/kid-friendly play): a round ends
+// after this many trials instead of a countdown. Same fixed count at every
+// difficulty — difficulty still scales candidate count/shape complexity as
+// usual, just without a clock.
+export const MENTALROTATION_UNTIMED_TRIAL_COUNT = 10
+
 export const MENTALROTATION_DIFFICULTIES = {
   easy: {
     key: 'easy',

@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { generateTrial, calculateMentalRotationScore, makeRng } from './trialGenerator.js'
 import { avg, median } from '../mathStats.js'
+import { MENTALROTATION_UNTIMED_TRIAL_COUNT } from '../../constants/mentalrotation/difficulties.js'
 
 const TIMER_TICK_MS = 100
 const FEEDBACK_MS = 300 // SPEC §14 suggests 250-350ms
@@ -12,6 +13,8 @@ export function useMentalRotationGame() {
   const countdownValue = ref(0)
   const timeLeft = ref(0)
   const totalDuration = ref(0)
+  const mode = ref('timed') // 'timed' | 'untimed' — requested untimed option for stress-free play
+  const targetTrials = ref(0) // untimed only: round ends after this many trials instead of a clock
   const currentTrial = ref(null)
   const feedback = ref(null) // 'correct' | 'wrong' | null
   const trials = ref([])
@@ -63,11 +66,13 @@ export function useMentalRotationGame() {
     }, 700)
   }
 
-  function start(difficultyConfig, seed) {
+  function start(difficultyConfig, seed, modeKey = 'timed') {
     difficulty = difficultyConfig
     rng = makeRng(seed)
-    totalDuration.value = difficultyConfig.duration
-    timeLeft.value = difficultyConfig.duration
+    mode.value = modeKey
+    totalDuration.value = modeKey === 'timed' ? difficultyConfig.duration : 0
+    timeLeft.value = totalDuration.value
+    targetTrials.value = modeKey === 'untimed' ? MENTALROTATION_UNTIMED_TRIAL_COUNT : 0
     trials.value = []
     recentShapeIds = []
     feedback.value = null
@@ -76,7 +81,7 @@ export function useMentalRotationGame() {
     startCountdown(() => {
       status.value = 'playing'
       nextTrial()
-      startRoundTimer()
+      if (mode.value === 'timed') startRoundTimer()
     })
   }
 
@@ -105,7 +110,14 @@ export function useMentalRotationGame() {
 
     feedbackTimeoutId = setTimeout(() => {
       feedback.value = null
-      if (status.value === 'playing' && timeLeft.value > 0) nextTrial()
+      if (status.value !== 'playing') return
+
+      if (mode.value === 'untimed') {
+        if (trials.value.length >= targetTrials.value) finish()
+        else nextTrial()
+      } else if (timeLeft.value > 0) {
+        nextTrial()
+      }
     }, FEEDBACK_MS)
   }
 
@@ -128,7 +140,7 @@ export function useMentalRotationGame() {
       startCountdown(() => {
         status.value = 'playing'
         nextTrial()
-        startRoundTimer()
+        if (mode.value === 'timed') startRoundTimer()
       })
     }
   }
@@ -166,6 +178,7 @@ export function useMentalRotationGame() {
     const correctRTs = correctTrials.map((t) => t.reactionTime)
 
     return {
+      mode: mode.value,
       trialsCompleted,
       correct,
       wrong,
@@ -183,6 +196,8 @@ export function useMentalRotationGame() {
     countdownValue,
     timeLeft,
     totalDuration,
+    mode,
+    targetTrials,
     currentTrial,
     feedback,
     results,

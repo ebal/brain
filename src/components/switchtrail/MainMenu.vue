@@ -5,6 +5,10 @@
 
     <div class="variant-toggles">
       <label class="variant-check">
+        <input type="checkbox" v-model="untimed" />
+        Untimed
+      </label>
+      <label class="variant-check">
         <input type="checkbox" v-model="colorMode" />
         Random Color
       </label>
@@ -15,13 +19,13 @@
         v-for="d in difficulties"
         :key="d.key"
         class="difficulty-card"
-        @click="$emit('start', { difficultyKey: d.key, colorMode })"
+        @click="$emit('start', { difficultyKey: d.key, colorMode, untimed })"
       >
         <div class="card-head">
           <h2>{{ d.label }}</h2>
           <span v-if="d.dynamic" class="dynamic-badge">Dynamic</span>
         </div>
-        <p class="meta">{{ d.targetCount }} targets · {{ d.timeLimit }}s</p>
+        <p class="meta">{{ d.targetCount }} targets · {{ untimed ? 'no time limit' : `${d.timeLimit}s` }}</p>
         <p v-if="d.dynamic" class="dynamic-note">Positions reshuffle after every correct tap</p>
         <div v-if="stats(d.key).started > 0" class="stat-line">
           Best Score: {{ stats(d.key).bestScore?.score ?? '—' }}
@@ -55,14 +59,15 @@ defineEmits(['start', 'about', 'history', 'exit'])
 
 const difficulties = Object.values(SWITCHTRAIL_DIFFICULTIES)
 const colorMode = ref(false)
+const untimed = ref(false)
 const { getStats } = useSwitchTrailStats()
 
-// Not reactive to colorMode via watchEffect (unlike Schulte's MainMenu) —
-// stats() is called directly in the template on every render, which Vue
-// already re-evaluates whenever colorMode changes, so the "Best" preview
-// updates live as the checkbox is toggled without any extra wiring.
+// Not reactive to colorMode/untimed via watchEffect (unlike Schulte's
+// MainMenu) — stats() is called directly in the template on every render,
+// which Vue already re-evaluates whenever either checkbox changes, so the
+// "Best" preview updates live without any extra wiring.
 function stats(difficultyKey) {
-  return getStats(difficultyKey, variantKeyFor(colorMode.value))
+  return getStats(difficultyKey, variantKeyFor(colorMode.value, untimed.value))
 }
 
 function formatTime(ms) {

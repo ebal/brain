@@ -15,14 +15,14 @@
         <span class="difficulty-label">
           {{ difficultyLabel }}<span v-if="variantTag" class="dynamic-tag"> · {{ variantTag }}</span>
         </span>
-        <span class="timer">{{ formattedRemaining }}</span>
+        <span class="timer">{{ formattedTime }}</span>
       </div>
       <div class="hud hud-secondary">
         <span class="find-label">
           <template v-if="status === 'countdown'">Get ready…</template>
           <template v-else>Find: <strong>{{ expectedTarget }}</strong></template>
         </span>
-        <span class="stat">Score {{ liveScore }}</span>
+        <span v-if="!props.untimed" class="stat">Score {{ liveScore }}</span>
         <span class="stat">Errors {{ errors }}</span>
       </div>
 
@@ -63,6 +63,7 @@ import { variantKeyFor } from '../../constants/switchtrail/variants.js'
 const props = defineProps({
   difficultyKey: { type: String, required: true },
   colorMode: { type: Boolean, default: false },
+  untimed: { type: Boolean, default: false },
 })
 const emit = defineEmits(['finished', 'exit'])
 
@@ -70,7 +71,7 @@ const { recordStart } = useSwitchTrailStats()
 
 const game = useSwitchTrailGame()
 const {
-  status, countdownValue, layout, expectedTarget, errors, remainingTime,
+  status, countdownValue, layout, expectedTarget, errors, remainingTime, elapsedTime,
   targetsCompleted, totalTargets, wrongLabel, results,
 } = game
 
@@ -78,14 +79,18 @@ const difficulty = computed(() => SWITCHTRAIL_DIFFICULTIES[props.difficultyKey])
 const difficultyLabel = computed(() => difficulty.value?.label || '')
 const variantTag = computed(() => {
   const dynamic = !!difficulty.value?.dynamic
-  if (dynamic && props.colorMode) return 'Dynamic + Random Color'
-  if (dynamic) return 'Dynamic'
-  if (props.colorMode) return 'Random Color'
-  return null
+  const parts = []
+  if (dynamic) parts.push('Dynamic')
+  if (props.untimed) parts.push('Untimed')
+  if (props.colorMode) parts.push('Random Color')
+  return parts.length ? parts.join(' + ') : null
 })
 
-const formattedRemaining = computed(() => {
-  const totalSeconds = Math.ceil(remainingTime.value / 1000)
+// Timed rounds count down to zero; Untimed rounds count up instead (no
+// clock to hurry against — same reasoning as Mental Rotation's Untimed mode).
+const formattedTime = computed(() => {
+  const ms = props.untimed ? elapsedTime.value : remainingTime.value
+  const totalSeconds = props.untimed ? Math.floor(ms / 1000) : Math.ceil(ms / 1000)
   const m = Math.floor(totalSeconds / 60)
   const s = totalSeconds % 60
   return `${m}:${String(s).padStart(2, '0')}`
@@ -122,8 +127,8 @@ function handleResume() {
 }
 
 function handleRestart() {
-  game.start(props.difficultyKey, undefined, { colorMode: props.colorMode })
-  recordStart(props.difficultyKey, variantKeyFor(props.colorMode))
+  game.start(props.difficultyKey, undefined, { colorMode: props.colorMode, untimed: props.untimed })
+  recordStart(props.difficultyKey, variantKeyFor(props.colorMode, props.untimed))
 }
 
 function handleVisibilityChange() {
@@ -134,8 +139,8 @@ function handleVisibilityChange() {
 
 onMounted(() => {
   document.addEventListener('visibilitychange', handleVisibilityChange)
-  game.start(props.difficultyKey, undefined, { colorMode: props.colorMode })
-  recordStart(props.difficultyKey, variantKeyFor(props.colorMode))
+  game.start(props.difficultyKey, undefined, { colorMode: props.colorMode, untimed: props.untimed })
+  recordStart(props.difficultyKey, variantKeyFor(props.colorMode, props.untimed))
 })
 
 onUnmounted(() => {

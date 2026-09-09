@@ -2,13 +2,21 @@ import { avg, median } from '../mathStats.js'
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
 
 const STATS_PREFIX = 'mentalrotation:stats:'
-const HISTORY_KEY = 'mentalrotation:history'
+const HISTORY_PREFIX = 'mentalrotation:history'
 const MAX_HISTORY = 30
 const MAX_STATS_SAMPLES = 50 // per-difficulty sample cap for avg/median, separate from the 30-entry combined history
 const RT_ELIGIBILITY_ACCURACY = 80 // SPEC §22: a round must hit >=80% accuracy to be eligible for Best Median RT
 
-function statsKeyFor(difficultyKey) {
-  return `${STATS_PREFIX}${difficultyKey}`
+// 'timed' keeps the original, pre-existing key shape (`mentalrotation:stats:<difficultyKey>`,
+// `mentalrotation:history`) so nobody's already-saved timed bests/history
+// change format or go missing now that the untimed mode exists — same
+// convention as schulte/useBestTimes.js's 'classic' default.
+function statsKeyFor(difficultyKey, modeKey = 'timed') {
+  return modeKey === 'timed' ? `${STATS_PREFIX}${difficultyKey}` : `${STATS_PREFIX}${modeKey}:${difficultyKey}`
+}
+
+function historyKeyFor(modeKey = 'timed') {
+  return modeKey === 'timed' ? HISTORY_PREFIX : `${HISTORY_PREFIX}:${modeKey}`
 }
 
 function readJSON(key, fallback) {
@@ -53,19 +61,20 @@ function isBetterScore(candidate, current) {
 }
 
 export function useMentalRotationStats() {
-  function getStats(difficultyKey) {
-    return readJSON(statsKeyFor(difficultyKey), defaultStats())
+  function getStats(difficultyKey, modeKey = 'timed') {
+    return readJSON(statsKeyFor(difficultyKey, modeKey), defaultStats())
   }
 
-  function recordStart(difficultyKey) {
-    const stats = getStats(difficultyKey)
+  function recordStart(difficultyKey, modeKey = 'timed') {
+    const stats = getStats(difficultyKey, modeKey)
     stats.started += 1
-    writeJSON(statsKeyFor(difficultyKey), stats)
+    writeJSON(statsKeyFor(difficultyKey, modeKey), stats)
   }
 
-  // result: { score, accuracy, correct, wrong, trialsCompleted, avgRT, medianRT, duration }
+  // result: { mode, score, accuracy, correct, wrong, trialsCompleted, avgRT, medianRT, duration }
   function recordCompletion(difficultyKey, result) {
-    const stats = getStats(difficultyKey)
+    const modeKey = result.mode || 'timed'
+    const stats = getStats(difficultyKey, modeKey)
 
     stats.completed += 1
     stats.totalTrials += result.trialsCompleted
@@ -108,11 +117,12 @@ export function useMentalRotationStats() {
       }
     }
 
-    writeJSON(statsKeyFor(difficultyKey), stats)
+    writeJSON(statsKeyFor(difficultyKey, modeKey), stats)
 
-    const history = readJSON(HISTORY_KEY, [])
+    const history = readJSON(historyKeyFor(modeKey), [])
     history.push({
       difficulty: difficultyKey,
+      mode: modeKey,
       score: result.score,
       accuracy: result.accuracy,
       correct: result.correct,
@@ -125,13 +135,13 @@ export function useMentalRotationStats() {
       metricVersion: METRIC_VERSIONS.mentalrotation,
       appVersion: __APP_VERSION__,
     })
-    writeJSON(HISTORY_KEY, history.slice(-MAX_HISTORY))
+    writeJSON(historyKeyFor(modeKey), history.slice(-MAX_HISTORY))
 
     return { isNewBestScore, isNewBestAccuracy, isNewBestMedianRT }
   }
 
-  function getDerivedStats(difficultyKey) {
-    const stats = getStats(difficultyKey)
+  function getDerivedStats(difficultyKey, modeKey = 'timed') {
+    const stats = getStats(difficultyKey, modeKey)
     return {
       ...stats,
       avgScore: avg(stats.completions.map((c) => c.score)),
@@ -141,8 +151,8 @@ export function useMentalRotationStats() {
     }
   }
 
-  function getHistory(difficultyFilter) {
-    const history = readJSON(HISTORY_KEY, [])
+  function getHistory(difficultyFilter, modeKey = 'timed') {
+    const history = readJSON(historyKeyFor(modeKey), [])
     if (!difficultyFilter || difficultyFilter === 'all') return history
     return history.filter((h) => h.difficulty === difficultyFilter)
   }

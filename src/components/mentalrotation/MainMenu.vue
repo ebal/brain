@@ -3,15 +3,28 @@
     <h1>Mental Rotation</h1>
     <p class="subtitle">Find the same shape after it has been rotated.</p>
 
+    <div class="mode-toggle">
+      <button
+        v-for="m in modes"
+        :key="m.key"
+        class="mode-btn"
+        :class="{ active: mode === m.key }"
+        @click="mode = m.key"
+      >
+        {{ m.label }}
+      </button>
+    </div>
+    <p class="mode-note">{{ mode === 'timed' ? 'Beat the clock — score rewards speed too.' : `No clock — just ${UNTIMED_TRIAL_COUNT} questions, take your time.` }}</p>
+
     <div class="difficulty-grid">
       <button
         v-for="d in difficulties"
         :key="d.key"
         class="difficulty-card"
-        @click="$emit('start', d.key)"
+        @click="$emit('start', { difficultyKey: d.key, mode })"
       >
         <h2>{{ d.label }}</h2>
-        <p class="meta">{{ d.choices }} choices · {{ d.duration }}s</p>
+        <p class="meta">{{ d.choices }} choices · {{ mode === 'timed' ? `${d.duration}s` : `${UNTIMED_TRIAL_COUNT} questions` }}</p>
         <div v-if="stats(d.key).completed > 0" class="best">
           Best: {{ stats(d.key).bestScore.score }} pts
           ({{ stats(d.key).bestAccuracy.accuracy.toFixed(0) }}% acc)
@@ -27,22 +40,29 @@
         </svg>
       </button>
       <button class="about-link" @click="$emit('about')">Learn to Play</button>
-      <button class="about-link" @click="$emit('history')">History</button>
+      <button class="about-link" @click="$emit('history', { mode })">History</button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { MENTALROTATION_DIFFICULTIES } from '../../constants/mentalrotation/difficulties.js'
+import { ref } from 'vue'
+import { MENTALROTATION_DIFFICULTIES, MENTALROTATION_UNTIMED_TRIAL_COUNT as UNTIMED_TRIAL_COUNT } from '../../constants/mentalrotation/difficulties.js'
 import { useMentalRotationStats } from '../../composables/mentalrotation/useMentalRotationStats.js'
 
 defineEmits(['start', 'about', 'history', 'exit'])
 
 const difficulties = Object.values(MENTALROTATION_DIFFICULTIES)
+const modes = [
+  { key: 'timed', label: 'Timed' },
+  { key: 'untimed', label: 'Untimed' },
+]
+const mode = ref('timed')
+
 const { getStats } = useMentalRotationStats()
 
 function stats(difficultyKey) {
-  return getStats(difficultyKey)
+  return getStats(difficultyKey, mode.value)
 }
 </script>
 
@@ -60,6 +80,38 @@ h1 {
 .subtitle {
   color: var(--text-dim);
   margin-bottom: 1.5rem;
+}
+
+.mode-toggle {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+  background: var(--surface);
+  padding: 0.35rem;
+  border-radius: 12px;
+  margin-bottom: 0.6rem;
+}
+
+.mode-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  padding: 0.85rem 0.4rem;
+  border-radius: 9px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mode-btn.active {
+  background: var(--accent);
+  color: #10121a;
+}
+
+.mode-note {
+  margin: 0 0 1.5rem;
+  color: var(--text-dim);
+  font-size: 0.8rem;
 }
 
 .difficulty-grid {

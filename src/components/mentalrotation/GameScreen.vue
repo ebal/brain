@@ -9,11 +9,13 @@
         <div class="hud-top">
           <button class="exit-icon-btn" aria-label="Exit to menu" @click="requestExit">✕</button>
           <span class="difficulty-label">{{ difficultyLabel }}</span>
-          <span class="timer">{{ timeLeft.toFixed(1) }}s</span>
+          <span v-if="props.mode === 'timed'" class="timer">{{ timeLeft.toFixed(1) }}s</span>
+          <span v-else class="timer">{{ results.trialsCompleted + 1 }} / {{ targetTrials }}</span>
         </div>
         <div class="score-row">
-          <span class="score">Score {{ results.score.toLocaleString() }}</span>
-          <span class="trial-count">{{ results.correct }} / {{ results.trialsCompleted }}</span>
+          <span v-if="props.mode === 'timed'" class="score">Score {{ results.score.toLocaleString() }}</span>
+          <span v-else class="score">Correct {{ results.correct }}</span>
+          <span v-if="props.mode === 'timed'" class="trial-count">{{ results.correct }} / {{ results.trialsCompleted }}</span>
         </div>
         <div class="progress-track">
           <div class="progress-fill" :style="{ width: progressPct + '%' }"></div>
@@ -64,15 +66,21 @@ import { MENTALROTATION_DIFFICULTIES } from '../../constants/mentalrotation/diff
 
 const props = defineProps({
   difficultyKey: { type: String, required: true },
+  mode: { type: String, default: 'timed' }, // 'timed' | 'untimed'
 })
 const emit = defineEmits(['finished', 'exit'])
 
 const { recordStart, recordCompletion } = useMentalRotationStats()
 const game = useMentalRotationGame()
-const { status, countdownValue, timeLeft, totalDuration, currentTrial, feedback, results } = game
+const { status, countdownValue, timeLeft, totalDuration, targetTrials, currentTrial, feedback, results } = game
 
 const difficultyLabel = computed(() => MENTALROTATION_DIFFICULTIES[props.difficultyKey]?.label || '')
-const progressPct = computed(() => (totalDuration.value > 0 ? (timeLeft.value / totalDuration.value) * 100 : 0))
+const progressPct = computed(() => {
+  if (props.mode === 'untimed') {
+    return targetTrials.value > 0 ? (results.value.trialsCompleted / targetTrials.value) * 100 : 0
+  }
+  return totalDuration.value > 0 ? (timeLeft.value / totalDuration.value) * 100 : 0
+})
 
 // The composable clears currentTrial the instant answer() is called, but the
 // brief feedback flash still needs to render that trial's candidates (and
@@ -107,8 +115,8 @@ function confirmExit() {
 }
 
 onMounted(() => {
-  game.start(MENTALROTATION_DIFFICULTIES[props.difficultyKey])
-  recordStart(props.difficultyKey)
+  game.start(MENTALROTATION_DIFFICULTIES[props.difficultyKey], undefined, props.mode)
+  recordStart(props.difficultyKey, props.mode)
   document.addEventListener('visibilitychange', game.handleVisibilityChange)
 })
 

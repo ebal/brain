@@ -674,3 +674,31 @@ every difficulty (Easy/Medium/Hard/Extreme, independent of Extreme's reshuffling
   as its own variant bucket per difficulty (own best score/time, own history), so it can never
   distort or be distorted by plain results, mirroring how Schulte Tables keeps its Random
   Color/Random Position variants separate from Classic.
+
+## 35. v3 addition: Untimed variant
+
+Added after Random Color, at the user's request — the same stress-free/kid-friendly motivation as
+Mental Rotation's Timed/Untimed mode. A second independent checkbox, **Untimed**, available at
+every difficulty (including Extreme) and combinable with Random Color, giving four variant buckets
+total: Classic, Random Color, Untimed, and Untimed + Color.
+
+- The round **never times out**; it only ends by completing the whole trail (§9's "ends
+  immediately when all targets are completed or time reaches zero" now reads "... or time reaches
+  zero, if the round is timed"). No hard cap on how long a round can run.
+- No countdown shown during play. The on-screen clock counts *up* (elapsed time) instead of down,
+  purely informational — the same non-pressuring framing Schulte Tables already uses for its own
+  clockless rounds.
+- Live Score is hidden during play (Errors and Progress remain visible) — Score itself is
+  unaffected by this, it just isn't shown until the round ends, removing one more visible pressure
+  cue without changing how it's calculated.
+- Scoring formula is unchanged (§10), but an Untimed round's `remainingSeconds` is always `0` —
+  there's no time limit to have "remaining", so the completion-time bonus term never applies. The
+  zero-error clean-completion bonus (+250) still applies exactly as before; only the time bonus is
+  removed. This isn't a scoring exception carved out for Untimed — it naturally falls out of the
+  existing formula once "remaining time" is undefined.
+- Combines cleanly with Extreme (reshuffling) and Random Color — both are completely independent
+  of whether the round has a time limit.
+- Tracked as its own variant bucket per difficulty (own best score/time, own history), never mixed
+  with timed results, mirroring how Random Color and Schulte's variants are kept separate.
+- Not available from Benchmark Mode — a benchmark run always pins Classic (plain timed), same as
+  before.

@@ -79,13 +79,14 @@ import { useSwitchTrailStats } from '../../composables/switchtrail/useSwitchTrai
 const props = defineProps({
   initialDifficulty: { type: String, default: 'easy' },
   initialColorMode: { type: Boolean, default: false },
+  initialUntimed: { type: Boolean, default: false },
 })
 defineEmits(['menu'])
 
 const difficulties = Object.values(SWITCHTRAIL_DIFFICULTIES)
 const variants = Object.values(SWITCHTRAIL_VARIANTS)
 const activeDifficulty = ref(props.initialDifficulty)
-const activeVariantKey = ref(variantKeyFor(props.initialColorMode))
+const activeVariantKey = ref(variantKeyFor(props.initialColorMode, props.initialUntimed))
 
 const { getHistory, getStats } = useSwitchTrailStats()
 

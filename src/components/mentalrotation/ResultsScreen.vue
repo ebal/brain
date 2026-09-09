@@ -1,6 +1,6 @@
 <template>
   <div class="results">
-    <h1>Time!</h1>
+    <h1>{{ mode === 'timed' ? 'Time!' : 'Round Complete!' }}</h1>
     <p class="difficulty-name">{{ difficultyLabel }}</p>
 
     <div v-if="results.isNewBestScore" class="new-best-banner">New Best Score!</div>
@@ -48,7 +48,7 @@
       <button class="secondary" @click="$emit('menu')">Back to Menu</button>
     </div>
 
-    <button class="history-link" @click="$emit('history', { difficultyKey })">
+    <button class="history-link" @click="$emit('history', { difficultyKey, mode })">
       View History
     </button>
   </div>
@@ -61,12 +61,13 @@ import { useMentalRotationStats } from '../../composables/mentalrotation/useMent
 const props = defineProps({
   results: { type: Object, required: true },
   difficultyKey: { type: String, required: true },
+  mode: { type: String, default: 'timed' },
 })
 defineEmits(['replay', 'menu', 'history'])
 
 const { getStats } = useMentalRotationStats()
 
-const best = getStats(props.difficultyKey)
+const best = getStats(props.difficultyKey, props.mode)
 const difficultyLabel = MENTALROTATION_DIFFICULTIES[props.difficultyKey]?.label
 
 function formatRT(ms) {

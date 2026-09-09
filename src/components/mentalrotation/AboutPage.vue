@@ -45,6 +45,13 @@
       the more meaningful raw measurements.
     </p>
 
+    <h2>Timed vs. Untimed</h2>
+    <p class="intro">
+      Prefer no clock? Choose <strong>Untimed</strong> from the menu instead of Timed. Same shapes
+      and difficulty, but the round ends after a fixed set of questions instead of a countdown —
+      no timer on screen, and Score isn't shown until you're done, so there's nothing to rush.
+    </p>
+
     <h2>Try it yourself</h2>
     <p class="intro">Untimed, unscored — just get a feel for spotting a real rotation.</p>
 

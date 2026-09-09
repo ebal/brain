@@ -310,4 +310,63 @@ describe('useSwitchTrailGame', () => {
       expect(done.color).toBe(colorBefore)
     })
   })
+
+  describe('Untimed variant', () => {
+    it('never times out, even long after the difficulty\'s normal time limit', () => {
+      const game = useSwitchTrailGame()
+      startAndReachPlaying(game, 'easy', 1, { untimed: true }) // Easy = 30s normally
+      game.tap('1')
+      advance(120_000) // 4x the normal Easy time limit
+      expect(game.status.value).toBe('playing')
+      expect(game.timedOut.value).toBe(false)
+    })
+
+    it('still finishes normally once every target is completed', () => {
+      const game = useSwitchTrailGame()
+      startAndReachPlaying(game, 'easy', 1, { untimed: true })
+      for (const label of ['1', 'A', '2', 'B', '3', 'C', '4', 'D', '5', 'E', '6', 'F']) {
+        advance(500)
+        game.tap(label)
+      }
+      expect(game.status.value).toBe('finished')
+      expect(game.results.value.completed).toBe(true)
+      expect(game.results.value.targetsCompleted).toBe(12)
+    })
+
+    it('the elapsed-time clock keeps running (for display) even though nothing enforces it', () => {
+      const game = useSwitchTrailGame()
+      startAndReachPlaying(game, 'easy', 1, { untimed: true })
+      advance(45_000) // past Easy's normal 30s limit
+      expect(game.elapsedTime.value).toBeCloseTo(45_000, -2)
+    })
+
+    it('a completed round never earns a remaining-time bonus, no matter how fast', () => {
+      const game = useSwitchTrailGame()
+      startAndReachPlaying(game, 'easy', 1, { untimed: true })
+      // Complete instantly (no advance() between taps) — a timed round finishing
+      // this fast would earn close to the full 30s * 25 bonus.
+      for (const label of ['1', 'A', '2', 'B', '3', 'C', '4', 'D', '5', 'E', '6', 'F']) game.tap(label)
+      const r = game.results.value
+      expect(r.completed).toBe(true)
+      expect(r.errors).toBe(0)
+      expect(r.score).toBe(12 * 100 + 250) // correct targets + clean bonus only, no time bonus
+    })
+
+    it('combines with Extreme\'s reshuffling and Random Color without interference', () => {
+      const game = useSwitchTrailGame()
+      startAndReachPlaying(game, 'extreme', 1, { untimed: true, colorMode: true })
+      const before = new Map(game.layout.value.map((t) => [t.label, { x: t.x, y: t.y, color: t.color }]))
+
+      advance(200_000) // well past Extreme's normal 90s limit
+      expect(game.status.value).toBe('playing')
+
+      game.tap('1') // triggers Extreme's reshuffle
+      for (const t of game.layout.value) {
+        if (t.label === '1') continue
+        const prev = before.get(t.label)
+        expect(t.x !== prev.x || t.y !== prev.y).toBe(true) // repositioned
+        expect(t.color).toBe(prev.color) // color still travels with it
+      }
+    })
+  })
 })
