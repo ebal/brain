@@ -48,6 +48,10 @@
         <h2>Emoji Mahjong</h2>
         <p>Match free emoji tiles and clear the board. Visual search &amp; planning.</p>
       </button>
+      <button class="game-card" @click="$emit('choose', 'numbermatch')">
+        <h2>Number Match</h2>
+        <p>Match identical numbers or pairs that add up to 10. Numerical search &amp; planning.</p>
+      </button>
     </div>
 
     <div class="footer-links">

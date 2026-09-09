@@ -24,4 +24,5 @@ export const METRIC_VERSIONS = {
   marblejump: 1,
   mentalrotation: 1,
   emojimahjong: 1,
+  numbermatch: 1,
 }

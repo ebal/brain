@@ -351,6 +351,34 @@
         @history="emojiMahjongScreen = 'history'"
       />
     </template>
+
+    <template v-else-if="activeGame === 'numbermatch'">
+      <NumberMatchMainMenu
+        v-if="numberMatchScreen === 'menu'"
+        @start="handleNumberMatchStart"
+        @continue="handleNumberMatchContinue"
+        @about="numberMatchScreen = 'about'"
+        @history="numberMatchScreen = 'history'"
+        @exit="activeGame = null"
+      />
+      <NumberMatchAboutPage v-else-if="numberMatchScreen === 'about'" @menu="numberMatchScreen = 'menu'" />
+      <NumberMatchHistoryPage v-else-if="numberMatchScreen === 'history'" @menu="numberMatchScreen = 'menu'" />
+      <NumberMatchGameScreen
+        v-else-if="numberMatchScreen === 'game'"
+        :difficulty-key="numberMatchDifficulty"
+        :continue-game="numberMatchContinue"
+        @finished="handleNumberMatchFinished"
+        @exit="numberMatchScreen = 'menu'; benchmarkActive = false"
+      />
+      <NumberMatchResultsScreen
+        v-else-if="numberMatchScreen === 'results'"
+        :results="numberMatchResults"
+        :difficulty-key="numberMatchDifficulty"
+        @replay="handleNumberMatchStart(numberMatchDifficulty)"
+        @menu="numberMatchScreen = 'menu'"
+        @history="numberMatchScreen = 'history'"
+      />
+    </template>
   </div>
 </template>
 
@@ -453,6 +481,12 @@ const EmojiMahjongAboutPage = lazy(() => import('./components/emojimahjong/About
 const EmojiMahjongHistoryPage = lazy(() => import('./components/emojimahjong/HistoryPage.vue'))
 const EmojiMahjongGameScreen = lazy(() => import('./components/emojimahjong/GameScreen.vue'))
 const EmojiMahjongResultsScreen = lazy(() => import('./components/emojimahjong/ResultsScreen.vue'))
+
+const NumberMatchMainMenu = lazy(() => import('./components/numbermatch/MainMenu.vue'))
+const NumberMatchAboutPage = lazy(() => import('./components/numbermatch/AboutPage.vue'))
+const NumberMatchHistoryPage = lazy(() => import('./components/numbermatch/HistoryPage.vue'))
+const NumberMatchGameScreen = lazy(() => import('./components/numbermatch/GameScreen.vue'))
+const NumberMatchResultsScreen = lazy(() => import('./components/numbermatch/ResultsScreen.vue'))
 
 const activeGame = ref(null) // null | 'stroop' | 'schulte' | 'nback' | 'sudoku' | 'set' | 'sequence-memory' | 'switchtrail' | 'memorypairs' | 'data' | 'benchmark-menu' | 'activity' | 'about'
 
@@ -853,6 +887,30 @@ function handleEmojiMahjongFinished(results) {
   emojiMahjongResults.value = results
   emojiMahjongDifficulty.value = results.difficulty
   emojiMahjongScreen.value = 'results'
+}
+
+// --- Number Match --- not part of Benchmark v1 (SPEC §30), same reasoning
+// as Emoji Mahjong/Marble Jump/Mental Rotation.
+const numberMatchScreen = ref('menu')
+const numberMatchDifficulty = ref(null)
+const numberMatchContinue = ref(false)
+const numberMatchResults = ref(null)
+
+function handleNumberMatchStart(difficultyKey) {
+  numberMatchDifficulty.value = difficultyKey
+  numberMatchContinue.value = false
+  numberMatchScreen.value = 'game'
+}
+
+function handleNumberMatchContinue() {
+  numberMatchContinue.value = true
+  numberMatchScreen.value = 'game'
+}
+
+function handleNumberMatchFinished(results) {
+  numberMatchResults.value = results
+  numberMatchDifficulty.value = results.difficulty
+  numberMatchScreen.value = 'results'
 }
 </script>
 

@@ -31,6 +31,7 @@ population average or another player.
 | [Marble Jump](#marble-jump) | Planning / spatial reasoning |
 | [Mental Rotation](#mental-rotation) | Spatial reasoning / visualization |
 | [Emoji Mahjong](#emoji-mahjong) | Visual search / planning |
+| [Number Match](#number-match) | Numerical search / planning |
 
 Detailed rules, scoring formulas and design rationale for each game live in its own `*-SPEC.md`
 file, linked from each section below.
@@ -250,15 +251,39 @@ remove them, until the board is cleared.
 
 See [`Emoji-Mahjong-SPEC.md`](./Emoji-Mahjong-SPEC.md) for the full design rationale.
 
+## Number Match
+
+A [Make 10](https://artfulmath.com/make-10-game/)-style number-matching game: tap any two numbers,
+anywhere on the board, that are identical or add up to 10. Position never matters — no adjacency or
+path requirement, unlike Emoji Mahjong's covering rule. Removed cells stay empty and never reflow,
+so board positions stay stable for planning.
+
+- Six difficulties (Easy through Extreme), scaling board size (6×3 up to 9×10) and how few **Add
+  Numbers** uses are available (4 down to 1), never past 9 columns — Expert/Extreme grow taller
+  instead of wider to stay usable on a real iPhone.
+- **Add Numbers**, used when stuck, copies every remaining number (in reading order) onto new
+  cells appended to the end of the board — the board can grow well past its starting size, so it
+  scrolls vertically rather than needing a fixed footprint. Since a duplicated number always
+  matches its own copy regardless of position, Add Numbers is a guaranteed way to create a new
+  legal pair.
+- A starting board only needs *one* legal opening move, not a guaranteed full clear — genuine dead
+  ends (rare, since Add Numbers always creates a new pair) end an attempt in "No More Matches" as a
+  completed-but-uncleared result, not just "Board Cleared."
+- Hint highlights one real legal pair (no guessing); Undo restores an exact removal. Score is
+  secondary and only shown on Results; using Add Numbers costs points but never disqualifies a
+  Clean result.
+
+See [`Number-Match-SPEC.md`](./Number-Match-SPEC.md) for the full design rationale.
+
 ## Benchmark Mode
 
-Fixed-difficulty runs of seven of the eleven games, reachable via **Run a Benchmark** below the game
+Fixed-difficulty runs of seven of the twelve games, reachable via **Run a Benchmark** below the game
 grid, so a result today is comparable to one from months ago rather than a personal best set on
 whatever difficulty you happened to pick. Starting a benchmark locks the configuration: Stroop
 (Medium, Color Match), Schulte (5×5 Classic), N-Back (2-Back), SET (Medium), Sequence Memory
 (Medium), Switch Trail (Medium, 16 targets), Memory Pairs (Medium, 8 pairs).
 
-- **Sudoku, Marble Jump, Mental Rotation and Emoji Mahjong are excluded.** Puzzle/trial difficulty
+- **Sudoku, Marble Jump, Mental Rotation, Emoji Mahjong and Number Match are excluded.** Puzzle/trial difficulty
   genuinely varies within one labeled tier for each, so a fixed benchmark would mostly measure which
   puzzle/trial/layout you got, not your performance.
 - A benchmark run also counts as a normal play session, recorded in that game's usual history and
@@ -288,8 +313,8 @@ performance is trending, filterable to the last 7, 30, 90 days or all time.
 - **Overview**: current activity streak, games played, active days, total sessions. A streak still
   counts through yesterday if you haven't played yet today.
 - **Sessions by Game**: a per-game session count for the selected range.
-- **Benchmark Performance**: per game (Sudoku, Marble Jump, Mental Rotation and Emoji Mahjong
-  excluded, same reasoning as Benchmark Mode above),
+- **Benchmark Performance**: per game (Sudoku, Marble Jump, Mental Rotation, Emoji Mahjong and
+  Number Match excluded, same reasoning as Benchmark Mode above),
   your baseline, rolling median, a consistency measure (median absolute deviation), best result,
   most recent result, and today vs. baseline. Every stat shows its sample size, so a trend from 3
   sessions is never confused with one from 40.
@@ -409,10 +434,11 @@ Compose picks up `.env` automatically from then on, no need to pass anything on 
 
 ## Project structure
 
-All eleven games live in one Vue app, chosen from a landing screen (`GameChooser.vue`) in
+All twelve games live in one Vue app, chosen from a landing screen (`GameChooser.vue`) in
 `App.vue`. Stroop's files sit flat under `components/`, `composables/` and `constants/`; the other
-ten each have their own subfolder (`schulte/`, `nback/`, `sudoku/`, `set/`, `sequence-memory/`,
-`switchtrail/`, `memorypairs/`, `marblejump/`, `mentalrotation/`, `emojimahjong/`), all with the same shape: a
+eleven each have their own subfolder (`schulte/`, `nback/`, `sudoku/`, `set/`, `sequence-memory/`,
+`switchtrail/`, `memorypairs/`, `marblejump/`, `mentalrotation/`, `emojimahjong/`, `numbermatch/`),
+all with the same shape: a
 `MainMenu`/`AboutPage`/`HistoryPage`/`GameScreen`/`ResultsScreen` set of components, a `useXGame.js`
 state machine plus a stats composable (and, for games with a resumable in-progress state, a storage
 composable), and a `difficulties.js` constants file. Benchmark Mode, the Activity dashboard and
@@ -453,7 +479,7 @@ npm test
 ```
 
 Runs the automated test suite ([Vitest](https://vitest.dev/)): deterministic unit tests for the
-actual game math and generation logic across all eleven games (trial/board/sequence generation,
+actual game math and generation logic across all twelve games (trial/board/sequence generation,
 validators, difficulty classification, scoring, statistics), plus the shared session model,
 Benchmark, and Baseline logic. No component/DOM testing yet, everything covered so far is plain JS
 logic, testable without mounting a Vue component. Each tested module has a co-located `*.test.js`
