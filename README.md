@@ -30,6 +30,7 @@ population average or another player.
 | [Memory Pairs](#memory-pairs) | Visual/spatial associative memory |
 | [Marble Jump](#marble-jump) | Planning / spatial reasoning |
 | [Mental Rotation](#mental-rotation) | Spatial reasoning / visualization |
+| [Emoji Mahjong](#emoji-mahjong) | Visual search / planning |
 
 Detailed rules, scoring formulas and design rationale for each game live in its own `*-SPEC.md`
 file, linked from each section below.
@@ -214,17 +215,40 @@ or structurally different candidates are always wrong, even when they look close
 
 See [`Mental-Rotation-SPEC.md`](./Mental-Rotation-SPEC.md) for the full design rationale.
 
+## Emoji Mahjong
+
+A Mahjong Solitaire-style puzzle using emoji instead of traditional tiles: tap two identical
+**free** tiles — nothing covers them from above, and at least one horizontal side is open — to
+remove them, until the board is cleared.
+
+- Four difficulties (Easy/Medium/Hard/Very Hard), scaling via tile count and layering (24/36/48/64
+  tiles) across a small curated set of layered layout templates per tier, never tiny tiles or
+  timers.
+- Every generated board is solvable by construction: a full clearing order is built first (any two
+  currently-free tiles, geometry only), then emoji pairs are assigned onto that exact order — never
+  a naive shuffle-and-hope. Player choices can still reach a dead end mid-game; a small solver
+  (memoized DFS over the remaining-tile bitmask) detects that and powers a Hint that always points
+  to a real move toward clearing the board.
+- Unlike Memory Pairs, every tile is visible from the start — the challenge is search and removal
+  planning, not remembering hidden locations.
+- Undo (unlimited, exact-state) and Restart (reloads the original board), plus autosave/Continue.
+  Clean requires zero Hints; Undo stays visible but doesn't disqualify it.
+- Untimed, unscored practice board on the About page demonstrating the covering and left/right
+  rules before playing for real.
+
+See [`Emoji-Mahjong-SPEC.md`](./Emoji-Mahjong-SPEC.md) for the full design rationale.
+
 ## Benchmark Mode
 
-Fixed-difficulty runs of seven of the ten games, reachable via **Run a Benchmark** below the game
+Fixed-difficulty runs of seven of the eleven games, reachable via **Run a Benchmark** below the game
 grid, so a result today is comparable to one from months ago rather than a personal best set on
 whatever difficulty you happened to pick. Starting a benchmark locks the configuration: Stroop
 (Medium, Color Match), Schulte (5×5 Classic), N-Back (2-Back), SET (Medium), Sequence Memory
 (Medium), Switch Trail (Medium, 16 targets), Memory Pairs (Medium, 8 pairs).
 
-- **Sudoku, Marble Jump and Mental Rotation are excluded.** Puzzle/trial difficulty genuinely varies
-  within one labeled tier for each, so a fixed benchmark would mostly measure which puzzle/trial you
-  got, not your performance.
+- **Sudoku, Marble Jump, Mental Rotation and Emoji Mahjong are excluded.** Puzzle/trial difficulty
+  genuinely varies within one labeled tier for each, so a fixed benchmark would mostly measure which
+  puzzle/trial/layout you got, not your performance.
 - A benchmark run also counts as a normal play session, recorded in that game's usual history and
   stats as well as a separate benchmark history.
 - Every benchmark session is stamped with a version number, so if these fixed configurations ever
@@ -252,7 +276,8 @@ performance is trending, filterable to the last 7, 30, 90 days or all time.
 - **Overview**: current activity streak, games played, active days, total sessions. A streak still
   counts through yesterday if you haven't played yet today.
 - **Sessions by Game**: a per-game session count for the selected range.
-- **Benchmark Performance**: per game (Sudoku excluded, same reasoning as Benchmark Mode above),
+- **Benchmark Performance**: per game (Sudoku, Marble Jump, Mental Rotation and Emoji Mahjong
+  excluded, same reasoning as Benchmark Mode above),
   your baseline, rolling median, a consistency measure (median absolute deviation), best result,
   most recent result, and today vs. baseline. Every stat shows its sample size, so a trend from 3
   sessions is never confused with one from 40.
@@ -372,10 +397,10 @@ Compose picks up `.env` automatically from then on, no need to pass anything on 
 
 ## Project structure
 
-All ten games live in one Vue app, chosen from a landing screen (`GameChooser.vue`) in
+All eleven games live in one Vue app, chosen from a landing screen (`GameChooser.vue`) in
 `App.vue`. Stroop's files sit flat under `components/`, `composables/` and `constants/`; the other
-nine each have their own subfolder (`schulte/`, `nback/`, `sudoku/`, `set/`, `sequence-memory/`,
-`switchtrail/`, `memorypairs/`, `marblejump/`, `mentalrotation/`), all with the same shape: a
+ten each have their own subfolder (`schulte/`, `nback/`, `sudoku/`, `set/`, `sequence-memory/`,
+`switchtrail/`, `memorypairs/`, `marblejump/`, `mentalrotation/`, `emojimahjong/`), all with the same shape: a
 `MainMenu`/`AboutPage`/`HistoryPage`/`GameScreen`/`ResultsScreen` set of components, a `useXGame.js`
 state machine plus a stats composable (and, for games with a resumable in-progress state, a storage
 composable), and a `difficulties.js` constants file. Benchmark Mode, the Activity dashboard and
@@ -416,7 +441,7 @@ npm test
 ```
 
 Runs the automated test suite ([Vitest](https://vitest.dev/)): deterministic unit tests for the
-actual game math and generation logic across all ten games (trial/board/sequence generation,
+actual game math and generation logic across all eleven games (trial/board/sequence generation,
 validators, difficulty classification, scoring, statistics), plus the shared session model,
 Benchmark, and Baseline logic. No component/DOM testing yet, everything covered so far is plain JS
 logic, testable without mounting a Vue component. Each tested module has a co-located `*.test.js`

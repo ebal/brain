@@ -44,6 +44,10 @@
         <h2>Mental Rotation</h2>
         <p>Find the same shape after it's been rotated. Spatial reasoning &amp; visualization.</p>
       </button>
+      <button class="game-card" @click="$emit('choose', 'emojimahjong')">
+        <h2>Emoji Mahjong</h2>
+        <p>Match free emoji tiles and clear the board. Visual search &amp; planning.</p>
+      </button>
     </div>
 
     <div class="footer-links">

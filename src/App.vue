@@ -314,6 +314,34 @@
         @history="mentalRotationScreen = 'history'"
       />
     </template>
+
+    <template v-else-if="activeGame === 'emojimahjong'">
+      <EmojiMahjongMainMenu
+        v-if="emojiMahjongScreen === 'menu'"
+        @start="handleEmojiMahjongStart"
+        @continue="handleEmojiMahjongContinue"
+        @about="emojiMahjongScreen = 'about'"
+        @history="emojiMahjongScreen = 'history'"
+        @exit="activeGame = null"
+      />
+      <EmojiMahjongAboutPage v-else-if="emojiMahjongScreen === 'about'" @menu="emojiMahjongScreen = 'menu'" />
+      <EmojiMahjongHistoryPage v-else-if="emojiMahjongScreen === 'history'" @menu="emojiMahjongScreen = 'menu'" />
+      <EmojiMahjongGameScreen
+        v-else-if="emojiMahjongScreen === 'game'"
+        :difficulty-key="emojiMahjongDifficulty"
+        :continue-game="emojiMahjongContinue"
+        @finished="handleEmojiMahjongFinished"
+        @exit="emojiMahjongScreen = 'menu'; benchmarkActive = false"
+      />
+      <EmojiMahjongResultsScreen
+        v-else-if="emojiMahjongScreen === 'results'"
+        :results="emojiMahjongResults"
+        :difficulty-key="emojiMahjongDifficulty"
+        @replay="handleEmojiMahjongStart(emojiMahjongDifficulty)"
+        @menu="emojiMahjongScreen = 'menu'"
+        @history="emojiMahjongScreen = 'history'"
+      />
+    </template>
   </div>
 </template>
 
@@ -410,6 +438,12 @@ const MemoryPairsAboutPage = lazy(() => import('./components/memorypairs/AboutPa
 const MemoryPairsHistoryPage = lazy(() => import('./components/memorypairs/HistoryPage.vue'))
 const MemoryPairsGameScreen = lazy(() => import('./components/memorypairs/GameScreen.vue'))
 const MemoryPairsResultsScreen = lazy(() => import('./components/memorypairs/ResultsScreen.vue'))
+
+const EmojiMahjongMainMenu = lazy(() => import('./components/emojimahjong/MainMenu.vue'))
+const EmojiMahjongAboutPage = lazy(() => import('./components/emojimahjong/AboutPage.vue'))
+const EmojiMahjongHistoryPage = lazy(() => import('./components/emojimahjong/HistoryPage.vue'))
+const EmojiMahjongGameScreen = lazy(() => import('./components/emojimahjong/GameScreen.vue'))
+const EmojiMahjongResultsScreen = lazy(() => import('./components/emojimahjong/ResultsScreen.vue'))
 
 const activeGame = ref(null) // null | 'stroop' | 'schulte' | 'nback' | 'sudoku' | 'set' | 'sequence-memory' | 'switchtrail' | 'memorypairs' | 'data' | 'benchmark-menu' | 'activity' | 'about'
 
@@ -775,6 +809,31 @@ function handleMentalRotationFinished(results) {
   // and doesn't change mid-round, so there's nothing to re-derive here.
   mentalRotationResults.value = results
   mentalRotationScreen.value = 'results'
+}
+
+// --- Emoji Mahjong --- not part of Benchmark v1 (SPEC §32), so like Marble
+// Jump and Mental Rotation there is no benchmarkActive/recordBenchmarkSession
+// branch here.
+const emojiMahjongScreen = ref('menu')
+const emojiMahjongDifficulty = ref(null)
+const emojiMahjongContinue = ref(false)
+const emojiMahjongResults = ref(null)
+
+function handleEmojiMahjongStart(difficultyKey) {
+  emojiMahjongDifficulty.value = difficultyKey
+  emojiMahjongContinue.value = false
+  emojiMahjongScreen.value = 'game'
+}
+
+function handleEmojiMahjongContinue() {
+  emojiMahjongContinue.value = true
+  emojiMahjongScreen.value = 'game'
+}
+
+function handleEmojiMahjongFinished(results) {
+  emojiMahjongResults.value = results
+  emojiMahjongDifficulty.value = results.difficulty
+  emojiMahjongScreen.value = 'results'
 }
 </script>
 
