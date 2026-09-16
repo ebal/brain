@@ -477,6 +477,38 @@
         @history="handleHanoiHistory"
       />
     </template>
+
+    <template v-else-if="activeGame === 'lightsout'">
+      <LightsOutMainMenu
+        v-if="lightsOutScreen === 'menu'"
+        @start="handleLightsOutStart"
+        @continue="handleLightsOutContinue"
+        @about="lightsOutScreen = 'about'"
+        @history="handleLightsOutHistory"
+        @exit="activeGame = null"
+      />
+      <LightsOutAboutPage v-else-if="lightsOutScreen === 'about'" @menu="lightsOutScreen = 'menu'" />
+      <LightsOutHistoryPage
+        v-else-if="lightsOutScreen === 'history'"
+        :initial-level="lightsOutLevel || 1"
+        @menu="lightsOutScreen = 'menu'"
+      />
+      <LightsOutGameScreen
+        v-else-if="lightsOutScreen === 'game'"
+        :level="lightsOutLevel"
+        :continue-game="lightsOutContinue"
+        @finished="handleLightsOutFinished"
+        @exit="lightsOutScreen = 'menu'; benchmarkActive = false"
+      />
+      <LightsOutResultsScreen
+        v-else-if="lightsOutScreen === 'results'"
+        :results="lightsOutResults"
+        @next="handleLightsOutStart"
+        @replay="handleLightsOutStart"
+        @menu="lightsOutScreen = 'menu'"
+        @history="handleLightsOutHistory"
+      />
+    </template>
   </div>
 </template>
 
@@ -603,6 +635,12 @@ const HanoiAboutPage = lazy(() => import('./components/hanoi/AboutPage.vue'))
 const HanoiHistoryPage = lazy(() => import('./components/hanoi/HistoryPage.vue'))
 const HanoiGameScreen = lazy(() => import('./components/hanoi/GameScreen.vue'))
 const HanoiResultsScreen = lazy(() => import('./components/hanoi/ResultsScreen.vue'))
+
+const LightsOutMainMenu = lazy(() => import('./components/lightsout/MainMenu.vue'))
+const LightsOutAboutPage = lazy(() => import('./components/lightsout/AboutPage.vue'))
+const LightsOutHistoryPage = lazy(() => import('./components/lightsout/HistoryPage.vue'))
+const LightsOutGameScreen = lazy(() => import('./components/lightsout/GameScreen.vue'))
+const LightsOutResultsScreen = lazy(() => import('./components/lightsout/ResultsScreen.vue'))
 
 const activeGame = ref(null) // null | 'stroop' | 'schulte' | 'nback' | 'sudoku' | 'set' | 'sequence-memory' | 'switchtrail' | 'memorypairs' | 'data' | 'benchmark-menu' | 'activity' | 'about'
 
@@ -1107,6 +1145,36 @@ function handleHanoiFinished(results) {
   hanoiResults.value = results
   hanoiLevel.value = results.level
   hanoiScreen.value = 'results'
+}
+
+// --- Lights Out --- not part of Benchmark v1 (SPEC "Benchmark"), same
+// reasoning as Tower of Hanoi and every other Benchmark-excluded game.
+// Level-based, mirroring Hanoi's exact wiring shape.
+const lightsOutScreen = ref('menu')
+const lightsOutLevel = ref(null)
+const lightsOutContinue = ref(false)
+const lightsOutResults = ref(null)
+
+function handleLightsOutStart(level) {
+  lightsOutLevel.value = level
+  lightsOutContinue.value = false
+  lightsOutScreen.value = 'game'
+}
+
+function handleLightsOutContinue() {
+  lightsOutContinue.value = true
+  lightsOutScreen.value = 'game'
+}
+
+function handleLightsOutHistory(payload) {
+  if (payload?.level) lightsOutLevel.value = payload.level
+  lightsOutScreen.value = 'history'
+}
+
+function handleLightsOutFinished(results) {
+  lightsOutResults.value = results
+  lightsOutLevel.value = results.level
+  lightsOutScreen.value = 'results'
 }
 </script>
 
