@@ -31,6 +31,8 @@ import { useMentalRotationStats } from './mentalrotation/useMentalRotationStats.
 import { ODDONEOUT_DIFFICULTIES } from '../constants/oddoneout/difficulties.js'
 import { ODDONEOUT_VARIANTS } from '../constants/oddoneout/variants.js'
 import { useOddOneOutStats } from './oddoneout/useOddOneOutStats.js'
+import { TARGETTAP_DIFFICULTIES } from '../constants/targettap/difficulties.js'
+import { useTargetTapStats } from './targettap/useTargetTapStats.js'
 import { METRIC_VERSIONS } from '../constants/metricVersions.js'
 
 export function mapStroopEntry(entry, mode, difficultyKey) {
@@ -266,6 +268,26 @@ export function mapOddOneOutEntry(entry, variantKey = 'classic') {
   }
 }
 
+export function mapTargetTapEntry(entry) {
+  return {
+    id: `targettap:${entry.difficulty}:${entry.completedAt}`,
+    game: 'targettap',
+    difficulty: entry.difficulty,
+    sessionType: 'play',
+    startedAt: null,
+    completedAt: entry.completedAt,
+    duration: entry.duration,
+    completed: true,
+    primaryMetric: entry.score,
+    accuracy: entry.accuracy,
+    medianRT: entry.medianHitRT,
+    mistakes: entry.misses + entry.falseAlarms,
+    hints: null, // Target Tap has no hint concept
+    metricVersion: entry.metricVersion ?? METRIC_VERSIONS.targettap,
+    appVersion: entry.appVersion ?? null,
+  }
+}
+
 // Touches localStorage (via each game's own history/stats composable) to
 // aggregate every game's sessions into one common-shape list, sorted oldest
 // first. Deliberately not phrased as "all N games" (a stale count here is
@@ -343,6 +365,13 @@ export function getAllSessions() {
       for (const entry of oddOneOutStats.getHistory(difficultyKey, variant.key)) {
         sessions.push(mapOddOneOutEntry(entry, variant.key))
       }
+    }
+  }
+
+  const targetTapStats = useTargetTapStats()
+  for (const difficultyKey of Object.keys(TARGETTAP_DIFFICULTIES)) {
+    for (const entry of targetTapStats.getHistory(difficultyKey)) {
+      sessions.push(mapTargetTapEntry(entry))
     }
   }
 

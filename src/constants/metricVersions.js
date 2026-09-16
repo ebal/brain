@@ -26,4 +26,5 @@ export const METRIC_VERSIONS = {
   emojimahjong: 1,
   numbermatch: 1,
   oddoneout: 1,
+  targettap: 1,
 }
