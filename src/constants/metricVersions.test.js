@@ -3,7 +3,7 @@ import { METRIC_VERSIONS } from './metricVersions.js'
 import { BENCHMARK_CONFIGS } from './benchmark.js'
 
 describe('METRIC_VERSIONS', () => {
-  it('covers every game that participates in Benchmark, plus Sudoku, Marble Jump, Mental Rotation, Emoji Mahjong, Number Match, Odd One Out and Target Tap (Benchmark-excluded but still games)', () => {
+  it('covers every game that participates in Benchmark, plus Sudoku, Marble Jump, Mental Rotation, Emoji Mahjong, Number Match, Odd One Out, Target Tap and Tower of Hanoi (Benchmark-excluded but still games)', () => {
     const expectedGames = [
       ...Object.keys(BENCHMARK_CONFIGS),
       'sudoku',
@@ -13,6 +13,7 @@ describe('METRIC_VERSIONS', () => {
       'numbermatch',
       'oddoneout',
       'targettap',
+      'hanoi',
     ]
     for (const game of expectedGames) {
       expect(METRIC_VERSIONS).toHaveProperty(game)

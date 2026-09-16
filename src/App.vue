@@ -445,6 +445,38 @@
         @history="handleTargetTapHistory"
       />
     </template>
+
+    <template v-else-if="activeGame === 'hanoi'">
+      <HanoiMainMenu
+        v-if="hanoiScreen === 'menu'"
+        @start="handleHanoiStart"
+        @continue="handleHanoiContinue"
+        @about="hanoiScreen = 'about'"
+        @history="handleHanoiHistory"
+        @exit="activeGame = null"
+      />
+      <HanoiAboutPage v-else-if="hanoiScreen === 'about'" @menu="hanoiScreen = 'menu'" />
+      <HanoiHistoryPage
+        v-else-if="hanoiScreen === 'history'"
+        :initial-level="hanoiLevel || 1"
+        @menu="hanoiScreen = 'menu'"
+      />
+      <HanoiGameScreen
+        v-else-if="hanoiScreen === 'game'"
+        :level="hanoiLevel"
+        :continue-game="hanoiContinue"
+        @finished="handleHanoiFinished"
+        @exit="hanoiScreen = 'menu'; benchmarkActive = false"
+      />
+      <HanoiResultsScreen
+        v-else-if="hanoiScreen === 'results'"
+        :results="hanoiResults"
+        @next="handleHanoiStart"
+        @replay="handleHanoiStart"
+        @menu="hanoiScreen = 'menu'"
+        @history="handleHanoiHistory"
+      />
+    </template>
   </div>
 </template>
 
@@ -565,6 +597,12 @@ const TargetTapAboutPage = lazy(() => import('./components/targettap/AboutPage.v
 const TargetTapHistoryPage = lazy(() => import('./components/targettap/HistoryPage.vue'))
 const TargetTapGameScreen = lazy(() => import('./components/targettap/GameScreen.vue'))
 const TargetTapResultsScreen = lazy(() => import('./components/targettap/ResultsScreen.vue'))
+
+const HanoiMainMenu = lazy(() => import('./components/hanoi/MainMenu.vue'))
+const HanoiAboutPage = lazy(() => import('./components/hanoi/AboutPage.vue'))
+const HanoiHistoryPage = lazy(() => import('./components/hanoi/HistoryPage.vue'))
+const HanoiGameScreen = lazy(() => import('./components/hanoi/GameScreen.vue'))
+const HanoiResultsScreen = lazy(() => import('./components/hanoi/ResultsScreen.vue'))
 
 const activeGame = ref(null) // null | 'stroop' | 'schulte' | 'nback' | 'sudoku' | 'set' | 'sequence-memory' | 'switchtrail' | 'memorypairs' | 'data' | 'benchmark-menu' | 'activity' | 'about'
 
@@ -1037,6 +1075,38 @@ function handleTargetTapHistory(payload) {
 function handleTargetTapFinished(results) {
   targetTapResults.value = results
   targetTapScreen.value = 'results'
+}
+
+// --- Tower of Hanoi --- not part of Benchmark v1 (SPEC "Benchmark"), same
+// reasoning as Emoji Mahjong/Marble Jump/Mental Rotation/Number Match/Odd
+// One Out/Target Tap. Level-based rather than difficulty-based (SPEC
+// "Natural progression") — hanoiLevel plays the same role every other
+// game's xxxDifficulty ref does.
+const hanoiScreen = ref('menu')
+const hanoiLevel = ref(null)
+const hanoiContinue = ref(false)
+const hanoiResults = ref(null)
+
+function handleHanoiStart(level) {
+  hanoiLevel.value = level
+  hanoiContinue.value = false
+  hanoiScreen.value = 'game'
+}
+
+function handleHanoiContinue() {
+  hanoiContinue.value = true
+  hanoiScreen.value = 'game'
+}
+
+function handleHanoiHistory(payload) {
+  if (payload?.level) hanoiLevel.value = payload.level
+  hanoiScreen.value = 'history'
+}
+
+function handleHanoiFinished(results) {
+  hanoiResults.value = results
+  hanoiLevel.value = results.level
+  hanoiScreen.value = 'results'
 }
 </script>
 

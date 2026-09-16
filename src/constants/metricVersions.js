@@ -27,4 +27,5 @@ export const METRIC_VERSIONS = {
   numbermatch: 1,
   oddoneout: 1,
   targettap: 1,
+  hanoi: 1,
 }
