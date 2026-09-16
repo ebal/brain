@@ -50,3 +50,23 @@ export function solveBoard(state, { nodeBudget = 500000 } = {}) {
   const solution = dfs(presentMask)
   return { solvable: solution !== null, solution: solution || [], timedOut }
 }
+
+// Level-SPEC §13/§32/§50: every currently-available pair that lies on AT
+// LEAST ONE valid path to clearing the board — not just the single pair
+// solveBoard() happens to return first. Hint only strictly needs one such
+// pair (and keeps using solveBoard() directly for that, cheaper), but tests
+// and future difficulty analysis want the full set. Reuses solveBoard()'s
+// own memoized DFS per candidate pair, so cost is (available pairs) x
+// (one solve), not a separate search algorithm.
+export function getSolvableNextPairs(state) {
+  const pairs = getAvailablePairs(state)
+  const solvable = []
+  for (const [a, b] of pairs) {
+    const removed = state.removed.slice()
+    removed[a] = true
+    removed[b] = true
+    const next = { ...state, removed }
+    if (solveBoard(next).solvable) solvable.push([a, b])
+  }
+  return solvable
+}

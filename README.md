@@ -231,29 +231,32 @@ See [`Mental-Rotation-SPEC.md`](./Mental-Rotation-SPEC.md) for the full design r
 
 ## Emoji Mahjong
 
-A Mahjong Solitaire-style puzzle using emoji instead of traditional tiles: tap two identical
-**free** tiles — nothing covers them from above, and at least one horizontal side is open — to
-remove them, until the board is cleared.
+A progressive, 50-level Mahjong Solitaire-style puzzle using emoji instead of traditional tiles:
+tap two identical **free** tiles — nothing covers them from above, and at least one horizontal
+side is open — to remove them, until the board is cleared.
 
-- Six difficulties (Easy/Medium/Hard/Very Hard/Extreme/Master), scaling via tile count and layering
-  (24/36/48/64/80/100 tiles) across a small curated set of layered layout templates per tier, never
-  tiny tiles or timers. Hard and up use a proper multi-layer tapering "plaza + peak" shape reaching
-  5-6 stacked layers with as little as 2% of the board free at once — redesigned after Very Hard
-  turned out too easy even at its original 2-4-layer depth, and Extreme/Master were added on top of
-  that redesign for more room to grow into.
-- Every generated board is solvable by construction: a full clearing order is built first (any two
+- 50 deterministic levels (not a difficulty picker): clearing a level — legally, not necessarily
+  perfectly — unlocks the next, and every level stays replayable afterward from a numbered
+  level-select grid. The same level always reproduces the exact same puzzle. Levels 1-4 teach one
+  rule each as you play (matching, side-blocking, covering, then planning/Undo); Levels 5-50 scale
+  gradually from 8 up to 72 tiles and 1 up to 5 stacked layers, with difficulty coming from puzzle
+  structure — bottlenecks, dependency depth, how many tiles are free at once — not just tile count.
+- Every board is solvable by construction: a full clearing order is built first (any two
   currently-free tiles, geometry only), then emoji pairs are assigned onto that exact order — never
-  a naive shuffle-and-hope. Player choices can still reach a dead end mid-game; a small solver
-  (memoized DFS over the remaining-tile bitmask) detects that and powers a Hint that always points
-  to a real move toward clearing the board.
+  a naive shuffle-and-hope. All 50 levels are independently re-verified on every test run by
+  replaying each one to completion using only real emoji-matching removals, not just trusted from
+  the curation script that generated them. Player choices can still reach a dead end mid-game; a
+  small solver (memoized DFS over the remaining-tile bitmask) detects that and powers a Hint that
+  always points to a real move toward clearing the board.
 - Unlike Memory Pairs, every tile is visible from the start — the challenge is search and removal
   planning, not remembering hidden locations.
-- Undo (unlimited, exact-state) and Restart (reloads the original board), plus autosave/Continue.
-  Clean requires zero Hints; Undo stays visible but doesn't disqualify it.
-- Untimed, unscored practice board on the About page demonstrating the covering and left/right
-  rules before playing for real.
+- Undo (unlimited, exact-state), Restart (reloads the original board), and autosave/Continue for
+  the one active level. Stars (zero Hints for ★★★, one for ★★☆, otherwise ★☆☆) track mastery
+  per level; completion alone — not stars — unlocks the next one.
 
-See [`Emoji-Mahjong-SPEC.md`](./Emoji-Mahjong-SPEC.md) for the full design rationale.
+See [`Emoji-Mahjong-Level-SPEC.md`](./Emoji-Mahjong-Level-SPEC.md) for the full design rationale
+([`Emoji-Mahjong-SPEC.md`](./Emoji-Mahjong-SPEC.md) covers the original difficulty-based design
+this replaced).
 
 ## Number Match
 

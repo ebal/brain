@@ -11,7 +11,7 @@
     <template v-else-if="boardState">
       <div class="hud hud-top">
         <button class="exit-icon-btn" aria-label="Exit to menu" @click="requestExit">✕</button>
-        <span class="difficulty-label">{{ difficultyLabel }}</span>
+        <span class="difficulty-label">Level {{ level }}</span>
         <span class="timer">{{ formattedTime }}</span>
       </div>
       <div class="hud">
@@ -20,6 +20,7 @@
         <span class="stat">Mistakes {{ mistakes }}</span>
       </div>
 
+      <p v-if="tutorialMessage" class="tutorial-banner">{{ tutorialMessage }}</p>
       <p v-if="deadEnd" class="dead-end-banner">No available pairs — try Undo, Hint or Restart below.</p>
 
       <MahjongBoard
@@ -76,10 +77,9 @@ import ConfirmDialog from '../ConfirmDialog.vue'
 import { useEmojiMahjongGame } from '../../composables/emojimahjong/useEmojiMahjongGame.js'
 import { useEmojiMahjongStorage } from '../../composables/emojimahjong/useEmojiMahjongStorage.js'
 import { useEmojiMahjongStats } from '../../composables/emojimahjong/useEmojiMahjongStats.js'
-import { EMOJIMAHJONG_DIFFICULTIES } from '../../constants/emojimahjong/difficulties.js'
 
 const props = defineProps({
-  difficultyKey: { type: String, default: null },
+  level: { type: Number, default: null },
   continueGame: { type: Boolean, default: false },
 })
 const emit = defineEmits(['finished', 'exit'])
@@ -118,13 +118,53 @@ const { recordStart, recordCompletion, recordAbandon } = useEmojiMahjongStats()
 
 const game = useEmojiMahjongGame()
 const {
-  status, difficulty, boardState, selected, moveHistory, moves, mistakes,
-  hintPair, mismatchFlash, blockedFlash, deadEnd, remaining, elapsedTime, results,
+  status, level, boardState, selected, moveHistory, moves, mistakes,
+  hintPair, mismatchFlash, blockedFlash, blockingReason, deadEnd, remaining, elapsedTime, results,
 } = game
 
-const difficultyLabel = computed(() => {
-  const key = difficulty.value || props.difficultyKey
-  return Object.values(EMOJIMAHJONG_DIFFICULTIES).find((d) => d.key === key)?.label || ''
+// Level-SPEC §9/§22: tutorial levels (1-4) explain a blocking reason the
+// first time the PLAYER ACTUALLY HITS IT, then never repeat it ("do not
+// repeatedly show tutorial explanations after the player has learned
+// them") — tracked globally (not per-level) since the lesson, once
+// learned, applies everywhere.
+const TUTORIAL_SEEN_KEY = 'emojimahjong:tutorialSeen'
+function hasSeenTutorial(id) {
+  try {
+    return (JSON.parse(localStorage.getItem(TUTORIAL_SEEN_KEY)) || []).includes(id)
+  } catch {
+    return false
+  }
+}
+function markTutorialSeen(id) {
+  try {
+    const seen = JSON.parse(localStorage.getItem(TUTORIAL_SEEN_KEY)) || []
+    if (!seen.includes(id)) localStorage.setItem(TUTORIAL_SEEN_KEY, JSON.stringify([...seen, id]))
+  } catch {
+    // localStorage unavailable — the explanation just won't be remembered across sessions
+  }
+}
+
+const tutorialMessage = computed(() => {
+  if (level.value === 1) return 'Tap two matching emoji to remove them.'
+  if (level.value === 4 && moveHistory.value.length === 0) {
+    return 'Removal order matters here — if you get stuck, Undo is right below.'
+  }
+  if (blockedFlash.value !== null) {
+    if (level.value === 2 && blockingReason.value === 'sides' && !hasSeenTutorial('blocked-sides')) {
+      return 'Blocked — needs an open side'
+    }
+    if (level.value === 3 && blockingReason.value === 'covered' && !hasSeenTutorial('blocked-covered')) {
+      return 'Blocked — tile on top'
+    }
+  }
+  return null
+})
+
+// The explanation only needs to render once per reason, ever — mark it seen
+// as soon as it's actually been shown, not just attempted.
+watch(tutorialMessage, (msg) => {
+  if (msg === 'Blocked — needs an open side') markTutorialSeen('blocked-sides')
+  if (msg === 'Blocked — tile on top') markTutorialSeen('blocked-covered')
 })
 
 const formattedTime = computed(() => {
@@ -166,7 +206,7 @@ function handleResume() {
 }
 
 function handleExit() {
-  recordAbandon(difficulty.value)
+  recordAbandon(level.value)
   clearActive()
   game.reset()
   emit('exit')
@@ -185,8 +225,8 @@ onMounted(() => {
     return
   }
 
-  game.start(props.difficultyKey)
-  recordStart(props.difficultyKey)
+  game.begin(props.level)
+  recordStart(props.level)
   autosave()
 })
 
@@ -199,7 +239,7 @@ onUnmounted(() => {
 watch(status, (val) => {
   if (val === 'finished') {
     const r = results.value
-    const summary = recordCompletion(difficulty.value, r)
+    const summary = recordCompletion(level.value, r)
     clearActive()
     emit('finished', { ...r, ...summary })
   }
@@ -302,6 +342,19 @@ watch(status, (val) => {
   font-size: 1rem;
   font-weight: 700;
   color: var(--text);
+}
+
+.tutorial-banner {
+  width: 100%;
+  max-width: 480px;
+  margin: 0;
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text);
+  text-align: center;
 }
 
 .dead-end-banner {

@@ -37,6 +37,8 @@ import { HANOI_LEVELS } from '../constants/hanoi/levels.js'
 import { useHanoiStats } from './hanoi/useHanoiStats.js'
 import { LIGHTSOUT_LEVELS } from '../constants/lightsout/levels.js'
 import { useLightsOutStats } from './lightsout/useLightsOutStats.js'
+import { EMOJIMAHJONG_LEVELS } from '../constants/emojimahjong/levels.js'
+import { useEmojiMahjongStats } from './emojimahjong/useEmojiMahjongStats.js'
 import { METRIC_VERSIONS } from '../constants/metricVersions.js'
 
 export function mapStroopEntry(entry, mode, difficultyKey) {
@@ -332,6 +334,30 @@ export function mapLightsOutEntry(entry) {
   }
 }
 
+// Level-based (Emoji-Mahjong-Level-SPEC.md's full replacement of the old
+// difficulty-based game) — this mapper/aggregation was previously entirely
+// missing (a pre-existing gap noted during an earlier review), so Emoji
+// Mahjong sessions have never appeared in the Activity dashboard until now.
+export function mapEmojiMahjongEntry(entry) {
+  return {
+    id: `emojimahjong:${entry.level}:${entry.completedAt}`,
+    game: 'emojimahjong',
+    difficulty: String(entry.level),
+    sessionType: 'play',
+    startedAt: null,
+    completedAt: entry.completedAt,
+    duration: entry.completionTime,
+    completed: true,
+    primaryMetric: entry.score,
+    accuracy: null, // Emoji Mahjong has no accuracy-percentage concept
+    medianRT: null, // no per-move response time is tracked
+    mistakes: entry.mistakes,
+    hints: entry.hints,
+    metricVersion: entry.metricVersion ?? METRIC_VERSIONS.emojimahjong,
+    appVersion: entry.appVersion ?? null,
+  }
+}
+
 // Touches localStorage (via each game's own history/stats composable) to
 // aggregate every game's sessions into one common-shape list, sorted oldest
 // first. Deliberately not phrased as "all N games" (a stale count here is
@@ -430,6 +456,13 @@ export function getAllSessions() {
   for (const { level } of LIGHTSOUT_LEVELS) {
     for (const entry of lightsOutStats.getHistory(level)) {
       sessions.push(mapLightsOutEntry(entry))
+    }
+  }
+
+  const emojiMahjongStats = useEmojiMahjongStats()
+  for (const { level } of EMOJIMAHJONG_LEVELS) {
+    for (const entry of emojiMahjongStats.getHistory(level)) {
+      sessions.push(mapEmojiMahjongEntry(entry))
     }
   }
 

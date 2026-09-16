@@ -2,23 +2,30 @@
   <div class="history">
     <h1>History</h1>
 
-    <div class="filter-toggle">
-      <button
-        v-for="f in filters"
-        :key="f.key"
-        class="filter-btn"
-        :class="{ active: activeFilter === f.key }"
-        @click="activeFilter = f.key"
-      >
-        {{ f.label }}
-      </button>
-    </div>
+    <!-- 50 levels don't fit a button row — a plain select is the simplest
+         usable picker at this count (same choice as lightsout/HistoryPage.vue). -->
+    <select class="level-select" v-model.number="activeLevel">
+      <option v-for="lvl in levels" :key="lvl.level" :value="lvl.level">Level {{ lvl.level }}</option>
+    </select>
 
-    <div v-if="entries.length === 0" class="empty">
-      No completed games yet{{ activeFilter !== 'all' ? ` for ${activeFilter}` : '' }}.
-    </div>
+    <div v-if="entries.length === 0" class="empty">No completed attempts yet for Level {{ activeLevel }}.</div>
 
     <template v-else>
+      <div class="summary">
+        <div class="summary-stat">
+          <span class="label">Attempts</span>
+          <span class="value">{{ entries.length }}</span>
+        </div>
+        <div class="summary-stat">
+          <span class="label">Best Score</span>
+          <span class="value">{{ best?.score.toLocaleString() ?? '—' }}</span>
+        </div>
+        <div class="summary-stat">
+          <span class="label">Best Stars</span>
+          <span class="value">{{ best ? '★'.repeat(best.stars) : '—' }}</span>
+        </div>
+      </div>
+
       <p class="trend-note">Score trend (higher is better)</p>
       <svg class="sparkline" viewBox="0 0 100 40" preserveAspectRatio="none">
         <polyline :points="sparklinePoints" fill="none" stroke="var(--accent)" stroke-width="2" />
@@ -27,41 +34,37 @@
       <div class="entry-list">
         <div v-for="(entry, i) in reversedEntries" :key="i" class="entry-row">
           <span class="entry-date">{{ formatDate(entry.completedAt) }}</span>
-          <span class="entry-difficulty">{{ entry.difficulty }}</span>
           <span class="entry-score">{{ entry.score.toLocaleString() }}</span>
           <span class="entry-meta">
-            {{ entry.moves }} moves · {{ formatTime(entry.completionTime) }}
+            {{ '★'.repeat(entry.stars) }}{{ '☆'.repeat(3 - entry.stars) }} · {{ formatTime(entry.completionTime) }}
             <span v-if="entry.clean" class="clean-badge">clean</span>
           </span>
         </div>
       </div>
     </template>
 
-    <button class="back-btn" @click="$emit('menu')">Back to Menu</button>
+    <button class="back-btn" @click="$emit('menu')">Back to Levels</button>
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
+import { EMOJIMAHJONG_LEVELS } from '../../constants/emojimahjong/levels.js'
 import { useEmojiMahjongStats } from '../../composables/emojimahjong/useEmojiMahjongStats.js'
 
+const props = defineProps({
+  initialLevel: { type: Number, default: 1 },
+})
 defineEmits(['menu'])
 
-const { getHistory } = useEmojiMahjongStats()
+const levels = EMOJIMAHJONG_LEVELS
+const { getHistory, getStats } = useEmojiMahjongStats()
 
-const filters = [
-  { key: 'all', label: 'All' },
-  { key: 'easy', label: 'Easy' },
-  { key: 'medium', label: 'Medium' },
-  { key: 'hard', label: 'Hard' },
-  { key: 'very-hard', label: 'Very Hard' },
-  { key: 'extreme', label: 'Extreme' },
-  { key: 'master', label: 'Master' },
-]
-const activeFilter = ref('all')
+const activeLevel = ref(props.initialLevel)
 
-const entries = computed(() => getHistory(activeFilter.value))
+const entries = computed(() => getHistory(activeLevel.value))
 const reversedEntries = computed(() => [...entries.value].reverse())
+const best = computed(() => getStats(activeLevel.value).best)
 
 const sparklinePoints = computed(() => {
   const values = entries.value.map((e) => e.score)
@@ -98,27 +101,16 @@ h1 {
   margin-bottom: 1rem;
 }
 
-.filter-toggle {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.4rem;
-  margin-bottom: 1.5rem;
-}
-
-.filter-btn {
+.level-select {
+  display: block;
+  width: 100%;
   background: var(--surface);
   border: 1px solid var(--surface-2);
-  color: var(--text-dim);
-  padding: 0.6rem 0.2rem;
-  border-radius: 9px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.filter-btn.active {
-  border-color: var(--accent);
   color: var(--text);
+  padding: 0.7rem;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
 }
 
 .empty {
@@ -127,6 +119,33 @@ h1 {
   padding: 2rem 1rem;
   text-align: center;
   color: var(--text-dim);
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.summary-stat {
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  text-align: center;
+}
+
+.summary-stat .label {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.summary-stat .value {
+  font-size: 1.15rem;
+  font-weight: 700;
 }
 
 .trend-note {
@@ -155,7 +174,7 @@ h1 {
 
 .entry-row {
   display: grid;
-  grid-template-columns: 1.3fr 0.9fr 0.9fr 1.5fr;
+  grid-template-columns: 1.2fr 0.9fr 1.6fr;
   padding: 0.6rem 1rem;
   font-size: 0.85rem;
   gap: 0.5rem;
@@ -168,10 +187,6 @@ h1 {
 
 .entry-date {
   color: var(--text-dim);
-}
-
-.entry-difficulty {
-  text-transform: capitalize;
 }
 
 .entry-score {
@@ -211,7 +226,7 @@ h1 {
 
 @media (max-width: 420px) {
   .entry-row {
-    grid-template-columns: 1.1fr 0.8fr 0.8fr 1.3fr;
+    grid-template-columns: 1.1fr 0.8fr 1.4fr;
     font-size: 0.75rem;
   }
 }

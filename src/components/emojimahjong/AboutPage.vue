@@ -21,12 +21,12 @@
       again to deselect it. Tapping a blocked tile does nothing but flash.
     </p>
 
-    <h2>Difficulty</h2>
+    <h2>50 levels</h2>
     <p class="intro">
-      Difficulty comes from tile count, layering and blocking, never tiny tiles or timers.
-      <strong>Easy</strong> is 24 tiles / 12 pairs, mostly flat. <strong>Medium</strong> is 36 / 18
-      with shallow layering. <strong>Hard</strong> is 48 / 24 with more blocking. <strong>Very
-      Hard</strong> is 64 / 32, the largest layered puzzle.
+      Emoji Mahjong is a 50-level campaign, not a difficulty picker. Clearing a level unlocks the
+      next; every level stays replayable afterward. Difficulty grows gradually through tile count,
+      layering and blocking — never tiny tiles or timers — and the same level always uses the same
+      puzzle. Levels 1-4 teach one rule each as you play; Level 5 onward is the normal game.
     </p>
 
     <h2>Undo, Hint and Restart</h2>

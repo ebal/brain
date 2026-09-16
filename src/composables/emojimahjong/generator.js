@@ -1,10 +1,10 @@
-// Board generation (SPEC §8, §10) — no Vue, no storage. Local seeded PRNG
-// (mulberry32), duplicated rather than imported from another game's
+// Board generation (Level-SPEC §11, §12) — no Vue, no storage. Local seeded
+// PRNG (mulberry32), duplicated rather than imported from another game's
 // composables per this codebase's existing convention (see e.g.
 // mentalrotation/trialGenerator.js).
 import { getFreeTiles, getLayout } from './board.js'
 import { EMOJIMAHJONG_EMOJI } from '../../constants/emojimahjong/emojiPool.js'
-import { EMOJIMAHJONG_DIFFICULTIES } from '../../constants/emojimahjong/difficulties.js'
+import { getLevelConfig } from '../../constants/emojimahjong/levels.js'
 
 function mulberry32(seed) {
   let a = seed >>> 0
@@ -109,16 +109,15 @@ export function generateSolvableBoard(layoutId, seed) {
   return { layoutId, removed: new Array(n).fill(false), emoji }
 }
 
-// Picks a random curated layout for the difficulty, then generates a
-// solvable board for it — the single entry point useEmojiMahjongGame needs
-// to start a new round (SPEC §6's "seed + difficulty → same board").
-export function generateGame(difficultyKey, seed) {
-  const pickRng = makeRng(seed)
-  const config = Object.values(EMOJIMAHJONG_DIFFICULTIES).find((d) => d.key === difficultyKey)
-  if (!config) throw new Error(`Unknown Emoji Mahjong difficulty: ${difficultyKey}`)
+// Looks up the level's fixed {layoutId, seed} and generates its board — the
+// single entry point useEmojiMahjongGame needs to start a level (Level-SPEC
+// §10: "the level's layout + deterministic assignment must reproduce the
+// same starting puzzle" — no randomness at all here, unlike the old
+// difficulty-based generateGame() this replaces).
+export function generateLevelBoard(level) {
+  const config = getLevelConfig(level)
+  if (!config) throw new Error(`Unknown Emoji Mahjong level: ${level}`)
 
-  const layoutId = config.layoutIds[Math.floor(pickRng() * config.layoutIds.length)]
-  const boardSeed = Math.floor(pickRng() * 2 ** 31)
-  const board = generateSolvableBoard(layoutId, boardSeed)
-  return { layoutId, board }
+  const board = generateSolvableBoard(config.layoutId, config.seed)
+  return { layoutId: config.layoutId, seed: config.seed, version: config.version, board }
 }

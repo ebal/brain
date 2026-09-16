@@ -1,7 +1,8 @@
 <template>
   <div class="results">
-    <h1>Board Cleared!</h1>
-    <p class="difficulty-name">{{ difficultyLabel }}</p>
+    <h1>Level {{ results.level }} Complete</h1>
+
+    <div class="stars-display">{{ '★'.repeat(results.stars) }}{{ '☆'.repeat(3 - results.stars) }}</div>
 
     <div v-if="isNewCleanBest" class="new-best-banner">New Clean Best!</div>
     <div v-else-if="isNewBest" class="new-best-banner">New Best!</div>
@@ -46,32 +47,33 @@
     </div>
 
     <div class="actions">
-      <button class="primary" @click="$emit('replay')">Play Again</button>
-      <button class="secondary" @click="$emit('menu')">Back to Menu</button>
+      <button v-if="hasNextLevel" class="primary" @click="$emit('next', results.level + 1)">Next Level</button>
+      <button class="secondary" @click="$emit('replay', results.level)">Play Again</button>
     </div>
+    <button class="menu-link" @click="$emit('menu')">Back to Levels</button>
 
-    <button class="history-link" @click="$emit('history', { difficultyKey })">
+    <button class="history-link" @click="$emit('history', { level: results.level })">
       View History
     </button>
   </div>
 </template>
 
 <script setup>
-import { EMOJIMAHJONG_DIFFICULTIES } from '../../constants/emojimahjong/difficulties.js'
+import { computed } from 'vue'
+import { EMOJIMAHJONG_LEVELS } from '../../constants/emojimahjong/levels.js'
 import { useEmojiMahjongStats } from '../../composables/emojimahjong/useEmojiMahjongStats.js'
 
 const props = defineProps({
   results: { type: Object, required: true },
-  difficultyKey: { type: String, required: true },
 })
-defineEmits(['replay', 'menu', 'history'])
+defineEmits(['next', 'replay', 'menu', 'history'])
 
 const { getStats } = useEmojiMahjongStats()
 
 const isNewBest = props.results.isNewBest === true
 const isNewCleanBest = props.results.isNewCleanBest === true
-const best = getStats(props.difficultyKey).bestResult
-const difficultyLabel = Object.values(EMOJIMAHJONG_DIFFICULTIES).find((d) => d.key === props.difficultyKey)?.label
+const best = getStats(props.results.level).best
+const hasNextLevel = computed(() => props.results.level < EMOJIMAHJONG_LEVELS.length)
 
 function formatTime(ms) {
   const totalSeconds = Math.floor(ms / 1000)
@@ -88,11 +90,11 @@ function formatTime(ms) {
   text-align: center;
 }
 
-.difficulty-name {
-  color: var(--text-dim);
-  margin-top: -0.5rem;
-  margin-bottom: 1.5rem;
-  text-transform: capitalize;
+.stars-display {
+  font-size: 2rem;
+  color: var(--accent);
+  letter-spacing: 0.15em;
+  margin-bottom: 1rem;
 }
 
 .new-best-banner {
@@ -166,6 +168,7 @@ function formatTime(ms) {
 .actions {
   display: flex;
   gap: 1rem;
+  margin-bottom: 1rem;
 }
 
 .actions button {
@@ -188,6 +191,17 @@ function formatTime(ms) {
   color: var(--text);
 }
 
+.menu-link {
+  display: block;
+  margin: 0 auto;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 .history-link {
   display: block;
   margin: 1rem auto 0;
@@ -199,6 +213,7 @@ function formatTime(ms) {
   text-decoration: underline;
 }
 
+.menu-link:hover,
 .history-link:hover {
   color: var(--accent);
 }

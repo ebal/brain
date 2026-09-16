@@ -22,9 +22,9 @@ describe('METRIC_VERSIONS', () => {
     expect(Object.keys(METRIC_VERSIONS)).toHaveLength(expectedGames.length)
   })
 
-  it('every game currently starts at version 1 — nothing has changed its measurement definition yet', () => {
-    for (const version of Object.values(METRIC_VERSIONS)) {
-      expect(version).toBe(1)
+  it('every game is at version 1, except Emoji Mahjong (2) after its full level-based redesign', () => {
+    for (const [game, version] of Object.entries(METRIC_VERSIONS)) {
+      expect(version).toBe(game === 'emojimahjong' ? 2 : 1)
     }
   })
 })

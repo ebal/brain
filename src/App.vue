@@ -330,14 +330,18 @@
         @start="handleEmojiMahjongStart"
         @continue="handleEmojiMahjongContinue"
         @about="emojiMahjongScreen = 'about'"
-        @history="emojiMahjongScreen = 'history'"
+        @history="handleEmojiMahjongHistory"
         @exit="activeGame = null"
       />
       <EmojiMahjongAboutPage v-else-if="emojiMahjongScreen === 'about'" @menu="emojiMahjongScreen = 'menu'" />
-      <EmojiMahjongHistoryPage v-else-if="emojiMahjongScreen === 'history'" @menu="emojiMahjongScreen = 'menu'" />
+      <EmojiMahjongHistoryPage
+        v-else-if="emojiMahjongScreen === 'history'"
+        :initial-level="emojiMahjongLevel || 1"
+        @menu="emojiMahjongScreen = 'menu'"
+      />
       <EmojiMahjongGameScreen
         v-else-if="emojiMahjongScreen === 'game'"
-        :difficulty-key="emojiMahjongDifficulty"
+        :level="emojiMahjongLevel"
         :continue-game="emojiMahjongContinue"
         @finished="handleEmojiMahjongFinished"
         @exit="emojiMahjongScreen = 'menu'; benchmarkActive = false"
@@ -345,10 +349,10 @@
       <EmojiMahjongResultsScreen
         v-else-if="emojiMahjongScreen === 'results'"
         :results="emojiMahjongResults"
-        :difficulty-key="emojiMahjongDifficulty"
-        @replay="handleEmojiMahjongStart(emojiMahjongDifficulty)"
+        @next="handleEmojiMahjongStart"
+        @replay="handleEmojiMahjongStart"
         @menu="emojiMahjongScreen = 'menu'"
-        @history="emojiMahjongScreen = 'history'"
+        @history="handleEmojiMahjongHistory"
       />
     </template>
 
@@ -1022,12 +1026,12 @@ function handleMentalRotationFinished(results) {
 // Jump and Mental Rotation there is no benchmarkActive/recordBenchmarkSession
 // branch here.
 const emojiMahjongScreen = ref('menu')
-const emojiMahjongDifficulty = ref(null)
+const emojiMahjongLevel = ref(null)
 const emojiMahjongContinue = ref(false)
 const emojiMahjongResults = ref(null)
 
-function handleEmojiMahjongStart(difficultyKey) {
-  emojiMahjongDifficulty.value = difficultyKey
+function handleEmojiMahjongStart(level) {
+  emojiMahjongLevel.value = level
   emojiMahjongContinue.value = false
   emojiMahjongScreen.value = 'game'
 }
@@ -1037,9 +1041,14 @@ function handleEmojiMahjongContinue() {
   emojiMahjongScreen.value = 'game'
 }
 
+function handleEmojiMahjongHistory(payload) {
+  if (payload?.level) emojiMahjongLevel.value = payload.level
+  emojiMahjongScreen.value = 'history'
+}
+
 function handleEmojiMahjongFinished(results) {
   emojiMahjongResults.value = results
-  emojiMahjongDifficulty.value = results.difficulty
+  emojiMahjongLevel.value = results.level
   emojiMahjongScreen.value = 'results'
 }
 

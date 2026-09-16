@@ -1,13 +1,25 @@
+// Persistence for Emoji Mahjong — per-level bests/history plus the
+// suite-wide progression state (Level-SPEC §40-43): highest unlocked
+// level, completed levels, total stars, 3-star levels, clean completions,
+// total play time. Deliberately no universal cognitive score. Mirrors
+// hanoi/useHanoiStats.js and lightsout/useLightsOutStats.js.
+
 import { avg, median } from '../mathStats.js'
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
+import { EMOJIMAHJONG_LEVELS } from '../../constants/emojimahjong/levels.js'
 
 const STATS_PREFIX = 'emojimahjong:stats:'
-const HISTORY_KEY = 'emojimahjong:history'
-const MAX_HISTORY = 30
-const MAX_STATS_SAMPLES = 50 // per-difficulty sample cap for avg/median, separate from the 30-entry combined history
+const HISTORY_PREFIX = 'emojimahjong:history:'
+const PROGRESS_KEY = 'emojimahjong:progress'
+const MAX_HISTORY = 30 // Level-SPEC §43
+const MAX_STATS_SAMPLES = 50
 
-function statsKeyFor(difficultyKey) {
-  return `${STATS_PREFIX}${difficultyKey}`
+function statsKeyFor(level) {
+  return `${STATS_PREFIX}${level}`
+}
+
+function historyKeyFor(level) {
+  return `${HISTORY_PREFIX}${level}`
 }
 
 function readJSON(key, fallback) {
@@ -31,94 +43,106 @@ function defaultStats() {
   return {
     started: 0,
     completed: 0,
-    cleanGames: 0,
-    currentStreak: 0,
-    bestStreak: 0,
-    bestResult: null, // { score, time, undos, hints, date } — best of any cleared completion
-    bestCleanResult: null, // same shape, hints === 0 completions only
-    completions: [], // [{ score, moves, mistakes, undos, hints, time, clean }], capped, used for avg/median
+    cleanCompletions: 0, // hints === 0
+    best: null, // { stars, score, time, moves, mistakes, hints, undos, date } — best of any completion
+    bestClean: null, // same shape, hints === 0 completions only
+    completions: [], // capped samples used for avg/median
   }
 }
 
-// SPEC §22's Best comparison order: board cleared (only cleared games are
-// ever recorded as completions at all — see recordCompletion), then no
-// hints, then higher score, then fewer undos, then faster time.
+function defaultProgress() {
+  return {
+    highestUnlocked: 1,
+    completedLevels: [],
+    totalStars: 0, // sum of each level's BEST star rating, recomputed on every new best
+    threeStarLevels: 0,
+    cleanCompletions: 0, // cumulative across every attempt, any level
+    totalPlayTime: 0, // ms, cumulative across every completed attempt
+  }
+}
+
+// Level-SPEC §40's Best comparison order: higher Stars, then no Hints, then
+// higher Score, then fewer Undos, then faster Time — mirrors
+// emojimahjong's own pre-existing isBetterResult() shape (board cleared,
+// hints, score, undos, time) with Stars added at the front, since Stars is
+// now the primary mastery signal (Level-SPEC §36).
 function isBetterResult(candidate, current) {
   if (!current) return true
+  if (candidate.stars !== current.stars) return candidate.stars > current.stars
   if (candidate.score !== current.score) return candidate.score > current.score
   if (candidate.undos !== current.undos) return candidate.undos < current.undos
   return candidate.time < current.time
 }
 
 export function useEmojiMahjongStats() {
-  function getStats(difficultyKey) {
-    return readJSON(statsKeyFor(difficultyKey), defaultStats())
+  function getStats(level) {
+    return readJSON(statsKeyFor(level), defaultStats())
   }
 
-  function recordStart(difficultyKey) {
-    const stats = getStats(difficultyKey)
+  function recordStart(level) {
+    const stats = getStats(level)
     stats.started += 1
-    writeJSON(statsKeyFor(difficultyKey), stats)
+    writeJSON(statsKeyFor(level), stats)
   }
 
-  // Resets the current streak without counting a completion — for an
-  // explicitly abandoned game (closing the browser or continuing later must
-  // NOT reset the streak, only explicit abandon).
-  function recordAbandon(difficultyKey) {
-    const stats = getStats(difficultyKey)
-    stats.currentStreak = 0
-    writeJSON(statsKeyFor(difficultyKey), stats)
+  // Kept symmetrical with every other game's stats composable — an
+  // abandoned/exited attempt does not count as a completion.
+  function recordAbandon() {}
+
+  function getProgress() {
+    return readJSON(PROGRESS_KEY, defaultProgress())
   }
 
-  // result: { layoutId, difficulty, score, completionTime, moves, mistakes,
-  //           hints, undos, clean } — only called for a cleared board
-  // (SPEC §21: "Only cleared boards receive a final score/personal-best
-  // eligibility").
-  function recordCompletion(difficultyKey, result) {
-    const stats = getStats(difficultyKey)
-
+  // result: game.results value — { level, layoutId, seed, tileCount, moves,
+  // mistakes, hints, undos, completionTime, clean, stars, score }
+  function recordCompletion(level, result) {
+    const stats = getStats(level)
     stats.completed += 1
-    stats.currentStreak += 1
-    stats.bestStreak = Math.max(stats.bestStreak, stats.currentStreak)
-    if (result.clean) stats.cleanGames += 1
+    if (result.clean) stats.cleanCompletions += 1
 
-    const sample = {
+    const date = new Date().toISOString()
+    const candidate = {
+      stars: result.stars,
       score: result.score,
+      time: result.completionTime,
       moves: result.moves,
       mistakes: result.mistakes,
-      undos: result.undos,
       hints: result.hints,
-      time: result.completionTime,
-      clean: result.clean,
+      undos: result.undos,
+      date,
     }
-    stats.completions.push(sample)
-    stats.completions = stats.completions.slice(-MAX_STATS_SAMPLES)
 
     let isNewBest = false
-    let isNewCleanBest = false
-    const candidate = {
-      score: result.score,
-      time: result.completionTime,
-      undos: result.undos,
-      hints: result.hints,
-      date: new Date().toISOString(),
-    }
-    if (isBetterResult(candidate, stats.bestResult)) {
-      stats.bestResult = candidate
+    if (isBetterResult(candidate, stats.best)) {
+      stats.best = candidate
       isNewBest = true
     }
-    if (result.clean && isBetterResult(candidate, stats.bestCleanResult)) {
-      stats.bestCleanResult = candidate
+
+    let isNewCleanBest = false
+    if (result.clean && isBetterResult(candidate, stats.bestClean)) {
+      stats.bestClean = candidate
       isNewCleanBest = true
     }
 
-    writeJSON(statsKeyFor(difficultyKey), stats)
+    stats.completions.push({
+      stars: result.stars,
+      score: result.score,
+      moves: result.moves,
+      mistakes: result.mistakes,
+      hints: result.hints,
+      undos: result.undos,
+      time: result.completionTime,
+      clean: result.clean,
+    })
+    stats.completions = stats.completions.slice(-MAX_STATS_SAMPLES)
+    writeJSON(statsKeyFor(level), stats)
 
-    const history = readJSON(HISTORY_KEY, [])
+    const history = readJSON(historyKeyFor(level), [])
     history.push({
+      level,
       layoutId: result.layoutId,
-      difficulty: difficultyKey,
       seed: result.seed,
+      stars: result.stars,
       score: result.score,
       completionTime: result.completionTime,
       moves: result.moves,
@@ -126,24 +150,34 @@ export function useEmojiMahjongStats() {
       hints: result.hints,
       undos: result.undos,
       clean: result.clean,
-      completedAt: new Date().toISOString(),
+      completedAt: date,
       metricVersion: METRIC_VERSIONS.emojimahjong,
       appVersion: __APP_VERSION__,
     })
-    writeJSON(HISTORY_KEY, history.slice(-MAX_HISTORY))
+    writeJSON(historyKeyFor(level), history.slice(-MAX_HISTORY))
+
+    // Progression (Level-SPEC §6/§42): any completion — legal, not
+    // necessarily optimal/starred — unlocks the next level.
+    const progress = getProgress()
+    const wasFirstCompletion = !progress.completedLevels.includes(level)
+    if (wasFirstCompletion) progress.completedLevels.push(level)
+    progress.highestUnlocked = Math.max(progress.highestUnlocked, Math.min(level + 1, EMOJIMAHJONG_LEVELS.length))
+    if (result.clean) progress.cleanCompletions += 1
+    progress.totalPlayTime += result.completionTime
+    progress.totalStars = progress.completedLevels.reduce((sum, lvl) => sum + (getStats(lvl).best?.stars ?? 0), 0)
+    progress.threeStarLevels = progress.completedLevels.filter((lvl) => getStats(lvl).best?.stars === 3).length
+    writeJSON(PROGRESS_KEY, progress)
 
     return { isNewBest, isNewCleanBest }
   }
 
-  function getDerivedStats(difficultyKey) {
-    const stats = getStats(difficultyKey)
-    const scores = stats.completions.map((c) => c.score)
-
+  function getDerivedStats(level) {
+    const stats = getStats(level)
     return {
       ...stats,
       completionRate: stats.started > 0 ? (stats.completed / stats.started) * 100 : 0,
-      avgScore: avg(scores),
-      medianScore: median(scores),
+      avgScore: avg(stats.completions.map((c) => c.score)),
+      medianScore: median(stats.completions.map((c) => c.score)),
       avgTime: avg(stats.completions.map((c) => c.time)),
       avgMoves: avg(stats.completions.map((c) => c.moves)),
       avgMistakes: avg(stats.completions.map((c) => c.mistakes)),
@@ -152,11 +186,12 @@ export function useEmojiMahjongStats() {
     }
   }
 
-  function getHistory(difficultyFilter) {
-    const history = readJSON(HISTORY_KEY, [])
-    if (!difficultyFilter || difficultyFilter === 'all') return history
-    return history.filter((h) => h.difficulty === difficultyFilter)
+  // History is stored per level, not combined — Level-SPEC §40: "Do not
+  // compare Level 8 directly with Level 38 as though they are equivalent
+  // tasks."
+  function getHistory(level) {
+    return readJSON(historyKeyFor(level), [])
   }
 
-  return { getStats, getDerivedStats, recordStart, recordAbandon, recordCompletion, getHistory }
+  return { getStats, getProgress, recordStart, recordAbandon, recordCompletion, getDerivedStats, getHistory }
 }
