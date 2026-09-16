@@ -60,6 +60,10 @@
         <h2>Target Tap</h2>
         <p>Watch the letter stream and tap when your target appears. Sustained attention &amp; reaction speed.</p>
       </button>
+      <button class="game-card" @click="$emit('choose', 'hanoi')">
+        <h2>Tower of Hanoi</h2>
+        <p>Move the tower in as few moves as possible. Planning &amp; sequential problem solving.</p>
+      </button>
     </div>
 
     <div class="footer-links">

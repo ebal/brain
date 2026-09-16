@@ -34,6 +34,7 @@ population average or another player.
 | [Number Match](#number-match) | Numerical search / planning |
 | [Odd One Out](#odd-one-out) | Visual discrimination / attention |
 | [Target Tap](#target-tap) | Sustained attention / reaction speed |
+| [Tower of Hanoi](#tower-of-hanoi) | Planning / sequential problem solving |
 
 Detailed rules, scoring formulas and design rationale for each game live in its own `*-SPEC.md`
 file, linked from each section below.
@@ -324,19 +325,42 @@ ignoring every other letter.
 
 See [`Target-Tap-SPEC.md`](./Target-Tap-SPEC.md) for the full design rationale.
 
+## Tower of Hanoi
+
+A progressive, 6-level Tower of Hanoi: move the whole disk tower from peg A to peg C, one disk at
+a time, never placing a larger disk on a smaller one.
+
+- Six levels (3 through 8 disks), each with a mathematically exact optimal move count (`2ⁿ - 1`).
+  Completing a level — legally, not necessarily optimally — unlocks the next; every level stays
+  replayable afterward from a numbered level-select grid showing locks and star ratings.
+- Tap a peg to pick up its top disk, tap another to move it there; an illegal destination leaves
+  the board untouched and counts as a Mistake rather than losing progress.
+- Multiple Undo (restores the exact previous board and reverses its move, tracked separately as an
+  Undo), Restart, and a Hint that highlights the next move from the true optimal strategy —
+  generalized to work from any legal position, not just the starting one — without moving
+  anything automatically. Using a hint rules out a clean 3-star result.
+- Stars come from Moves vs. the mathematical optimum (Efficiency = optimal / actual × 100, capped
+  at 100%): ★★★ for the exact optimum, ★★☆ within ~115% of it, ★☆☆ for any legal finish.
+  Autosave restores an interrupted level exactly — board, history, moves, mistakes, undos, hints
+  and elapsed time — down to the tap.
+
+See [`Tower-of-Hanoi-SPEC.md`](./Tower-of-Hanoi-SPEC.md) for the full design rationale.
+
 ## Benchmark Mode
 
-Fixed-difficulty runs of seven of the fourteen games, reachable via **Run a Benchmark** below the
+Fixed-difficulty runs of seven of the fifteen games, reachable via **Run a Benchmark** below the
 game grid, so a result today is comparable to one from months ago rather than a personal best set
 on whatever difficulty you happened to pick. Starting a benchmark locks the configuration: Stroop
 (Medium, Color Match), Schulte (5×5 Classic), N-Back (2-Back), SET (Medium), Sequence Memory
 (Medium), Switch Trail (Medium, 16 targets), Memory Pairs (Medium, 8 pairs).
 
-- **Sudoku, Marble Jump, Mental Rotation, Emoji Mahjong, Number Match, Odd One Out and Target Tap
-  are excluded.** Puzzle/trial difficulty genuinely varies within one labeled tier for each (and
-  for Odd One Out/Target Tap, character familiarity and font rendering add their own variability;
-  Target Tap's tuning also hasn't been validated against real play data yet), so a fixed benchmark
-  would mostly measure which puzzle/trial/layout/pair/stream you got, not your performance.
+- **Sudoku, Marble Jump, Mental Rotation, Emoji Mahjong, Number Match, Odd One Out, Target Tap and
+  Tower of Hanoi are excluded.** Puzzle/trial difficulty genuinely varies within one labeled tier
+  for each (and for Odd One Out/Target Tap, character familiarity and font rendering add their own
+  variability; Target Tap's tuning also hasn't been validated against real play data yet), so a
+  fixed benchmark would mostly measure which puzzle/trial/layout/pair/stream you got, not your
+  performance. Tower of Hanoi has a second reason: once the optimal strategy is learned, repeated
+  play increasingly measures familiarity/execution rather than fresh problem-solving.
 - A benchmark run also counts as a normal play session, recorded in that game's usual history and
   stats as well as a separate benchmark history.
 - Every benchmark session is stamped with a version number, so if these fixed configurations ever
@@ -365,7 +389,7 @@ performance is trending, filterable to the last 7, 30, 90 days or all time.
   counts through yesterday if you haven't played yet today.
 - **Sessions by Game**: a per-game session count for the selected range.
 - **Benchmark Performance**: per game (Sudoku, Marble Jump, Mental Rotation, Emoji Mahjong, Number
-  Match, Odd One Out and Target Tap excluded, same reasoning as Benchmark Mode above),
+  Match, Odd One Out, Target Tap and Tower of Hanoi excluded, same reasoning as Benchmark Mode above),
   your baseline, rolling median, a consistency measure (median absolute deviation), best result,
   most recent result, and today vs. baseline. Every stat shows its sample size, so a trend from 3
   sessions is never confused with one from 40.
@@ -485,11 +509,11 @@ Compose picks up `.env` automatically from then on, no need to pass anything on 
 
 ## Project structure
 
-All fourteen games live in one Vue app, chosen from a landing screen (`GameChooser.vue`) in
+All fifteen games live in one Vue app, chosen from a landing screen (`GameChooser.vue`) in
 `App.vue`. Stroop's files sit flat under `components/`, `composables/` and `constants/`; the other
-thirteen each have their own subfolder (`schulte/`, `nback/`, `sudoku/`, `set/`, `sequence-memory/`,
+fourteen each have their own subfolder (`schulte/`, `nback/`, `sudoku/`, `set/`, `sequence-memory/`,
 `switchtrail/`, `memorypairs/`, `marblejump/`, `mentalrotation/`, `emojimahjong/`, `numbermatch/`,
-`oddoneout/`, `targettap/`),
+`oddoneout/`, `targettap/`, `hanoi/`),
 all with the same shape: a
 `MainMenu`/`AboutPage`/`HistoryPage`/`GameScreen`/`ResultsScreen` set of components, a `useXGame.js`
 state machine plus a stats composable (and, for games with a resumable in-progress state, a storage
@@ -531,7 +555,7 @@ npm test
 ```
 
 Runs the automated test suite ([Vitest](https://vitest.dev/)): deterministic unit tests for the
-actual game math and generation logic across all fourteen games (trial/board/sequence generation,
+actual game math and generation logic across all fifteen games (trial/board/sequence generation,
 validators, difficulty classification, scoring, statistics), plus the shared session model,
 Benchmark, and Baseline logic. No component/DOM testing yet, everything covered so far is plain JS
 logic, testable without mounting a Vue component. Each tested module has a co-located `*.test.js`

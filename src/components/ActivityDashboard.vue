@@ -146,6 +146,7 @@ const GAME_LABELS = {
   numbermatch: 'Number Match',
   oddoneout: 'Odd One Out',
   targettap: 'Target Tap',
+  hanoi: 'Tower of Hanoi',
 }
 function gameLabel(game) {
   return GAME_LABELS[game] || game
