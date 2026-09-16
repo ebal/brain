@@ -29,6 +29,7 @@ import { useMemoryPairsStats } from './memorypairs/useMemoryPairsStats.js'
 import { useMarbleJumpStats } from './marblejump/useMarbleJumpStats.js'
 import { useMentalRotationStats } from './mentalrotation/useMentalRotationStats.js'
 import { ODDONEOUT_DIFFICULTIES } from '../constants/oddoneout/difficulties.js'
+import { ODDONEOUT_VARIANTS } from '../constants/oddoneout/variants.js'
 import { useOddOneOutStats } from './oddoneout/useOddOneOutStats.js'
 import { METRIC_VERSIONS } from '../constants/metricVersions.js'
 
@@ -244,11 +245,12 @@ export function mapMentalRotationEntry(entry) {
   }
 }
 
-export function mapOddOneOutEntry(entry) {
+export function mapOddOneOutEntry(entry, variantKey = 'classic') {
   return {
-    id: `oddoneout:${entry.difficulty}:${entry.completedAt}`,
+    id: `oddoneout:${variantKey}:${entry.difficulty}:${entry.completedAt}`,
     game: 'oddoneout',
     difficulty: entry.difficulty,
+    mode: variantKey,
     sessionType: 'play',
     startedAt: null,
     completedAt: entry.completedAt,
@@ -333,12 +335,14 @@ export function getAllSessions() {
   const mentalRotationStats = useMentalRotationStats()
   for (const entry of mentalRotationStats.getHistory('all')) sessions.push(mapMentalRotationEntry(entry))
 
-  // Per-difficulty history keys (like Switch Trail), not a combined 'all'
-  // key — see useOddOneOutStats.js's getHistory().
+  // Per-difficulty, per-variant history keys (like Switch Trail), not a
+  // combined 'all' key — see useOddOneOutStats.js's getHistory().
   const oddOneOutStats = useOddOneOutStats()
-  for (const difficultyKey of Object.keys(ODDONEOUT_DIFFICULTIES)) {
-    for (const entry of oddOneOutStats.getHistory(difficultyKey)) {
-      sessions.push(mapOddOneOutEntry(entry))
+  for (const variant of Object.values(ODDONEOUT_VARIANTS)) {
+    for (const difficultyKey of Object.keys(ODDONEOUT_DIFFICULTIES)) {
+      for (const entry of oddOneOutStats.getHistory(difficultyKey, variant.key)) {
+        sessions.push(mapOddOneOutEntry(entry, variant.key))
+      }
     }
   }
 

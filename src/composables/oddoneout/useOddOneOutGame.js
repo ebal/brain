@@ -2,6 +2,8 @@ import { ref, computed } from 'vue'
 import { generateTrial, makeRng } from './generator.js'
 import { calculateOddOneOutScore, calculateAccuracy, calculateRTStats } from './scoring.js'
 import { ODDONEOUT_DIFFICULTIES } from '../../constants/oddoneout/difficulties.js'
+import { ODDONEOUT_UNTIMED_TARGET_CORRECT } from '../../constants/oddoneout/variants.js'
+import { randomCellColor } from '../../constants/cellColors.js'
 
 const TIMER_TICK_MS = 100
 const COUNTDOWN_STEP_MS = 700
@@ -13,14 +15,18 @@ export function useOddOneOutGame() {
   const countdownValue = ref(0)
   const difficulty = ref(null)
   const trial = ref(null) // { pairId, family, gridSize, base, odd, oddIndex, cells }
+  const cellColors = ref([]) // [hex, ...] per cell, fresh every trial; [] when colorMode is off
   const correct = ref(0)
   const wrong = ref(0)
   const elapsedTime = ref(0) // ms, counts up
   const feedback = ref(null) // 'wrong' | null
   const wrongIndex = ref(null) // which cell was last mistapped, for a per-cell flash
   const timedOut = ref(false)
+  const targetCorrect = ref(0) // untimed only: round ends after this many correct taps instead of a clock
 
   let timeLimitMs = 0
+  let untimed = false // modeled on Mental Rotation's Untimed mode (fixed trial count), not Switch Trail's
+  let colorMode = false
   let rng = null // persists across the round so a seeded round's trial sequence stays reproducible
   let trialStartTime = 0 // performance.now() at the moment the current trial became visible
   let wrongOnCurrentTrial = 0 // resets every newTrial() — see finish()'s "was the interrupted trial genuinely engaged" check
@@ -58,6 +64,13 @@ export function useOddOneOutGame() {
 
   function newTrial() {
     trial.value = generateTrial(difficulty.value, gridSize.value, rng)
+    // Fresh every trial (SPEC-equivalent to Schulte's Random Color, but
+    // simpler: Odd One Out already wipes and regenerates the whole grid on
+    // every correct tap, so there's no "does the color travel with a
+    // repositioned cell" question to solve). Pure visual noise —
+    // independent of trial.value.oddIndex, so it can never hint at the
+    // answer.
+    cellColors.value = colorMode ? trial.value.cells.map(() => randomCellColor()) : []
     wrongOnCurrentTrial = 0
   }
 
@@ -83,18 +96,26 @@ export function useOddOneOutGame() {
       const tickNow = performance.now()
       elapsedTime.value += tickNow - lastResumeTime
       lastResumeTime = tickNow
-      if (elapsedTime.value >= timeLimitMs) {
+      // Untimed rounds keep the clock running (elapsedTime still feeds the
+      // final `duration` stat) but never time out — they only end once
+      // targetCorrect is reached, checked in tap() instead.
+      if (!untimed && elapsedTime.value >= timeLimitMs) {
         elapsedTime.value = timeLimitMs
         clearTimerId()
+        interruptedAtTimeout = true
+        timedOut.value = true
         finish()
       }
     }, TIMER_TICK_MS)
   }
 
-  function start(difficultyKey, seed) {
+  function start(difficultyKey, seed, options = {}) {
     const config = ODDONEOUT_DIFFICULTIES[difficultyKey]
     difficulty.value = difficultyKey
     timeLimitMs = config.timeLimit * 1000
+    untimed = !!options.untimed
+    colorMode = !!options.colorMode
+    targetCorrect.value = untimed ? ODDONEOUT_UNTIMED_TARGET_CORRECT : 0
     // One rng instance for the whole round so a seeded round's entire trial
     // sequence (pair choice + odd position, every trial) stays reproducible
     // (SPEC §31).
@@ -120,6 +141,14 @@ export function useOddOneOutGame() {
       const now = performance.now()
       correctRTs.push(now - trialStartTime)
       correct.value += 1
+      // Untimed ends the round the moment the target correct-count is
+      // reached (Mental Rotation's exact model) — the trial that was just
+      // solved counts fully; there's no "next" trial to generate.
+      if (untimed && correct.value >= targetCorrect.value) {
+        stopTimer()
+        finish()
+        return
+      }
       newTrial()
       trialStartTime = performance.now()
     } else {
@@ -135,15 +164,16 @@ export function useOddOneOutGame() {
     }
   }
 
-  // SPEC §16/§19: the trial on screen when time runs out is never awarded as
-  // correct. Whether it counts toward "Trials" at all is decided in
-  // `results` below, via wrongOnCurrentTrial (captured here at the instant
-  // time expired).
+  // Generic wrap-up only — callers set timedOut/interruptedAtTimeout
+  // themselves before calling this (SPEC §16/§19: the trial on screen when
+  // time runs out is never awarded as correct; whether it counts toward
+  // "Trials" at all is decided in `results` below via wrongOnCurrentTrial,
+  // captured at the instant time expired). Reaching Untimed's target count
+  // is a normal, non-interrupted ending — it leaves both flags at their
+  // start()-initialized `false`.
   function finish() {
     clearTimerId()
     clearTimeout(feedbackTimeoutId)
-    interruptedAtTimeout = true
-    timedOut.value = true
     status.value = 'finished'
   }
 
@@ -208,11 +238,13 @@ export function useOddOneOutGame() {
     countdownValue,
     difficulty,
     trial,
+    cellColors,
     gridSize,
     correct,
     wrong,
     elapsedTime,
     remainingTime,
+    targetCorrect,
     feedback,
     wrongIndex,
     timedOut,

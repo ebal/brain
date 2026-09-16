@@ -3,15 +3,26 @@
     <h1>Odd One Out</h1>
     <p class="subtitle">Find the different number or letter before time runs out.</p>
 
+    <div class="variant-toggles">
+      <label class="variant-check">
+        <input type="checkbox" v-model="untimed" />
+        Untimed
+      </label>
+      <label class="variant-check">
+        <input type="checkbox" v-model="colorMode" />
+        Random Color
+      </label>
+    </div>
+
     <div class="difficulty-grid">
       <button
         v-for="d in difficulties"
         :key="d.key"
         class="difficulty-card"
-        @click="$emit('start', d.key)"
+        @click="$emit('start', { difficultyKey: d.key, colorMode, untimed })"
       >
         <h2>{{ d.label }}</h2>
-        <p class="meta">{{ d.gridSize }}×{{ d.gridSize }} · {{ d.timeLimit }}s</p>
+        <p class="meta">{{ d.gridSize }}×{{ d.gridSize }} · {{ untimed ? `${UNTIMED_TARGET_CORRECT} correct` : `${d.timeLimit}s` }}</p>
         <div v-if="stats(d.key).started > 0" class="stat-line">
           Best Score: {{ stats(d.key).bestScore?.score ?? '—' }}
         </div>
@@ -35,16 +46,24 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import { ODDONEOUT_DIFFICULTIES } from '../../constants/oddoneout/difficulties.js'
+import { ODDONEOUT_UNTIMED_TARGET_CORRECT as UNTIMED_TARGET_CORRECT, variantKeyFor } from '../../constants/oddoneout/variants.js'
 import { useOddOneOutStats } from '../../composables/oddoneout/useOddOneOutStats.js'
 
 defineEmits(['start', 'about', 'history', 'exit'])
 
 const difficulties = Object.values(ODDONEOUT_DIFFICULTIES)
+const colorMode = ref(false)
+const untimed = ref(false)
 const { getStats } = useOddOneOutStats()
 
+// Not reactive via watchEffect (mirrors switchtrail/MainMenu.vue) — stats()
+// is called directly in the template on every render, which Vue already
+// re-evaluates whenever either checkbox changes, so the "Best" preview
+// updates live without any extra wiring.
 function stats(difficultyKey) {
-  return getStats(difficultyKey)
+  return getStats(difficultyKey, variantKeyFor(colorMode.value, untimed.value))
 }
 </script>
 
@@ -62,6 +81,34 @@ h1 {
 .subtitle {
   color: var(--text-dim);
   margin-bottom: 1.5rem;
+}
+
+.variant-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.variant-check {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.variant-check input {
+  width: 1.15rem;
+  height: 1.15rem;
+  accent-color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 .difficulty-grid {

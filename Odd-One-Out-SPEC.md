@@ -876,3 +876,44 @@ Keep v1 focused on one different number/letter in a static grid.
 25. No backend/database.
 26. Full offline/PWA support.
 27. Do not add to Benchmark v1.
+
+## 39. v2 addition: Random Color variant
+
+Added after v1, at the user's request — the same role it plays in Schulte Tables' and Switch
+Trail's own Random Color variants. A single checkbox, **Random Color**, available at every
+difficulty.
+
+- Each cell in the grid gets a random background color, reassigned fresh on every new trial (a
+  brand-new grid is already generated on every correct tap, so there's no "does the color travel
+  with a repositioned cell" question to solve, unlike Switch Trail's free-form layout).
+- Pure visual noise: colors are assigned independent of `oddIndex`, so which cell is the odd one
+  is never hinted at by color. §26/§27's rule against encoding the answer through color is
+  unaffected.
+- Only applies while a cell isn't showing the wrong-tap flash — that feedback color always takes
+  priority, so it's never obscured by the random background.
+- Scoring, timing and the trial-generation rules are unchanged. Random Color is tracked as its own
+  variant bucket per difficulty (own best score/accuracy/trial-count/median RT, own history), so
+  it can never distort or be distorted by plain (Classic) results.
+
+## 40. v2 addition: Untimed variant
+
+Added alongside Random Color, at the user's request — modeled on Mental Rotation's Timed/Untimed
+mode, not on Switch Trail's. A second independent checkbox, **Untimed**, available at every
+difficulty and combinable with Random Color, giving four variant buckets total: Classic, Random
+Color, Untimed, and Untimed + Color.
+
+- Odd One Out's trial generation is endless (§6/§7's whole point is that a correct answer always
+  produces another trial), so "just remove the timeout" has no natural stopping point the way
+  Switch Trail's finite trail does. Untimed instead ends the round after a **fixed number of
+  correct answers** (20) — Mental Rotation's exact model — shown as "Correct X / 20" in place of
+  the countdown.
+- No clock shown during play. Score remains visible throughout (unlike Switch Trail's Untimed,
+  which hides live Score to remove rush pressure) — Odd One Out's score never had a time-based
+  component to begin with (§17), so there's no rush cue tied to it in the first place.
+- Scoring formula is completely unchanged (§17) — Untimed needed zero changes to it, since it
+  never had a time bonus to withhold.
+- A wrong tap behaves exactly as in Classic (costs points, flashes red, doesn't advance) and does
+  not count toward the 20-correct target — only correct answers do.
+- Pause/resume-with-a-fresh-trial on app-hide (§24) is unaffected by Untimed; the target count and
+  progress-so-far are preserved across a pause exactly like elapsed time is in a timed round.
+- Combines cleanly with Random Color — the two checkboxes are completely independent.

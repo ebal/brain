@@ -1,9 +1,9 @@
 // Persistence for Odd One Out — best score/accuracy/trial-count/median RT,
-// rolling history and derived statistics, all keyed per difficulty (SPEC
-// §21-23). Follows the same read/write shape as switchtrail/numbermatch's
-// stats composables. No "all difficulties" combined view (SPEC §23: "Do not
-// combine difficulties into a universal Odd One Out score") — same as
-// Switch Trail.
+// rolling history and derived statistics, all keyed per difficulty AND per
+// variant (SPEC §21-23 plus the Random Color / Untimed variants). Follows
+// the same read/write shape as switchtrail/numbermatch's stats composables.
+// No "all difficulties" combined view (SPEC §23: "Do not combine
+// difficulties into a universal Odd One Out score") — same as Switch Trail.
 
 import { avg, median } from '../mathStats.js'
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
@@ -14,12 +14,20 @@ const MAX_HISTORY = 30 // SPEC §22
 const MAX_STATS_SAMPLES = 50 // per-difficulty sample cap for avg/median, separate from the 30-entry history
 const RT_BEST_MIN_ACCURACY = 80 // SPEC §21: "RT personal best requires accuracy >= 80%"
 
-function statsKeyFor(difficultyKey) {
-  return `${STATS_PREFIX}${difficultyKey}`
+// 'classic' keeps Odd One Out's original, pre-existing storage key shape
+// (`oddoneout:stats:<difficulty>` / `oddoneout:history:<difficulty>`) so
+// nobody's already-saved plain stats/history change format now that Random
+// Color / Untimed exist — mirrors switchtrail/useSwitchTrailStats.js.
+function statsKeyFor(difficultyKey, variantKey = 'classic') {
+  return variantKey === 'classic'
+    ? `${STATS_PREFIX}${difficultyKey}`
+    : `${STATS_PREFIX}${variantKey}:${difficultyKey}`
 }
 
-function historyKeyFor(difficultyKey) {
-  return `${HISTORY_PREFIX}${difficultyKey}`
+function historyKeyFor(difficultyKey, variantKey = 'classic') {
+  return variantKey === 'classic'
+    ? `${HISTORY_PREFIX}${difficultyKey}`
+    : `${HISTORY_PREFIX}${variantKey}:${difficultyKey}`
 }
 
 function readJSON(key, fallback) {
@@ -62,14 +70,14 @@ function isBetterScore(candidate, current) {
 }
 
 export function useOddOneOutStats() {
-  function getStats(difficultyKey) {
-    return readJSON(statsKeyFor(difficultyKey), defaultStats())
+  function getStats(difficultyKey, variantKey = 'classic') {
+    return readJSON(statsKeyFor(difficultyKey, variantKey), defaultStats())
   }
 
-  function recordStart(difficultyKey) {
-    const stats = getStats(difficultyKey)
+  function recordStart(difficultyKey, variantKey = 'classic') {
+    const stats = getStats(difficultyKey, variantKey)
     stats.started += 1
-    writeJSON(statsKeyFor(difficultyKey), stats)
+    writeJSON(statsKeyFor(difficultyKey, variantKey), stats)
   }
 
   // Kept symmetrical with every other game's stats composable — an
@@ -80,8 +88,8 @@ export function useOddOneOutStats() {
   // result: game.results value — { score, trials, correct, wrong, accuracy,
   // avgCorrectRT, medianCorrectRT, fastestCorrectRT, slowestCorrectRT,
   // duration, timeLimit, timedOut }
-  function recordCompletion(difficultyKey, result) {
-    const stats = getStats(difficultyKey)
+  function recordCompletion(difficultyKey, result, variantKey = 'classic') {
+    const stats = getStats(difficultyKey, variantKey)
     stats.completed += 1
 
     const date = new Date().toISOString()
@@ -135,9 +143,9 @@ export function useOddOneOutStats() {
     })
     stats.completions = stats.completions.slice(-MAX_STATS_SAMPLES)
 
-    writeJSON(statsKeyFor(difficultyKey), stats)
+    writeJSON(statsKeyFor(difficultyKey, variantKey), stats)
 
-    const history = readJSON(historyKeyFor(difficultyKey), [])
+    const history = readJSON(historyKeyFor(difficultyKey, variantKey), [])
     history.push({
       difficulty: difficultyKey,
       score: result.score,
@@ -154,13 +162,13 @@ export function useOddOneOutStats() {
       metricVersion: METRIC_VERSIONS.oddoneout,
       appVersion: __APP_VERSION__,
     })
-    writeJSON(historyKeyFor(difficultyKey), history.slice(-MAX_HISTORY))
+    writeJSON(historyKeyFor(difficultyKey, variantKey), history.slice(-MAX_HISTORY))
 
     return { isNewBestScore, isNewBestAccuracy, isNewBestTrialCount, isNewBestMedianRT }
   }
 
-  function getDerivedStats(difficultyKey) {
-    const stats = getStats(difficultyKey)
+  function getDerivedStats(difficultyKey, variantKey = 'classic') {
+    const stats = getStats(difficultyKey, variantKey)
     return {
       ...stats,
       avgScore: avg(stats.completions.map((c) => c.score)),
@@ -177,8 +185,8 @@ export function useOddOneOutStats() {
 
   // History is stored per difficulty (like switchtrail's), not combined —
   // there's no meaningful "all difficulties" view (SPEC §23).
-  function getHistory(difficultyKey) {
-    return readJSON(historyKeyFor(difficultyKey), [])
+  function getHistory(difficultyKey, variantKey = 'classic') {
+    return readJSON(historyKeyFor(difficultyKey, variantKey), [])
   }
 
   return { getStats, getDerivedStats, recordStart, recordAbandon, recordCompletion, getHistory }

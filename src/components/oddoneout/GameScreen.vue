@@ -12,8 +12,11 @@
     <template v-else>
       <div class="hud">
         <button class="exit-icon-btn" aria-label="Exit to menu" @click="handleExit">✕</button>
-        <span class="difficulty-label">{{ difficultyLabel }}</span>
-        <span class="timer">{{ remainingSeconds }}s</span>
+        <span class="difficulty-label">
+          {{ difficultyLabel }}<span v-if="variantTag" class="variant-tag"> · {{ variantTag }}</span>
+        </span>
+        <span v-if="!props.untimed" class="timer">{{ remainingSeconds }}s</span>
+        <span v-else class="timer">{{ correct }} / {{ targetCorrect }}</span>
       </div>
       <div class="hud hud-secondary">
         <span class="find-label">
@@ -36,6 +39,7 @@
             :value="value"
             :is-wrong="wrongIndex === i"
             :interactive="status === 'playing'"
+            :color="cellColors[i]"
             @click="handleTap(i)"
           />
         </div>
@@ -44,7 +48,7 @@
         </div>
       </div>
 
-      <p class="progress">Correct {{ correct }}</p>
+      <p v-if="!props.untimed" class="progress">Correct {{ correct }}</p>
     </template>
 
     <ConfirmDialog
@@ -64,19 +68,29 @@ import { useOddOneOutGame } from '../../composables/oddoneout/useOddOneOutGame.j
 import { useOddOneOutStats } from '../../composables/oddoneout/useOddOneOutStats.js'
 import { calculateOddOneOutScore } from '../../composables/oddoneout/scoring.js'
 import { ODDONEOUT_DIFFICULTIES } from '../../constants/oddoneout/difficulties.js'
+import { variantKeyFor } from '../../constants/oddoneout/variants.js'
 
 const props = defineProps({
   difficultyKey: { type: String, required: true },
+  colorMode: { type: Boolean, default: false },
+  untimed: { type: Boolean, default: false },
 })
 const emit = defineEmits(['finished', 'exit'])
 
+const variantKey = computed(() => variantKeyFor(props.colorMode, props.untimed))
 const { recordStart } = useOddOneOutStats()
 
 const game = useOddOneOutGame()
-const { status, countdownValue, trial, correct, wrong, remainingTime, wrongIndex, results } = game
+const { status, countdownValue, trial, cellColors, correct, wrong, remainingTime, targetCorrect, wrongIndex, results } = game
 
 const difficultyLabel = computed(() => ODDONEOUT_DIFFICULTIES[props.difficultyKey]?.label || '')
 const remainingSeconds = computed(() => Math.ceil(remainingTime.value / 1000))
+const variantTag = computed(() => {
+  const parts = []
+  if (props.untimed) parts.push('Untimed')
+  if (props.colorMode) parts.push('Random Color')
+  return parts.length ? parts.join(' + ') : null
+})
 
 // Live, in-round preview — same shape the final score will use once the
 // round ends (SPEC §17 has no separate time bonus to withhold, unlike
@@ -104,8 +118,8 @@ function handleResume() {
 }
 
 function handleRestart() {
-  game.start(props.difficultyKey)
-  recordStart(props.difficultyKey)
+  game.start(props.difficultyKey, undefined, { colorMode: props.colorMode, untimed: props.untimed })
+  recordStart(props.difficultyKey, variantKey.value)
 }
 
 function handleVisibilityChange() {
@@ -116,8 +130,8 @@ function handleVisibilityChange() {
 
 onMounted(() => {
   document.addEventListener('visibilitychange', handleVisibilityChange)
-  game.start(props.difficultyKey)
-  recordStart(props.difficultyKey)
+  game.start(props.difficultyKey, undefined, { colorMode: props.colorMode, untimed: props.untimed })
+  recordStart(props.difficultyKey, variantKey.value)
 })
 
 onUnmounted(() => {
@@ -169,6 +183,11 @@ watch(status, (val) => {
   font-weight: 700;
   color: var(--accent);
   text-transform: capitalize;
+}
+
+.variant-tag {
+  color: var(--text-dim);
+  font-weight: 600;
 }
 
 /* SPEC §25: "timer visible but secondary" / "score secondary" */

@@ -1,7 +1,11 @@
 <template>
   <div class="results">
-    <h1>Time!</h1>
-    <p class="difficulty-name">{{ difficultyLabel }}</p>
+    <h1>{{ results.timedOut ? 'Time!' : 'Round Complete' }}</h1>
+    <p class="difficulty-name">
+      {{ difficultyLabel }}
+      <template v-if="untimed"> · Untimed</template>
+      <template v-if="colorMode"> · Random Color</template>
+    </p>
 
     <div v-if="newBestLabel" class="new-best-banner">{{ newBestLabel }}</div>
 
@@ -63,25 +67,29 @@
       <button class="secondary" @click="$emit('menu')">Back to Menu</button>
     </div>
 
-    <button class="history-link" @click="$emit('history', { difficultyKey })">View History</button>
+    <button class="history-link" @click="$emit('history', { difficultyKey, colorMode, untimed })">View History</button>
   </div>
 </template>
 
 <script setup>
 import { ODDONEOUT_DIFFICULTIES } from '../../constants/oddoneout/difficulties.js'
+import { variantKeyFor } from '../../constants/oddoneout/variants.js'
 import { useOddOneOutStats } from '../../composables/oddoneout/useOddOneOutStats.js'
 
 const props = defineProps({
   results: { type: Object, required: true },
   difficultyKey: { type: String, required: true },
+  colorMode: { type: Boolean, default: false },
+  untimed: { type: Boolean, default: false },
 })
 defineEmits(['replay', 'menu', 'history'])
 
+const variantKey = variantKeyFor(props.colorMode, props.untimed)
 const { recordCompletion, getStats } = useOddOneOutStats()
 const { isNewBestScore, isNewBestAccuracy, isNewBestTrialCount, isNewBestMedianRT } =
-  recordCompletion(props.difficultyKey, props.results)
+  recordCompletion(props.difficultyKey, props.results, variantKey)
 
-const stats = getStats(props.difficultyKey)
+const stats = getStats(props.difficultyKey, variantKey)
 const bestScore = stats.bestScore
 const bestAccuracy = stats.bestAccuracy
 const difficultyLabel = ODDONEOUT_DIFFICULTIES[props.difficultyKey]?.label

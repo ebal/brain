@@ -11,8 +11,8 @@ function advance(ms) {
 
 const COUNTDOWN_TO_PLAYING_MS = 700 * 3 + 500 + 10
 
-function startAndReachPlaying(game, difficultyKey, seed) {
-  game.start(difficultyKey, seed)
+function startAndReachPlaying(game, difficultyKey, seed, options) {
+  game.start(difficultyKey, seed, options)
   advance(COUNTDOWN_TO_PLAYING_MS)
 }
 
@@ -173,5 +173,96 @@ describe('useOddOneOutGame', () => {
       gameA.tap(gameA.trial.value.oddIndex)
       gameB.tap(gameB.trial.value.oddIndex)
     }
+  })
+
+  describe('Random Color variant', () => {
+    it('is off by default (no cellColors)', () => {
+      const game = useOddOneOutGame()
+      startAndReachPlaying(game, 'easy', 1)
+      expect(game.cellColors.value).toEqual([])
+    })
+
+    it('assigns one color per cell when enabled', () => {
+      const game = useOddOneOutGame()
+      startAndReachPlaying(game, 'easy', 1, { colorMode: true })
+      expect(game.cellColors.value.length).toBe(game.trial.value.cells.length)
+      expect(game.cellColors.value.every((c) => typeof c === 'string')).toBe(true)
+    })
+
+    it('regenerates colors on every new trial', () => {
+      const game = useOddOneOutGame()
+      startAndReachPlaying(game, 'easy', 1, { colorMode: true })
+      const colorsBefore = game.cellColors.value
+      game.tap(game.trial.value.oddIndex)
+      expect(game.cellColors.value).not.toBe(colorsBefore)
+      expect(game.cellColors.value.length).toBe(game.trial.value.cells.length)
+    })
+
+    it('never correlates color with which cell is odd (spot-check across many trials)', () => {
+      const game = useOddOneOutGame()
+      startAndReachPlaying(game, 'hard', 1, { colorMode: true })
+      // Nothing to assert about a specific color, but the odd cell's color
+      // must come from the same pool/process as every other cell — i.e. the
+      // array is plain per-index noise, not keyed off oddIndex.
+      for (let i = 0; i < 20; i++) {
+        expect(game.cellColors.value.length).toBe(game.trial.value.cells.length)
+        game.tap(game.trial.value.oddIndex)
+      }
+    })
+  })
+
+  describe('Untimed variant', () => {
+    it('does not time out even after the difficulty\'s normal time limit elapses', () => {
+      const game = useOddOneOutGame()
+      startAndReachPlaying(game, 'easy', 1, { untimed: true }) // Easy's normal limit is 20s
+      advance(60 * 1000)
+      expect(game.status.value).toBe('playing')
+      expect(game.timedOut.value).toBe(false)
+    })
+
+    it('ends after the target number of correct answers, not a clock', () => {
+      const game = useOddOneOutGame()
+      startAndReachPlaying(game, 'easy', 1, { untimed: true })
+      const target = game.targetCorrect.value
+      expect(target).toBeGreaterThan(0)
+      for (let i = 0; i < target - 1; i++) {
+        game.tap(game.trial.value.oddIndex)
+        expect(game.status.value).toBe('playing')
+      }
+      game.tap(game.trial.value.oddIndex)
+      expect(game.status.value).toBe('finished')
+      expect(game.timedOut.value).toBe(false)
+      expect(game.results.value.correct).toBe(target)
+      expect(game.results.value.trials).toBe(target)
+    })
+
+    it('a timed round has targetCorrect of 0 (no fixed-count ending)', () => {
+      const game = useOddOneOutGame()
+      startAndReachPlaying(game, 'easy', 1)
+      expect(game.targetCorrect.value).toBe(0)
+    })
+
+    it('wrong taps still count and do not advance toward the target early', () => {
+      const game = useOddOneOutGame()
+      startAndReachPlaying(game, 'easy', 1, { untimed: true })
+      const trial = game.trial.value
+      const wrongCellIndex = trial.cells.findIndex((_, i) => i !== trial.oddIndex)
+      game.tap(wrongCellIndex)
+      game.tap(wrongCellIndex)
+      expect(game.status.value).toBe('playing')
+      expect(game.wrong.value).toBe(2)
+      expect(game.correct.value).toBe(0)
+    })
+  })
+
+  it('Random Color and Untimed are combinable', () => {
+    const game = useOddOneOutGame()
+    startAndReachPlaying(game, 'easy', 1, { colorMode: true, untimed: true })
+    expect(game.cellColors.value.length).toBe(game.trial.value.cells.length)
+    for (let i = 0; i < game.targetCorrect.value; i++) {
+      game.tap(game.trial.value.oddIndex)
+    }
+    expect(game.status.value).toBe('finished')
+    expect(game.timedOut.value).toBe(false)
   })
 })

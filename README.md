@@ -293,6 +293,10 @@ the others in a grid of otherwise-identical cells, and tap it before the overall
 - Tracks trials, correct/wrong taps, accuracy, and correct-answer reaction time (average, median,
   fastest, slowest). An untimed, unscored practice widget on the About page demonstrates a few
   examples, from obvious to genuinely tricky, before playing for real.
+- Two optional variants, combinable and toggled independently at every difficulty: **Untimed**
+  (round ends after 20 correct answers instead of a clock — no countdown, nothing to race against)
+  and **Random Color** (a random background per cell, reassigned every grid — pure visual noise,
+  never a hint). Each combination is tracked separately from Classic.
 
 See [`Odd-One-Out-SPEC.md`](./Odd-One-Out-SPEC.md) for the full design rationale.
 

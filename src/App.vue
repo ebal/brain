@@ -392,11 +392,15 @@
       <OddOneOutHistoryPage
         v-else-if="oddOneOutScreen === 'history'"
         :initial-difficulty="oddOneOutDifficulty || 'easy'"
+        :initial-color-mode="oddOneOutColorMode"
+        :initial-untimed="oddOneOutUntimed"
         @menu="oddOneOutScreen = 'menu'"
       />
       <OddOneOutGameScreen
         v-else-if="oddOneOutScreen === 'game'"
         :difficulty-key="oddOneOutDifficulty"
+        :color-mode="oddOneOutColorMode"
+        :untimed="oddOneOutUntimed"
         @finished="handleOddOneOutFinished"
         @exit="oddOneOutScreen = 'menu'; benchmarkActive = false"
       />
@@ -404,7 +408,9 @@
         v-else-if="oddOneOutScreen === 'results'"
         :results="oddOneOutResults"
         :difficulty-key="oddOneOutDifficulty"
-        @replay="handleOddOneOutStart(oddOneOutDifficulty)"
+        :color-mode="oddOneOutColorMode"
+        :untimed="oddOneOutUntimed"
+        @replay="handleOddOneOutStart({ difficultyKey: oddOneOutDifficulty, colorMode: oddOneOutColorMode, untimed: oddOneOutUntimed })"
         @menu="oddOneOutScreen = 'menu'"
         @history="handleOddOneOutHistory"
       />
@@ -953,15 +959,21 @@ function handleNumberMatchFinished(results) {
 // Emoji Mahjong/Marble Jump/Mental Rotation/Number Match.
 const oddOneOutScreen = ref('menu')
 const oddOneOutDifficulty = ref(null)
+const oddOneOutColorMode = ref(false)
+const oddOneOutUntimed = ref(false)
 const oddOneOutResults = ref(null)
 
-function handleOddOneOutStart(difficultyKey) {
+function handleOddOneOutStart({ difficultyKey, colorMode, untimed }) {
   oddOneOutDifficulty.value = difficultyKey
+  oddOneOutColorMode.value = !!colorMode
+  oddOneOutUntimed.value = !!untimed
   oddOneOutScreen.value = 'game'
 }
 
 function handleOddOneOutHistory(payload) {
   if (payload?.difficultyKey) oddOneOutDifficulty.value = payload.difficultyKey
+  if (payload?.colorMode !== undefined) oddOneOutColorMode.value = payload.colorMode
+  if (payload?.untimed !== undefined) oddOneOutUntimed.value = payload.untimed
   oddOneOutScreen.value = 'history'
 }
 

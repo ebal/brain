@@ -2,6 +2,7 @@
   <button
     class="oddoneout-cell"
     :class="{ wrong: isWrong, 'multi-char': value.length > 1 }"
+    :style="cellStyle"
     :disabled="!interactive"
     @click="$emit('click')"
   >
@@ -10,12 +11,24 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+import { textColorFor } from '../../constants/cellColors.js'
+
+const props = defineProps({
   value: { type: String, required: true },
   isWrong: { type: Boolean, default: false }, // brief flash on the last mistapped cell (SPEC §13)
   interactive: { type: Boolean, default: true },
+  color: { type: String, default: null }, // Random Color variant — a per-cell hex, or null
 })
 defineEmits(['click'])
+
+// Only applies while not flashing wrong — the .wrong feedback color must
+// never be obscured by the random background, same reasoning as
+// SchulteCell.vue's cellStyle.
+const cellStyle = computed(() => {
+  if (props.isWrong || !props.color) return {}
+  return { background: props.color, color: textColorFor(props.color) }
+})
 </script>
 
 <style scoped>

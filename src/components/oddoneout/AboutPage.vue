@@ -26,6 +26,21 @@
       cognitive research, but it's a game, not a clinical or diagnostic test.
     </p>
 
+    <p class="intro">
+      <strong>Untimed</strong> is an optional checkbox available at every difficulty: instead of a
+      countdown, the round ends after 20 correct answers. There's no clock on screen — just a
+      running "Correct X / 20" count — so there's nothing to race against. Your Untimed results are
+      tracked separately from timed rounds.
+    </p>
+
+    <p class="intro">
+      <strong>Random Color</strong> is an optional checkbox available at every difficulty
+      (combinable with Untimed): each cell gets a random background color, reassigned on every new
+      grid. It doesn't hint at which cell is odd — it's pure visual noise to make scanning harder —
+      and it's tracked with its own separate best score/history so it never mixes with your plain
+      results.
+    </p>
+
     <h2>Try it yourself</h2>
     <p class="intro">Untimed, unscored — just get a feel for the search before playing for real.</p>
 

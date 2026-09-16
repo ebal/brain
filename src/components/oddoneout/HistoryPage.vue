@@ -2,6 +2,18 @@
   <div class="history">
     <h1>History</h1>
 
+    <div class="variant-toggle">
+      <button
+        v-for="v in variants"
+        :key="v.key"
+        class="variant-btn"
+        :class="{ active: activeVariantKey === v.key }"
+        @click="activeVariantKey = v.key"
+      >
+        {{ v.label }}
+      </button>
+    </div>
+
     <div class="difficulty-toggle">
       <button
         v-for="d in difficulties"
@@ -14,7 +26,7 @@
       </button>
     </div>
 
-    <div v-if="history.length === 0" class="empty">No rounds played yet for {{ difficultyLabel }}.</div>
+    <div v-if="history.length === 0" class="empty">No rounds played yet for {{ difficultyLabel }} · {{ variantLabel }}.</div>
 
     <template v-else>
       <div class="summary">
@@ -53,25 +65,33 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { ODDONEOUT_DIFFICULTIES } from '../../constants/oddoneout/difficulties.js'
+import { ODDONEOUT_VARIANTS, variantKeyFor } from '../../constants/oddoneout/variants.js'
 import { useOddOneOutStats } from '../../composables/oddoneout/useOddOneOutStats.js'
 
 const props = defineProps({
   initialDifficulty: { type: String, default: 'easy' },
+  initialColorMode: { type: Boolean, default: false },
+  initialUntimed: { type: Boolean, default: false },
 })
 defineEmits(['menu'])
 
 const difficulties = Object.values(ODDONEOUT_DIFFICULTIES)
+const variants = Object.values(ODDONEOUT_VARIANTS)
 const activeDifficulty = ref(props.initialDifficulty)
+const activeVariantKey = ref(variantKeyFor(props.initialColorMode, props.initialUntimed))
 
 const { getHistory, getStats } = useOddOneOutStats()
 
-const history = computed(() => getHistory(activeDifficulty.value))
+const history = computed(() => getHistory(activeDifficulty.value, activeVariantKey.value))
 const reversedHistory = computed(() => [...history.value].reverse())
 const latest = computed(() => history.value[history.value.length - 1])
-const best = computed(() => getStats(activeDifficulty.value).bestScore)
+const best = computed(() => getStats(activeDifficulty.value, activeVariantKey.value).bestScore)
 
 const difficultyLabel = computed(
   () => difficulties.find((d) => d.key === activeDifficulty.value)?.label
+)
+const variantLabel = computed(
+  () => variants.find((v) => v.key === activeVariantKey.value)?.label
 )
 
 const sparklinePoints = computed(() => {
@@ -102,6 +122,32 @@ function formatDate(iso) {
 h1 {
   text-align: center;
   margin-bottom: 1rem;
+}
+
+.variant-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  background: var(--surface);
+  padding: 0.35rem;
+  border-radius: 12px;
+  margin-bottom: 0.75rem;
+}
+
+.variant-btn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  padding: 0.6rem 0.35rem;
+  border-radius: 9px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.variant-btn.active {
+  background: var(--accent);
+  color: #10121a;
 }
 
 .difficulty-toggle {
