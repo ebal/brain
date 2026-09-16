@@ -33,6 +33,7 @@ population average or another player.
 | [Emoji Mahjong](#emoji-mahjong) | Visual search / planning |
 | [Number Match](#number-match) | Numerical search / planning |
 | [Odd One Out](#odd-one-out) | Visual discrimination / attention |
+| [Target Tap](#target-tap) | Sustained attention / reaction speed |
 
 Detailed rules, scoring formulas and design rationale for each game live in its own `*-SPEC.md`
 file, linked from each section below.
@@ -300,18 +301,42 @@ the others in a grid of otherwise-identical cells, and tap it before the overall
 
 See [`Odd-One-Out-SPEC.md`](./Odd-One-Out-SPEC.md) for the full design rationale.
 
+## Target Tap
+
+A continuous-performance / vigilance task: a stream of letters appears one at a time, at a fixed
+pace, and you tap anywhere on the game area whenever your assigned target letter shows up —
+ignoring every other letter.
+
+- Four difficulties (Easy through Very Hard), scaling round duration (30s up to 90s), how often the
+  target appears (~30% down to ~15%) and presentation speed (1000ms down to 500ms per letter).
+  Difficulty comes from faster/rarer/longer, never from confusing letters or small text.
+- Every response is one of four classic outcomes — Hit, Miss, False Alarm, Correct Rejection —
+  tracked separately; these raw counts matter more than the score. A stimulus is always visible for
+  its complete interval regardless of when (or whether) you tap, so pacing never depends on your
+  reaction.
+- Your target letter changes every round and is guaranteed to never repeat the immediately previous
+  round's, at any difficulty. Target placement is deliberately generated (never two targets back to
+  back, always at least two non-targets between them, a stable target count per round) rather than
+  left to raw chance.
+- Tracks Hit Rate, False Alarm Rate, accuracy, and Hit reaction time (average, median, fastest). A
+  slower, unscored practice widget on the About page demonstrates the four outcomes before playing
+  for real.
+
+See [`Target-Tap-SPEC.md`](./Target-Tap-SPEC.md) for the full design rationale.
+
 ## Benchmark Mode
 
-Fixed-difficulty runs of seven of the thirteen games, reachable via **Run a Benchmark** below the
+Fixed-difficulty runs of seven of the fourteen games, reachable via **Run a Benchmark** below the
 game grid, so a result today is comparable to one from months ago rather than a personal best set
 on whatever difficulty you happened to pick. Starting a benchmark locks the configuration: Stroop
 (Medium, Color Match), Schulte (5×5 Classic), N-Back (2-Back), SET (Medium), Sequence Memory
 (Medium), Switch Trail (Medium, 16 targets), Memory Pairs (Medium, 8 pairs).
 
-- **Sudoku, Marble Jump, Mental Rotation, Emoji Mahjong, Number Match and Odd One Out are
-  excluded.** Puzzle/trial difficulty genuinely varies within one labeled tier for each (and for
-  Odd One Out, character familiarity and font rendering add their own variability), so a fixed
-  benchmark would mostly measure which puzzle/trial/layout/pair you got, not your performance.
+- **Sudoku, Marble Jump, Mental Rotation, Emoji Mahjong, Number Match, Odd One Out and Target Tap
+  are excluded.** Puzzle/trial difficulty genuinely varies within one labeled tier for each (and
+  for Odd One Out/Target Tap, character familiarity and font rendering add their own variability;
+  Target Tap's tuning also hasn't been validated against real play data yet), so a fixed benchmark
+  would mostly measure which puzzle/trial/layout/pair/stream you got, not your performance.
 - A benchmark run also counts as a normal play session, recorded in that game's usual history and
   stats as well as a separate benchmark history.
 - Every benchmark session is stamped with a version number, so if these fixed configurations ever
@@ -340,7 +365,7 @@ performance is trending, filterable to the last 7, 30, 90 days or all time.
   counts through yesterday if you haven't played yet today.
 - **Sessions by Game**: a per-game session count for the selected range.
 - **Benchmark Performance**: per game (Sudoku, Marble Jump, Mental Rotation, Emoji Mahjong, Number
-  Match and Odd One Out excluded, same reasoning as Benchmark Mode above),
+  Match, Odd One Out and Target Tap excluded, same reasoning as Benchmark Mode above),
   your baseline, rolling median, a consistency measure (median absolute deviation), best result,
   most recent result, and today vs. baseline. Every stat shows its sample size, so a trend from 3
   sessions is never confused with one from 40.
@@ -460,11 +485,11 @@ Compose picks up `.env` automatically from then on, no need to pass anything on 
 
 ## Project structure
 
-All thirteen games live in one Vue app, chosen from a landing screen (`GameChooser.vue`) in
+All fourteen games live in one Vue app, chosen from a landing screen (`GameChooser.vue`) in
 `App.vue`. Stroop's files sit flat under `components/`, `composables/` and `constants/`; the other
-twelve each have their own subfolder (`schulte/`, `nback/`, `sudoku/`, `set/`, `sequence-memory/`,
+thirteen each have their own subfolder (`schulte/`, `nback/`, `sudoku/`, `set/`, `sequence-memory/`,
 `switchtrail/`, `memorypairs/`, `marblejump/`, `mentalrotation/`, `emojimahjong/`, `numbermatch/`,
-`oddoneout/`),
+`oddoneout/`, `targettap/`),
 all with the same shape: a
 `MainMenu`/`AboutPage`/`HistoryPage`/`GameScreen`/`ResultsScreen` set of components, a `useXGame.js`
 state machine plus a stats composable (and, for games with a resumable in-progress state, a storage
@@ -506,7 +531,7 @@ npm test
 ```
 
 Runs the automated test suite ([Vitest](https://vitest.dev/)): deterministic unit tests for the
-actual game math and generation logic across all thirteen games (trial/board/sequence generation,
+actual game math and generation logic across all fourteen games (trial/board/sequence generation,
 validators, difficulty classification, scoring, statistics), plus the shared session model,
 Benchmark, and Baseline logic. No component/DOM testing yet, everything covered so far is plain JS
 logic, testable without mounting a Vue component. Each tested module has a co-located `*.test.js`

@@ -415,6 +415,36 @@
         @history="handleOddOneOutHistory"
       />
     </template>
+
+    <template v-else-if="activeGame === 'targettap'">
+      <TargetTapMainMenu
+        v-if="targetTapScreen === 'menu'"
+        @start="handleTargetTapStart"
+        @about="targetTapScreen = 'about'"
+        @history="handleTargetTapHistory"
+        @exit="activeGame = null"
+      />
+      <TargetTapAboutPage v-else-if="targetTapScreen === 'about'" @menu="targetTapScreen = 'menu'" />
+      <TargetTapHistoryPage
+        v-else-if="targetTapScreen === 'history'"
+        :initial-difficulty="targetTapDifficulty || 'easy'"
+        @menu="targetTapScreen = 'menu'"
+      />
+      <TargetTapGameScreen
+        v-else-if="targetTapScreen === 'game'"
+        :difficulty-key="targetTapDifficulty"
+        @finished="handleTargetTapFinished"
+        @exit="targetTapScreen = 'menu'; benchmarkActive = false"
+      />
+      <TargetTapResultsScreen
+        v-else-if="targetTapScreen === 'results'"
+        :results="targetTapResults"
+        :difficulty-key="targetTapDifficulty"
+        @replay="handleTargetTapStart(targetTapDifficulty)"
+        @menu="targetTapScreen = 'menu'"
+        @history="handleTargetTapHistory"
+      />
+    </template>
   </div>
 </template>
 
@@ -529,6 +559,12 @@ const OddOneOutAboutPage = lazy(() => import('./components/oddoneout/AboutPage.v
 const OddOneOutHistoryPage = lazy(() => import('./components/oddoneout/HistoryPage.vue'))
 const OddOneOutGameScreen = lazy(() => import('./components/oddoneout/GameScreen.vue'))
 const OddOneOutResultsScreen = lazy(() => import('./components/oddoneout/ResultsScreen.vue'))
+
+const TargetTapMainMenu = lazy(() => import('./components/targettap/MainMenu.vue'))
+const TargetTapAboutPage = lazy(() => import('./components/targettap/AboutPage.vue'))
+const TargetTapHistoryPage = lazy(() => import('./components/targettap/HistoryPage.vue'))
+const TargetTapGameScreen = lazy(() => import('./components/targettap/GameScreen.vue'))
+const TargetTapResultsScreen = lazy(() => import('./components/targettap/ResultsScreen.vue'))
 
 const activeGame = ref(null) // null | 'stroop' | 'schulte' | 'nback' | 'sudoku' | 'set' | 'sequence-memory' | 'switchtrail' | 'memorypairs' | 'data' | 'benchmark-menu' | 'activity' | 'about'
 
@@ -980,6 +1016,27 @@ function handleOddOneOutHistory(payload) {
 function handleOddOneOutFinished(results) {
   oddOneOutResults.value = results
   oddOneOutScreen.value = 'results'
+}
+
+// --- Target Tap --- not part of Benchmark v1 (SPEC §40), same reasoning as
+// Emoji Mahjong/Marble Jump/Mental Rotation/Number Match/Odd One Out.
+const targetTapScreen = ref('menu')
+const targetTapDifficulty = ref(null)
+const targetTapResults = ref(null)
+
+function handleTargetTapStart(difficultyKey) {
+  targetTapDifficulty.value = difficultyKey
+  targetTapScreen.value = 'game'
+}
+
+function handleTargetTapHistory(payload) {
+  if (payload?.difficultyKey) targetTapDifficulty.value = payload.difficultyKey
+  targetTapScreen.value = 'history'
+}
+
+function handleTargetTapFinished(results) {
+  targetTapResults.value = results
+  targetTapScreen.value = 'results'
 }
 </script>
 

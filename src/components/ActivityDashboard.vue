@@ -145,6 +145,7 @@ const GAME_LABELS = {
   emojimahjong: 'Emoji Mahjong',
   numbermatch: 'Number Match',
   oddoneout: 'Odd One Out',
+  targettap: 'Target Tap',
 }
 function gameLabel(game) {
   return GAME_LABELS[game] || game

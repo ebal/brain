@@ -56,6 +56,10 @@
         <h2>Odd One Out</h2>
         <p>Find the different number or letter before time runs out. Visual discrimination &amp; attention.</p>
       </button>
+      <button class="game-card" @click="$emit('choose', 'targettap')">
+        <h2>Target Tap</h2>
+        <p>Watch the letter stream and tap when your target appears. Sustained attention &amp; reaction speed.</p>
+      </button>
     </div>
 
     <div class="footer-links">
