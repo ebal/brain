@@ -52,6 +52,10 @@
         <h2>Number Match</h2>
         <p>Match identical numbers or pairs that add up to 10. Numerical search &amp; planning.</p>
       </button>
+      <button class="game-card" @click="$emit('choose', 'oddoneout')">
+        <h2>Odd One Out</h2>
+        <p>Find the different number or letter before time runs out. Visual discrimination &amp; attention.</p>
+      </button>
     </div>
 
     <div class="footer-links">

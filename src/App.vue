@@ -379,6 +379,42 @@
         @history="numberMatchScreen = 'history'"
       />
     </template>
+
+    <template v-else-if="activeGame === 'oddoneout'">
+      <OddOneOutMainMenu
+        v-if="oddOneOutScreen === 'menu'"
+        @start="handleOddOneOutStart"
+        @about="oddOneOutScreen = 'about'"
+        @history="handleOddOneOutHistory"
+        @exit="activeGame = null"
+      />
+      <OddOneOutAboutPage v-else-if="oddOneOutScreen === 'about'" @menu="oddOneOutScreen = 'menu'" />
+      <OddOneOutHistoryPage
+        v-else-if="oddOneOutScreen === 'history'"
+        :initial-difficulty="oddOneOutDifficulty || 'easy'"
+        :initial-color-mode="oddOneOutColorMode"
+        :initial-untimed="oddOneOutUntimed"
+        @menu="oddOneOutScreen = 'menu'"
+      />
+      <OddOneOutGameScreen
+        v-else-if="oddOneOutScreen === 'game'"
+        :difficulty-key="oddOneOutDifficulty"
+        :color-mode="oddOneOutColorMode"
+        :untimed="oddOneOutUntimed"
+        @finished="handleOddOneOutFinished"
+        @exit="oddOneOutScreen = 'menu'; benchmarkActive = false"
+      />
+      <OddOneOutResultsScreen
+        v-else-if="oddOneOutScreen === 'results'"
+        :results="oddOneOutResults"
+        :difficulty-key="oddOneOutDifficulty"
+        :color-mode="oddOneOutColorMode"
+        :untimed="oddOneOutUntimed"
+        @replay="handleOddOneOutStart({ difficultyKey: oddOneOutDifficulty, colorMode: oddOneOutColorMode, untimed: oddOneOutUntimed })"
+        @menu="oddOneOutScreen = 'menu'"
+        @history="handleOddOneOutHistory"
+      />
+    </template>
   </div>
 </template>
 
@@ -487,6 +523,12 @@ const NumberMatchAboutPage = lazy(() => import('./components/numbermatch/AboutPa
 const NumberMatchHistoryPage = lazy(() => import('./components/numbermatch/HistoryPage.vue'))
 const NumberMatchGameScreen = lazy(() => import('./components/numbermatch/GameScreen.vue'))
 const NumberMatchResultsScreen = lazy(() => import('./components/numbermatch/ResultsScreen.vue'))
+
+const OddOneOutMainMenu = lazy(() => import('./components/oddoneout/MainMenu.vue'))
+const OddOneOutAboutPage = lazy(() => import('./components/oddoneout/AboutPage.vue'))
+const OddOneOutHistoryPage = lazy(() => import('./components/oddoneout/HistoryPage.vue'))
+const OddOneOutGameScreen = lazy(() => import('./components/oddoneout/GameScreen.vue'))
+const OddOneOutResultsScreen = lazy(() => import('./components/oddoneout/ResultsScreen.vue'))
 
 const activeGame = ref(null) // null | 'stroop' | 'schulte' | 'nback' | 'sudoku' | 'set' | 'sequence-memory' | 'switchtrail' | 'memorypairs' | 'data' | 'benchmark-menu' | 'activity' | 'about'
 
@@ -911,6 +953,33 @@ function handleNumberMatchFinished(results) {
   numberMatchResults.value = results
   numberMatchDifficulty.value = results.difficulty
   numberMatchScreen.value = 'results'
+}
+
+// --- Odd One Out --- not part of Benchmark v1 (SPEC §36), same reasoning as
+// Emoji Mahjong/Marble Jump/Mental Rotation/Number Match.
+const oddOneOutScreen = ref('menu')
+const oddOneOutDifficulty = ref(null)
+const oddOneOutColorMode = ref(false)
+const oddOneOutUntimed = ref(false)
+const oddOneOutResults = ref(null)
+
+function handleOddOneOutStart({ difficultyKey, colorMode, untimed }) {
+  oddOneOutDifficulty.value = difficultyKey
+  oddOneOutColorMode.value = !!colorMode
+  oddOneOutUntimed.value = !!untimed
+  oddOneOutScreen.value = 'game'
+}
+
+function handleOddOneOutHistory(payload) {
+  if (payload?.difficultyKey) oddOneOutDifficulty.value = payload.difficultyKey
+  if (payload?.colorMode !== undefined) oddOneOutColorMode.value = payload.colorMode
+  if (payload?.untimed !== undefined) oddOneOutUntimed.value = payload.untimed
+  oddOneOutScreen.value = 'history'
+}
+
+function handleOddOneOutFinished(results) {
+  oddOneOutResults.value = results
+  oddOneOutScreen.value = 'results'
 }
 </script>
 
