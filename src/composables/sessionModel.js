@@ -35,6 +35,8 @@ import { TARGETTAP_DIFFICULTIES } from '../constants/targettap/difficulties.js'
 import { useTargetTapStats } from './targettap/useTargetTapStats.js'
 import { HANOI_LEVELS } from '../constants/hanoi/levels.js'
 import { useHanoiStats } from './hanoi/useHanoiStats.js'
+import { LIGHTSOUT_LEVELS } from '../constants/lightsout/levels.js'
+import { useLightsOutStats } from './lightsout/useLightsOutStats.js'
 import { METRIC_VERSIONS } from '../constants/metricVersions.js'
 
 export function mapStroopEntry(entry, mode, difficultyKey) {
@@ -310,6 +312,26 @@ export function mapHanoiEntry(entry) {
   }
 }
 
+export function mapLightsOutEntry(entry) {
+  return {
+    id: `lightsout:${entry.level}:${entry.completedAt}`,
+    game: 'lightsout',
+    difficulty: String(entry.level),
+    sessionType: 'play',
+    startedAt: null,
+    completedAt: entry.completedAt,
+    duration: entry.duration,
+    completed: true,
+    primaryMetric: entry.moves, // lower is better; not in METRIC_DIRECTION since Lights Out isn't a Benchmark game
+    accuracy: null, // Lights Out has no accuracy-percentage concept
+    medianRT: null, // no per-move response time is tracked
+    mistakes: null, // Lights Out has no Mistakes concept — every tap is legal
+    hints: entry.hints,
+    metricVersion: entry.metricVersion ?? METRIC_VERSIONS.lightsout,
+    appVersion: entry.appVersion ?? null,
+  }
+}
+
 // Touches localStorage (via each game's own history/stats composable) to
 // aggregate every game's sessions into one common-shape list, sorted oldest
 // first. Deliberately not phrased as "all N games" (a stale count here is
@@ -401,6 +423,13 @@ export function getAllSessions() {
   for (const { level } of HANOI_LEVELS) {
     for (const entry of hanoiStats.getHistory(level)) {
       sessions.push(mapHanoiEntry(entry))
+    }
+  }
+
+  const lightsOutStats = useLightsOutStats()
+  for (const { level } of LIGHTSOUT_LEVELS) {
+    for (const entry of lightsOutStats.getHistory(level)) {
+      sessions.push(mapLightsOutEntry(entry))
     }
   }
 

@@ -28,4 +28,5 @@ export const METRIC_VERSIONS = {
   oddoneout: 1,
   targettap: 1,
   hanoi: 1,
+  lightsout: 1,
 }
