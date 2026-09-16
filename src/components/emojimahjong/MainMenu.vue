@@ -4,20 +4,28 @@
     <p class="subtitle">Match free emoji tiles and clear the board. Visual search &amp; planning.</p>
 
     <button v-if="activeSave" class="continue-btn" @click="$emit('continue')">
-      Continue Game
-      <span class="continue-meta">{{ activeSave.difficulty }} · {{ formatTime(activeSave.elapsedTime) }}</span>
+      Continue Level {{ activeSave.level }}
+      <span class="continue-meta">{{ formatTime(activeSave.elapsedTime) }}</span>
     </button>
 
-    <div class="difficulty-grid">
-      <button v-for="d in difficulties" :key="d.key" class="difficulty-card" @click="handleStart(d.key)">
-        <h2>{{ d.label }}</h2>
-        <p class="meta">{{ d.tiles }} tiles · {{ d.pairs }} pairs</p>
-        <div class="stat-line" v-if="stats(d.key).completed > 0">
-          Best score: {{ stats(d.key).bestResult ? stats(d.key).bestResult.score.toLocaleString() : '—' }}
-        </div>
-        <div class="stat-line stat-line--empty" v-else>No games completed yet</div>
-        <div class="stat-line" v-if="stats(d.key).completed > 0">
-          {{ stats(d.key).completed }} completed · streak {{ stats(d.key).currentStreak }}
+    <div class="progress-summary">
+      <span>{{ progress.completedLevels.length }} / {{ levels.length }} levels complete</span>
+      <span>{{ progress.totalStars }} / {{ levels.length * 3 }} stars</span>
+    </div>
+
+    <div class="level-grid">
+      <button
+        v-for="lvl in levels"
+        :key="lvl.level"
+        class="level-card"
+        :class="{ locked: lvl.level > progress.highestUnlocked }"
+        :disabled="lvl.level > progress.highestUnlocked"
+        @click="handleStart(lvl.level)"
+      >
+        <span v-if="lvl.level > progress.highestUnlocked" class="lock-icon" aria-hidden="true">🔒</span>
+        <h2>{{ lvl.level }}</h2>
+        <div class="stars" v-if="stats(lvl.level).best">
+          {{ '★'.repeat(stats(lvl.level).best.stars) }}{{ '☆'.repeat(3 - stats(lvl.level).best.stars) }}
         </div>
       </button>
     </div>
@@ -35,20 +43,21 @@
 </template>
 
 <script setup>
-import { EMOJIMAHJONG_DIFFICULTIES } from '../../constants/emojimahjong/difficulties.js'
+import { EMOJIMAHJONG_LEVELS } from '../../constants/emojimahjong/levels.js'
 import { useEmojiMahjongStorage } from '../../composables/emojimahjong/useEmojiMahjongStorage.js'
 import { useEmojiMahjongStats } from '../../composables/emojimahjong/useEmojiMahjongStats.js'
 
 const emit = defineEmits(['start', 'continue', 'about', 'history', 'exit'])
 
-const difficulties = Object.values(EMOJIMAHJONG_DIFFICULTIES)
+const levels = EMOJIMAHJONG_LEVELS
 const { getActive, clearActive } = useEmojiMahjongStorage()
-const { getDerivedStats, recordAbandon } = useEmojiMahjongStats()
+const { getStats, getProgress, recordAbandon } = useEmojiMahjongStats()
 
+const progress = getProgress()
 const activeSave = getActive()
 
-function stats(difficultyKey) {
-  return getDerivedStats(difficultyKey)
+function stats(level) {
+  return getStats(level)
 }
 
 function formatTime(ms) {
@@ -58,16 +67,16 @@ function formatTime(ms) {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
-function handleStart(difficultyKey) {
-  if (activeSave) {
+function handleStart(level) {
+  if (activeSave && activeSave.level !== level) {
     const confirmed = window.confirm(
-      `You have an unfinished ${activeSave.difficulty} game in progress. Start a new ${difficultyKey} game and discard it?`
+      `You have an unfinished Level ${activeSave.level} in progress. Start Level ${level} and discard it?`
     )
     if (!confirmed) return
-    recordAbandon(activeSave.difficulty)
+    recordAbandon(activeSave.level)
     clearActive()
   }
-  emit('start', difficultyKey)
+  emit('start', level)
 }
 </script>
 
@@ -100,59 +109,72 @@ h1 {
   font-size: 1.05rem;
   font-weight: 700;
   cursor: pointer;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .continue-meta {
   font-size: 0.85rem;
   font-weight: 600;
-  text-transform: capitalize;
   opacity: 0.85;
 }
 
-.meta {
-  margin: 0 0 0.5rem;
+.progress-summary {
+  display: flex;
+  justify-content: space-between;
   color: var(--text-dim);
-  font-size: 0.75rem;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+  padding: 0 0.25rem;
 }
 
-.difficulty-grid {
+.level-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.5rem;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 0.25rem;
 }
 
-.difficulty-card {
+.level-card {
+  position: relative;
   background: var(--surface);
   border: 1px solid var(--surface-2);
-  border-radius: 12px;
-  padding: 1.25rem 0.75rem;
-  text-align: left;
+  border-radius: 10px;
+  padding: 0.6rem 0.3rem;
+  text-align: center;
   cursor: pointer;
   color: var(--text);
   transition: border-color 0.15s ease, transform 0.08s ease;
 }
 
-.difficulty-card:hover {
+.level-card:not(:disabled):hover {
   border-color: var(--accent);
   transform: translateY(-2px);
 }
 
-.difficulty-card h2 {
-  margin: 0 0 0.5rem;
-  font-size: 1.1rem;
+.level-card.locked {
+  opacity: 0.5;
+  cursor: default;
 }
 
-.stat-line {
-  font-size: 0.75rem;
+.lock-icon {
+  position: absolute;
+  top: 0.2rem;
+  right: 0.3rem;
+  font-size: 0.65rem;
+}
+
+.level-card h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.stars {
   color: var(--accent);
-  font-weight: 600;
-  margin-bottom: 0.25rem;
-}
-
-.stat-line--empty {
-  color: var(--text-dim);
-  font-weight: 400;
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+  margin-top: 0.15rem;
 }
 
 .footer-links {
@@ -187,11 +209,5 @@ h1 {
 
 .about-link:hover {
   color: var(--accent);
-}
-
-@media (max-width: 480px) {
-  .difficulty-grid {
-    grid-template-columns: 1fr;
-  }
 }
 </style>

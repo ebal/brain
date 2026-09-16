@@ -1,6 +1,12 @@
-// Curated layered layout templates (SPEC §7) — hand-picked rectangular
-// "terrace" stacks rather than a procedural geometry generator, per the
-// spec's explicit preference.
+// Curated layered layout templates (Level-SPEC §7/§8/§55.8) — hand-picked
+// rectangular "terrace" stacks rather than a procedural geometry generator,
+// per the spec's explicit preference. Every layout below is one of the
+// building blocks the 50-level campaign (constants/emojimahjong/levels.js)
+// draws from — a level's `layoutId` + `seed` together fully determine its
+// board (Level-SPEC §10), and several levels within a tier deliberately
+// reuse the same layout shape with a different seed, since a different seed
+// produces a genuinely different emoji assignment (and thus a different
+// puzzle) on the same silhouette.
 //
 // Coordinates are grid units. Within one layer (z), adjacent tile columns
 // and rows are 2 units apart. A tile stacked on the layer above is offset
@@ -8,7 +14,7 @@
 // the layer below sit within 1 unit in both x and y — see
 // composables/emojimahjong/board.js, which relies on this exact spacing for
 // its covers/left-right adjacency checks. Only x-adjacency (left/right)
-// within the same layer blocks a tile; y-position never does (SPEC §4).
+// within the same layer blocks a tile; y-position never does (Level-SPEC §4).
 function rect(cols, rows, z, ox = 0, oy = 0) {
   const slots = []
   for (let r = 0; r < rows; r++) {
@@ -19,8 +25,8 @@ function rect(cols, rows, z, ox = 0, oy = 0) {
   return slots
 }
 
-function layout(id, difficulty, layers) {
-  return { id, difficulty, slots: layers.flat() }
+function layout(id, layers) {
+  return { id, slots: layers.flat() }
 }
 
 // A flat "plaza" at z0 with a tapering peak stacked above it — each peak
@@ -28,18 +34,18 @@ function layout(id, difficulty, layers) {
 // (see the module-level spacing convention above), so the peak alone is a
 // real multi-layer pyramid rather than 2-3 hand-picked rect() sizes.
 //
-// Added after user feedback that Hard/Very Hard felt easy even at their
-// hardest: the original Hard/Very Hard layouts topped out at 2-4 layers
-// with 20-33% of tiles simultaneously free, which plays more like a
-// visual-search task than genuine Mahjong Solitaire layering/blocking.
-// plazaPeak-based layouts reach 5-6 layers with materially fewer
-// simultaneously-free tiles, which is what actually creates planning
-// pressure and occasional real dead-ends.
-//
 // `peakOrigin` overrides the default centered placement with an explicit
 // [x, y] origin for the peak's first (z=1) layer, so the same base/peak
 // dimensions can produce a visibly different (e.g. leaning/off-center)
 // board while keeping the exact tile count and layer depth.
+//
+// IMPORTANT constraint discovered during curation: the peak must stay
+// strictly narrower than the plaza in at least one dimension. Whenever the
+// peak's first layer is the same size as (or larger than) the plaza, its
+// diagonal reach covers the *entire* plaza no matter how it's offset,
+// sealing almost the whole board behind a single 1-to-1 covering chain down
+// to one free tip tile — the generator can't find a clearing order for it
+// at all. Every layout below respects this.
 function plazaPeak(baseCols, baseRows, peakCols, peakRows, peakOrigin = null) {
   const plaza = rect(baseCols, baseRows, 0)
   const [ox0, oy0] = peakOrigin || [baseCols - peakCols, baseRows - peakRows]
@@ -56,65 +62,100 @@ function plazaPeak(baseCols, baseRows, peakCols, peakRows, peakOrigin = null) {
   return layers.flat()
 }
 
+// Every layout below was chosen by a one-off curation script (not part of
+// the shipped app) that searched rect()/plazaPeak() dimension combinations
+// within each tier's target tile-count/layer-depth band (Level-SPEC §7),
+// keeping only shapes composables/emojimahjong/generator.js's
+// generateSolvableBoard() actually accepts (i.e. a full clearing order
+// exists) — then independently re-verified by replaying each of the 50
+// levels' full boards to completion using only real emoji-matching pair
+// removals (composables/emojimahjong/levels.test.js re-runs this
+// verification against the live code, so it also catches drift if a
+// layout or level definition is ever edited).
 export const EMOJIMAHJONG_LAYOUTS = [
-  // Easy — 24 tiles / 12 pairs (SPEC §6): mostly flat / shallow.
-  layout('easy-1', 'easy', [rect(6, 4, 0)]),
-  layout('easy-2', 'easy', [rect(6, 3, 0), rect(3, 2, 1, 1, 1)]),
-  layout('easy-3', 'easy', [rect(5, 4, 0), rect(2, 2, 1, 2, 2)]),
+  // Levels 1-4 — hand-designed tutorial shapes (Level-SPEC §9), not part of
+  // the algorithmic tier search below: each one exists specifically to
+  // teach one rule in isolation.
+  layout('em-tutorial-1', rect(2, 4, 0)), // 8 tiles, 1 layer — 2 columns means every tile always has an open side: pure matching, zero blocking (Level 1)
+  layout('em-tutorial-2', rect(4, 3, 0)), // 12 tiles, 1 layer — 4-wide rows introduce left/right blocking on interior columns (Level 2)
+  layout('em-tutorial-3', [...rect(4, 1, 0), { x: 2, y: 1, z: 1 }, { x: 4, y: 1, z: 1 }]), // 6 tiles, 2 layers — introduces a covering tile (Level 3)
+  layout('em-tutorial-4', plazaPeak(4, 3, 1, 2)), // 14 tiles, 2 layers — small enough to stay a lesson, but removal order now genuinely matters (Level 4)
 
-  // Medium — 36 / 18: shallow layered.
-  layout('medium-1', 'medium', [rect(8, 3, 0), rect(4, 3, 1, 1, 1)]),
-  layout('medium-2', 'medium', [rect(6, 4, 0), rect(4, 2, 1, 1, 1), rect(2, 2, 2, 2, 2)]),
-  layout('medium-3', 'medium', [rect(9, 3, 0), rect(3, 3, 1, 3, 1)]),
-  layout('medium-4', 'medium', [rect(6, 4, 0), rect(3, 4, 1, 1, 0)]),
+  // Level 5 — the last "8-20 tiles" tier level, transitioning to normal play
+  layout('em-tutorial-end-1', rect(5, 2, 0)), // 10 tiles, 1 layer
+  layout('em-tutorial-end-2', rect(2, 8, 0)), // 16 tiles, 1 layer
+  layout('em-tutorial-end-3', rect(5, 4, 0)), // 20 tiles, 1 layer
+  layout('em-tutorial-end-4', rect(3, 4, 0)), // 12 tiles, 1 layer
+  layout('em-tutorial-end-5', rect(6, 3, 0)), // 18 tiles, 1 layer
+  layout('em-tutorial-end-6', rect(6, 2, 0)), // 12 tiles, 1 layer
+  layout('em-tutorial-end-7', rect(4, 4, 0)), // 16 tiles, 1 layer
+  layout('em-tutorial-end-8', rect(4, 2, 0)), // 8 tiles, 1 layer
 
-  // Hard — 48 / 24. Redesigned (v2) as a plaza + 4-layer tapering peak (5
-  // layers total) instead of the original's 2-4 flat "terrace" layers,
-  // which left 21-25% of tiles free at once — plenty of visible matches, no
-  // real planning pressure. hard-3/hard-4 keep the peak off-center for a
-  // visibly different board at the same tile count and depth.
-  layout('hard-1', 'hard', plazaPeak(6, 3, 4, 4)),
-  layout('hard-2', 'hard', plazaPeak(3, 6, 4, 4)),
-  layout('hard-3', 'hard', plazaPeak(6, 3, 4, 4, [0, -1])),
-  layout('hard-4', 'hard', plazaPeak(6, 3, 4, 4, [4, -1])),
+  // Levels 6-10 — Simple
+  layout('em-simple-1', plazaPeak(4, 4, 1, 4)), // 20 tiles, 2 layers
+  layout('em-simple-2', rect(7, 4, 0)), // 28 tiles, 1 layer
+  layout('em-simple-3', plazaPeak(5, 4, 1, 4)), // 24 tiles, 2 layers
+  layout('em-simple-4', plazaPeak(10, 2, 4, 1)), // 24 tiles, 2 layers
+  layout('em-simple-5', rect(4, 5, 0)), // 20 tiles, 1 layer
+  layout('em-simple-6', plazaPeak(3, 8, 2, 1)), // 26 tiles, 2 layers
+  layout('em-simple-7', plazaPeak(6, 3, 2, 1)), // 20 tiles, 2 layers
+  layout('em-simple-8', plazaPeak(9, 2, 8, 1)), // 26 tiles, 2 layers
 
-  // Very Hard — 64 / 32. Redesigned (v2): plaza + 4-layer peak (5 layers),
-  // same reasoning as Hard — the original topped out at 4 layers with
-  // 20-25% of tiles free at once.
-  layout('veryhard-1', 'very-hard', plazaPeak(6, 4, 5, 4)),
-  layout('veryhard-2', 'very-hard', plazaPeak(4, 6, 4, 5)),
-  layout('veryhard-3', 'very-hard', plazaPeak(8, 3, 5, 4)),
-  layout('veryhard-4', 'very-hard', plazaPeak(6, 4, 5, 4, [0, 0])),
+  // Levels 11-20 — Easy planning
+  layout('em-easyplanning-1', plazaPeak(5, 6, 1, 4)), // 34 tiles, 2 layers
+  layout('em-easyplanning-2', plazaPeak(12, 2, 12, 1)), // 36 tiles, 2 layers
+  layout('em-easyplanning-3', plazaPeak(7, 3, 7, 1)), // 28 tiles, 2 layers
+  layout('em-easyplanning-4', plazaPeak(3, 8, 1, 4)), // 28 tiles, 2 layers
+  layout('em-easyplanning-5', plazaPeak(9, 3, 7, 1)), // 34 tiles, 2 layers
+  layout('em-easyplanning-6', plazaPeak(4, 6, 1, 6)), // 30 tiles, 2 layers
+  layout('em-easyplanning-7', plazaPeak(8, 4, 1, 2)), // 34 tiles, 2 layers
+  layout('em-easyplanning-8', plazaPeak(11, 3, 3, 1)), // 36 tiles, 2 layers
 
-  // Extreme — 80 / 40 (v2 addition, user-requested: "add a couple levels
-  // more" after Very Hard turned out too easy even at its hardest).
-  // A same-size base/peak (e.g. plazaPeak(5,5,5,5)) was tried here first
-  // for a 6-layer peak — rejected. Whenever the peak's first layer exactly
-  // matches the plaza's own size, its diagonal reach covers the *entire*
-  // plaza no matter how it's offset, sealing almost the whole board behind
-  // a single 1-to-1 covering chain down to one free tip tile — not just
-  // "very hard", the generator can't find a clearing order for it at all.
-  // Every layout below keeps the peak strictly narrower than the plaza in
-  // at least one dimension, which is what actually leaves enough plaza
-  // exposed to stay constructible.
-  layout('extreme-1', 'extreme', plazaPeak(5, 6, 4, 6)),
-  layout('extreme-2', 'extreme', plazaPeak(5, 8, 4, 5)),
-  layout('extreme-3', 'extreme', plazaPeak(10, 4, 4, 5)),
-  layout('extreme-4', 'extreme', plazaPeak(10, 3, 6, 4)),
+  // Levels 21-30 — Intermediate
+  layout('em-intermediate-1', plazaPeak(9, 5, 1, 3)), // 48 tiles, 2 layers
+  layout('em-intermediate-2', plazaPeak(9, 4, 4, 1)), // 40 tiles, 2 layers
+  layout('em-intermediate-3', plazaPeak(6, 7, 2, 1)), // 44 tiles, 2 layers
+  layout('em-intermediate-4', plazaPeak(7, 4, 2, 3)), // 36 tiles, 3 layers
+  layout('em-intermediate-5', plazaPeak(6, 6, 1, 6)), // 42 tiles, 2 layers
+  layout('em-intermediate-6', plazaPeak(11, 3, 2, 2)), // 38 tiles, 3 layers
+  layout('em-intermediate-7', plazaPeak(8, 3, 7, 2)), // 44 tiles, 3 layers
+  layout('em-intermediate-8', plazaPeak(11, 3, 9, 1)), // 42 tiles, 2 layers
 
-  // Master — 100 / 50 (v2 addition): the largest and deepest tier, a
-  // plaza + peak reaching 6 layers throughout. The top difficulty in the
-  // game.
-  layout('master-1', 'master', plazaPeak(6, 5, 5, 6)),
-  layout('master-2', 'master', plazaPeak(5, 6, 6, 5)),
-  layout('master-3', 'master', plazaPeak(9, 5, 5, 5)),
-  layout('master-4', 'master', plazaPeak(6, 5, 5, 6, [0, -1])),
+  // Levels 31-40 — Hard
+  layout('em-hard-1', plazaPeak(8, 4, 7, 2)), // 52 tiles, 3 layers
+  layout('em-hard-2', plazaPeak(9, 3, 8, 2)), // 50 tiles, 3 layers
+  layout('em-hard-3', plazaPeak(4, 7, 2, 7)), // 48 tiles, 3 layers
+  layout('em-hard-4', plazaPeak(5, 7, 2, 6)), // 52 tiles, 3 layers
+  layout('em-hard-5', plazaPeak(3, 9, 2, 8)), // 50 tiles, 3 layers
+  layout('em-hard-6', plazaPeak(7, 6, 2, 3)), // 50 tiles, 3 layers
+  layout('em-hard-7', plazaPeak(11, 2, 9, 2)), // 48 tiles, 3 layers
+  layout('em-hard-8', plazaPeak(12, 4, 3, 2)), // 56 tiles, 3 layers
 
-  // Practice — tiny 6-tile/3-pair demo for AboutPage.vue (SPEC §28). Not a
-  // real difficulty, so difficulties.js's layoutIdsFor('easy'|'medium'|...)
-  // never picks it up for normal play. A z0 row of 4 (ends free, middle two
-  // covered) plus 2 z1 tiles stacked over the covered middle pair — small
-  // enough to demonstrate both the covering rule and the left/right rule
-  // in one board.
-  layout('practice-1', 'practice', [rect(4, 1, 0), [{ x: 2, y: 1, z: 1 }, { x: 4, y: 1, z: 1 }]]),
+  // Levels 41-45 — Deep dependencies
+  layout('em-deep-1', plazaPeak(12, 3, 5, 3)), // 62 tiles, 4 layers
+  layout('em-deep-2', plazaPeak(7, 6, 3, 3)), // 56 tiles, 4 layers
+  layout('em-deep-3', plazaPeak(7, 4, 6, 3)), // 60 tiles, 4 layers
+  layout('em-deep-4', plazaPeak(12, 4, 3, 2)), // 56 tiles, 3 layers
+  layout('em-deep-5', plazaPeak(8, 6, 2, 5)), // 62 tiles, 3 layers
+  layout('em-deep-6', plazaPeak(4, 9, 2, 7)), // 56 tiles, 3 layers
+  layout('em-deep-7', plazaPeak(6, 9, 2, 3)), // 62 tiles, 3 layers
+  layout('em-deep-8', plazaPeak(4, 6, 3, 6)), // 56 tiles, 4 layers
+
+  // Levels 46-50 — Advanced (Level-SPEC §47/§48: mobile usability is a
+  // level-validation requirement for this tier especially — these have NOT
+  // been hand-checked on a physical iPhone; see README/investigation notes)
+  layout('em-advanced-1', plazaPeak(11, 4, 3, 4)), // 64 tiles, 4 layers
+  layout('em-advanced-2', plazaPeak(8, 5, 6, 3)), // 72 tiles, 4 layers
+  layout('em-advanced-3', plazaPeak(5, 6, 4, 5)), // 70 tiles, 5 layers
+  layout('em-advanced-4', plazaPeak(8, 5, 5, 3)), // 66 tiles, 4 layers
+  layout('em-advanced-5', plazaPeak(7, 6, 4, 4)), // 72 tiles, 5 layers
+  layout('em-advanced-6', plazaPeak(6, 5, 4, 5)), // 70 tiles, 5 layers
+  layout('em-advanced-7', plazaPeak(7, 6, 5, 3)), // 68 tiles, 4 layers
+  layout('em-advanced-8', plazaPeak(8, 6, 4, 3)), // 68 tiles, 4 layers
+
+  // Practice — tiny 6-tile/3-pair demo for AboutPage.vue (Level-SPEC §49).
+  // A z0 row of 4 (ends free, middle two covered) plus 2 z1 tiles stacked
+  // over the covered middle pair — small enough to demonstrate both the
+  // covering rule and the left/right rule in one board.
+  layout('practice-1', [rect(4, 1, 0), [{ x: 2, y: 1, z: 1 }, { x: 4, y: 1, z: 1 }]]),
 ]

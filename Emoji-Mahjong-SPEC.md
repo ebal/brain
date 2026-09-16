@@ -1,5 +1,12 @@
 # Emoji Mahjong — Visual Search & Planning — Specification
 
+> **Superseded by [`Emoji-Mahjong-Level-SPEC.md`](./Emoji-Mahjong-Level-SPEC.md).** The
+> difficulty-tier progression described below (Easy/Medium/Hard/Very Hard/Extreme/Master) was
+> fully replaced by a 50-level campaign — this file's core rules (free-tile geometry, matching,
+> Undo/Hint/Restart, solvable-by-construction generation) still describe the underlying engine
+> accurately and remain useful history/rationale, but the difficulty/scoring/progression sections
+> below no longer reflect the shipped game. See the Level-SPEC for what's actually current.
+
 ## 1. Goal
 
 Add a relaxing, mobile-first **Mahjong Solitaire-style** game to Brain using emoji instead of traditional Mahjong tiles.

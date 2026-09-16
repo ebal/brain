@@ -23,7 +23,12 @@ export const METRIC_VERSIONS = {
   memorypairs: 1,
   marblejump: 1,
   mentalrotation: 1,
-  emojimahjong: 1,
+  // Bumped to 2: the difficulty-based game was fully replaced by a 50-level
+  // campaign (Emoji-Mahjong-Level-SPEC.md) — score formula, Stars, and even
+  // what a "session" identifies (level number, not a difficulty key) all
+  // changed, so old difficulty-based history must never be silently mixed
+  // into a level-based trend/average.
+  emojimahjong: 2,
   numbermatch: 1,
   oddoneout: 1,
   targettap: 1,

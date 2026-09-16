@@ -59,6 +59,20 @@ export function getFreeTiles(state) {
   return free
 }
 
+// Level-SPEC §9/§22: distinguishes WHY a tile is blocked, for the tutorial
+// levels' first-time explanations ("Blocked — tile on top" vs. "Blocked —
+// both sides closed"). Returns null for an already-removed or free tile —
+// callers only need a reason when a blocked tap actually happened.
+export function getBlockingReason(state, i) {
+  if (state.removed[i]) return null
+  const { coveredBy, leftOf, rightOf } = buildGeometry(state.layoutId)
+  if (coveredBy[i].some((j) => !state.removed[j])) return 'covered'
+  const leftBlocked = leftOf[i] !== -1 && !state.removed[leftOf[i]]
+  const rightBlocked = rightOf[i] !== -1 && !state.removed[rightOf[i]]
+  if (leftBlocked && rightBlocked) return 'sides'
+  return null // free
+}
+
 export function getAvailablePairs(state) {
   const free = getFreeTiles(state)
   const pairs = []

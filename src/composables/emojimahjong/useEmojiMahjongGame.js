@@ -1,15 +1,16 @@
 import { ref, computed } from 'vue'
-import { isTileFree, removePair, undoPair, isBoardCleared, isDeadEnd, remainingCount } from './board.js'
-import { generateGame } from './generator.js'
+import { isTileFree, getBlockingReason, removePair, undoPair, isBoardCleared, isDeadEnd, remainingCount } from './board.js'
+import { generateLevelBoard } from './generator.js'
 import { solveBoard } from './solver.js'
-import { calculateEmojiMahjongScore } from './scoring.js'
+import { calculateEmojiMahjongScore, calculateStars } from './scoring.js'
 
 const TIMER_TICK_MS = 250
 const FLASH_MS = 400
 
 export function useEmojiMahjongGame() {
   const status = ref('idle') // idle | playing | paused | finished
-  const difficulty = ref(null)
+  const level = ref(null)
+  const layoutId = ref(null)
   const seed = ref(null)
   const puzzle = ref(null) // { layoutId, emoji } — the immutable original deal, for Restart
   const boardState = ref(null) // { layoutId, removed, emoji }
@@ -22,6 +23,7 @@ export function useEmojiMahjongGame() {
   const hintPair = ref(null) // [a,b] | null — SPEC §17, solver-backed
   const mismatchFlash = ref(null) // [a,b] | null — transient
   const blockedFlash = ref(null) // tileIdx | null — transient
+  const blockingReason = ref(null) // 'covered' | 'sides' | null — Level-SPEC §9/§22 tutorial messages
   const elapsedTime = ref(0)
   const gameId = ref(null)
   const startedAt = ref(null)
@@ -50,6 +52,7 @@ export function useEmojiMahjongGame() {
     hintPair.value = null
     mismatchFlash.value = null
     blockedFlash.value = null
+    blockingReason.value = null
     if (flashTimeoutId) {
       clearTimeout(flashTimeoutId)
       flashTimeoutId = null
@@ -89,13 +92,15 @@ export function useEmojiMahjongGame() {
 
   function flashBlocked(i) {
     blockedFlash.value = i
+    blockingReason.value = getBlockingReason(boardState.value, i)
     if (flashTimeoutId) clearTimeout(flashTimeoutId)
     flashTimeoutId = setTimeout(() => {
       blockedFlash.value = null
+      blockingReason.value = null
     }, FLASH_MS)
   }
 
-  // SPEC §12: tap a free tile to select; tap another free tile — same
+  // Level-SPEC §28: tap a free tile to select; tap another free tile — same
   // emoji removes both, different emoji gives brief mismatch feedback and
   // removes neither; tapping the selected tile again deselects; a blocked
   // tile gives subtle feedback and never becomes selected.
@@ -147,7 +152,7 @@ export function useEmojiMahjongGame() {
     hints.value += 1
   }
 
-  // SPEC §16: restores the exact original layout and emoji assignment.
+  // Level-SPEC §31: restores the exact original layout and emoji assignment.
   function restart() {
     if (!puzzle.value) return
     const n = puzzle.value.emoji.length
@@ -165,12 +170,15 @@ export function useEmojiMahjongGame() {
     startTimer()
   }
 
-  function start(difficultyKey) {
-    const gameSeed = Date.now() ^ Math.floor(Math.random() * 0xffffffff)
-    const { layoutId, board } = generateGame(difficultyKey, gameSeed)
-    difficulty.value = difficultyKey
-    seed.value = gameSeed
-    puzzle.value = { layoutId, emoji: board.emoji }
+  // Level-SPEC §10: the level's layout + seed fully determine the starting
+  // puzzle — no randomness here at all (unlike the old difficulty-based
+  // start(), which picked a random layout and a random seed every time).
+  function begin(levelNumber) {
+    const { layoutId: id, seed: levelSeed, board } = generateLevelBoard(levelNumber)
+    level.value = levelNumber
+    layoutId.value = id
+    seed.value = levelSeed
+    puzzle.value = { layoutId: id, emoji: board.emoji }
     boardState.value = board
     selected.value = null
     moveHistory.value = []
@@ -186,11 +194,12 @@ export function useEmojiMahjongGame() {
     startTimer()
   }
 
-  // Restores a previously autosaved, unfinished game exactly as it was
-  // (SPEC §25). No selected tile is ever persisted (SPEC §25's "Do not
-  // persist a half-completed two-tile selection").
+  // Restores a previously autosaved, unfinished level exactly as it was
+  // (Level-SPEC §45). No selected tile is ever persisted (§45's "Do not
+  // persist a half-completed pair selection").
   function resumeFromSave(saved) {
-    difficulty.value = saved.difficulty
+    level.value = saved.level
+    layoutId.value = saved.layoutId
     seed.value = saved.seed
     puzzle.value = saved.puzzle
     boardState.value = saved.boardState
@@ -229,7 +238,8 @@ export function useEmojiMahjongGame() {
   function snapshot() {
     return {
       gameId: gameId.value,
-      difficulty: difficulty.value,
+      level: level.value,
+      layoutId: layoutId.value,
       seed: seed.value,
       puzzle: puzzle.value,
       boardState: boardState.value,
@@ -246,30 +256,35 @@ export function useEmojiMahjongGame() {
 
   const results = computed(() => {
     const clean = hints.value === 0
+    const tileCount = puzzle.value?.emoji.length ?? 0
     const score = calculateEmojiMahjongScore({
-      difficultyKey: difficulty.value,
+      tileCount,
       elapsedSeconds: elapsedTime.value / 1000,
       mistakes: mistakes.value,
       hints: hints.value,
       undos: undos.value,
     })
+    const stars = calculateStars({ hints: hints.value })
     return {
+      level: level.value,
       layoutId: puzzle.value?.layoutId ?? null,
-      difficulty: difficulty.value,
       seed: seed.value,
+      tileCount,
       moves: moves.value,
       mistakes: mistakes.value,
       hints: hints.value,
       undos: undos.value,
       completionTime: elapsedTime.value,
       clean,
+      stars,
       score,
     }
   })
 
   return {
     status,
-    difficulty,
+    level,
+    layoutId,
     boardState,
     selected,
     moveHistory,
@@ -280,11 +295,12 @@ export function useEmojiMahjongGame() {
     hintPair,
     mismatchFlash,
     blockedFlash,
+    blockingReason,
     deadEnd,
     remaining,
     elapsedTime,
     results,
-    start,
+    begin,
     resumeFromSave,
     tapTile,
     undo,
