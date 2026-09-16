@@ -28,6 +28,8 @@ import { useSwitchTrailStats } from './switchtrail/useSwitchTrailStats.js'
 import { useMemoryPairsStats } from './memorypairs/useMemoryPairsStats.js'
 import { useMarbleJumpStats } from './marblejump/useMarbleJumpStats.js'
 import { useMentalRotationStats } from './mentalrotation/useMentalRotationStats.js'
+import { ODDONEOUT_DIFFICULTIES } from '../constants/oddoneout/difficulties.js'
+import { useOddOneOutStats } from './oddoneout/useOddOneOutStats.js'
 import { METRIC_VERSIONS } from '../constants/metricVersions.js'
 
 export function mapStroopEntry(entry, mode, difficultyKey) {
@@ -242,11 +244,34 @@ export function mapMentalRotationEntry(entry) {
   }
 }
 
+export function mapOddOneOutEntry(entry) {
+  return {
+    id: `oddoneout:${entry.difficulty}:${entry.completedAt}`,
+    game: 'oddoneout',
+    difficulty: entry.difficulty,
+    sessionType: 'play',
+    startedAt: null,
+    completedAt: entry.completedAt,
+    duration: entry.duration,
+    completed: true,
+    primaryMetric: entry.score,
+    accuracy: entry.accuracy,
+    medianRT: entry.medianCorrectRT,
+    mistakes: entry.wrong,
+    hints: null, // Odd One Out has no hint concept
+    metricVersion: entry.metricVersion ?? METRIC_VERSIONS.oddoneout,
+    appVersion: entry.appVersion ?? null,
+  }
+}
+
 // Touches localStorage (via each game's own history/stats composable) to
-// aggregate every session across all ten games into one common-shape list,
-// sorted oldest first. Nothing here is unit-tested directly — correctness
-// follows from the pure mapper functions above (which are) plus each game's
-// already-established getHistory()/getDerivedStats() reads.
+// aggregate every game's sessions into one common-shape list, sorted oldest
+// first. Deliberately not phrased as "all N games" (a stale count here is
+// exactly the kind of drift this function is supposed to be immune to) —
+// see the per-game loops below for the actual, current list. Nothing here
+// is unit-tested directly — correctness follows from the pure mapper
+// functions above (which are) plus each game's already-established
+// getHistory()/getDerivedStats() reads.
 export function getAllSessions() {
   const sessions = []
 
@@ -307,6 +332,15 @@ export function getAllSessions() {
 
   const mentalRotationStats = useMentalRotationStats()
   for (const entry of mentalRotationStats.getHistory('all')) sessions.push(mapMentalRotationEntry(entry))
+
+  // Per-difficulty history keys (like Switch Trail), not a combined 'all'
+  // key — see useOddOneOutStats.js's getHistory().
+  const oddOneOutStats = useOddOneOutStats()
+  for (const difficultyKey of Object.keys(ODDONEOUT_DIFFICULTIES)) {
+    for (const entry of oddOneOutStats.getHistory(difficultyKey)) {
+      sessions.push(mapOddOneOutEntry(entry))
+    }
+  }
 
   sessions.sort((a, b) => new Date(a.completedAt) - new Date(b.completedAt))
   return sessions

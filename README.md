@@ -32,6 +32,7 @@ population average or another player.
 | [Mental Rotation](#mental-rotation) | Spatial reasoning / visualization |
 | [Emoji Mahjong](#emoji-mahjong) | Visual search / planning |
 | [Number Match](#number-match) | Numerical search / planning |
+| [Odd One Out](#odd-one-out) | Visual discrimination / attention |
 
 Detailed rules, scoring formulas and design rationale for each game live in its own `*-SPEC.md`
 file, linked from each section below.
@@ -275,17 +276,38 @@ so board positions stay stable for planning.
 
 See [`Number-Match-SPEC.md`](./Number-Match-SPEC.md) for the full design rationale.
 
+## Odd One Out
+
+A visual-discrimination and search task: find the one number or letter that's different from all
+the others in a grid of otherwise-identical cells, and tap it before the overall timer runs out.
+
+- Six difficulties (Easy through Extreme), scaling grid size (4×4 up to 9×9) alongside how visually
+  similar the odd character is to the rest — from clearly different digits/letters at Easy up to
+  classic OCR-confusable pairs (6/9, O/Q, C/G...) and, only at Expert and Extreme, ambiguous
+  cross-family look-alikes (O/0, B/8, I/1).
+- One continuous, time-limited challenge per round, not a per-trial timer: a correct tap
+  immediately shows a new grid, a wrong tap costs points and briefly flashes red but leaves the
+  same grid in place, and the round only ends when the overall clock hits zero.
+- Every character pair comes from a small curated library rather than being generated on the fly,
+  so an "odd" pair is always a deliberately chosen, validated one — never an arbitrary comparison.
+- Tracks trials, correct/wrong taps, accuracy, and correct-answer reaction time (average, median,
+  fastest, slowest). An untimed, unscored practice widget on the About page demonstrates a few
+  examples, from obvious to genuinely tricky, before playing for real.
+
+See [`Odd-One-Out-SPEC.md`](./Odd-One-Out-SPEC.md) for the full design rationale.
+
 ## Benchmark Mode
 
-Fixed-difficulty runs of seven of the twelve games, reachable via **Run a Benchmark** below the game
-grid, so a result today is comparable to one from months ago rather than a personal best set on
-whatever difficulty you happened to pick. Starting a benchmark locks the configuration: Stroop
+Fixed-difficulty runs of seven of the thirteen games, reachable via **Run a Benchmark** below the
+game grid, so a result today is comparable to one from months ago rather than a personal best set
+on whatever difficulty you happened to pick. Starting a benchmark locks the configuration: Stroop
 (Medium, Color Match), Schulte (5×5 Classic), N-Back (2-Back), SET (Medium), Sequence Memory
 (Medium), Switch Trail (Medium, 16 targets), Memory Pairs (Medium, 8 pairs).
 
-- **Sudoku, Marble Jump, Mental Rotation, Emoji Mahjong and Number Match are excluded.** Puzzle/trial difficulty
-  genuinely varies within one labeled tier for each, so a fixed benchmark would mostly measure which
-  puzzle/trial/layout you got, not your performance.
+- **Sudoku, Marble Jump, Mental Rotation, Emoji Mahjong, Number Match and Odd One Out are
+  excluded.** Puzzle/trial difficulty genuinely varies within one labeled tier for each (and for
+  Odd One Out, character familiarity and font rendering add their own variability), so a fixed
+  benchmark would mostly measure which puzzle/trial/layout/pair you got, not your performance.
 - A benchmark run also counts as a normal play session, recorded in that game's usual history and
   stats as well as a separate benchmark history.
 - Every benchmark session is stamped with a version number, so if these fixed configurations ever
@@ -313,8 +335,8 @@ performance is trending, filterable to the last 7, 30, 90 days or all time.
 - **Overview**: current activity streak, games played, active days, total sessions. A streak still
   counts through yesterday if you haven't played yet today.
 - **Sessions by Game**: a per-game session count for the selected range.
-- **Benchmark Performance**: per game (Sudoku, Marble Jump, Mental Rotation, Emoji Mahjong and
-  Number Match excluded, same reasoning as Benchmark Mode above),
+- **Benchmark Performance**: per game (Sudoku, Marble Jump, Mental Rotation, Emoji Mahjong, Number
+  Match and Odd One Out excluded, same reasoning as Benchmark Mode above),
   your baseline, rolling median, a consistency measure (median absolute deviation), best result,
   most recent result, and today vs. baseline. Every stat shows its sample size, so a trend from 3
   sessions is never confused with one from 40.
@@ -434,10 +456,11 @@ Compose picks up `.env` automatically from then on, no need to pass anything on 
 
 ## Project structure
 
-All twelve games live in one Vue app, chosen from a landing screen (`GameChooser.vue`) in
+All thirteen games live in one Vue app, chosen from a landing screen (`GameChooser.vue`) in
 `App.vue`. Stroop's files sit flat under `components/`, `composables/` and `constants/`; the other
-eleven each have their own subfolder (`schulte/`, `nback/`, `sudoku/`, `set/`, `sequence-memory/`,
-`switchtrail/`, `memorypairs/`, `marblejump/`, `mentalrotation/`, `emojimahjong/`, `numbermatch/`),
+twelve each have their own subfolder (`schulte/`, `nback/`, `sudoku/`, `set/`, `sequence-memory/`,
+`switchtrail/`, `memorypairs/`, `marblejump/`, `mentalrotation/`, `emojimahjong/`, `numbermatch/`,
+`oddoneout/`),
 all with the same shape: a
 `MainMenu`/`AboutPage`/`HistoryPage`/`GameScreen`/`ResultsScreen` set of components, a `useXGame.js`
 state machine plus a stats composable (and, for games with a resumable in-progress state, a storage
@@ -479,7 +502,7 @@ npm test
 ```
 
 Runs the automated test suite ([Vitest](https://vitest.dev/)): deterministic unit tests for the
-actual game math and generation logic across all twelve games (trial/board/sequence generation,
+actual game math and generation logic across all thirteen games (trial/board/sequence generation,
 validators, difficulty classification, scoring, statistics), plus the shared session model,
 Benchmark, and Baseline logic. No component/DOM testing yet, everything covered so far is plain JS
 logic, testable without mounting a Vue component. Each tested module has a co-located `*.test.js`
