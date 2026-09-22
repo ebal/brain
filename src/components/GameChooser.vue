@@ -68,6 +68,10 @@
         <h2>Lights Out</h2>
         <p>Turn every light off. Each tap changes its neighbours too. Spatial planning &amp; reasoning.</p>
       </button>
+      <button class="game-card" @click="$emit('choose', 'whackamole')">
+        <h2>Whack-a-Mole</h2>
+        <p>Spot the mole, ignore distractions and react fast. Spatial attention &amp; reaction speed.</p>
+      </button>
     </div>
 
     <div class="footer-links">

@@ -39,6 +39,8 @@ import { LIGHTSOUT_LEVELS } from '../constants/lightsout/levels.js'
 import { useLightsOutStats } from './lightsout/useLightsOutStats.js'
 import { EMOJIMAHJONG_LEVELS } from '../constants/emojimahjong/levels.js'
 import { useEmojiMahjongStats } from './emojimahjong/useEmojiMahjongStats.js'
+import { WHACKAMOLE_LEVELS } from '../constants/whackamole/levels.js'
+import { useWhackAMoleStats } from './whackamole/useWhackAMoleStats.js'
 import { METRIC_VERSIONS } from '../constants/metricVersions.js'
 
 export function mapStroopEntry(entry, mode, difficultyKey) {
@@ -358,6 +360,27 @@ export function mapEmojiMahjongEntry(entry) {
   }
 }
 
+// Level-based, same shape as Hanoi/Lights Out/Emoji Mahjong.
+export function mapWhackAMoleEntry(entry) {
+  return {
+    id: `whackamole:${entry.level}:${entry.completedAt}`,
+    game: 'whackamole',
+    difficulty: String(entry.level),
+    sessionType: 'play',
+    startedAt: null,
+    completedAt: entry.completedAt,
+    duration: entry.duration,
+    completed: true,
+    primaryMetric: entry.score,
+    accuracy: entry.hitRate,
+    medianRT: entry.medianHitRT,
+    mistakes: entry.misses + entry.falseAlarms + entry.emptyTaps,
+    hints: null, // Whack-a-Mole has no hint concept
+    metricVersion: entry.metricVersion ?? METRIC_VERSIONS.whackamole,
+    appVersion: entry.appVersion ?? null,
+  }
+}
+
 // Touches localStorage (via each game's own history/stats composable) to
 // aggregate every game's sessions into one common-shape list, sorted oldest
 // first. Deliberately not phrased as "all N games" (a stale count here is
@@ -463,6 +486,13 @@ export function getAllSessions() {
   for (const { level } of EMOJIMAHJONG_LEVELS) {
     for (const entry of emojiMahjongStats.getHistory(level)) {
       sessions.push(mapEmojiMahjongEntry(entry))
+    }
+  }
+
+  const whackAMoleStats = useWhackAMoleStats()
+  for (const { id } of WHACKAMOLE_LEVELS) {
+    for (const entry of whackAMoleStats.getHistory(id)) {
+      sessions.push(mapWhackAMoleEntry(entry))
     }
   }
 

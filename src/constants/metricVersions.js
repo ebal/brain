@@ -33,4 +33,5 @@ export const METRIC_VERSIONS = {
   targettap: 1,
   hanoi: 1,
   lightsout: 1,
+  whackamole: 1,
 }

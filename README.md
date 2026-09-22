@@ -35,6 +35,7 @@ or another player.
 | [Target Tap](#target-tap) | Sustained attention / reaction speed |
 | [Tower of Hanoi](#tower-of-hanoi) | Planning / sequential problem solving |
 | [Lights Out](#lights-out) | Spatial planning / cause-and-effect |
+| [Whack-a-Mole](#whack-a-mole) | Spatial attention / reaction speed |
 
 Detailed rules, scoring formulas and design rationale for each game live in its own `*-SPEC.md`
 file, linked from each section below.
@@ -372,6 +373,29 @@ A progressive, 50-level Lights Out: tap a cell to toggle it and its up/down/left
 
 See [`Lights-Out-SPEC.md`](./specs/Lights-Out-SPEC.md) for the full design rationale.
 
+## Whack-a-Mole
+
+A progressive, 50-level Whack-a-Mole: a mole (🐹) pops up briefly in one of the grid's holes —
+tap it before it disappears. Later levels add a distractor (🐰) that must be left alone.
+
+- 50 deterministic levels scaling from a slow 2×2 grid (mole only) up to a fast 4×4 grid — grid
+  size, presentation speed and distractor share all increase gradually, never through unreadably
+  tiny targets. Every level's tuning (timing, target/distractor counts) is generated from eight
+  named difficulty tiers rather than hand-typed, so the campaign scales smoothly end to end.
+- Five tracked outcomes per stimulus: Hit, Miss, False Alarm, Correct Rejection, and Empty Tap
+  (a tap on the wrong or an empty cell) — tracked separately since an Empty Tap is a spatial/motor
+  slip, not an inhibition failure. A false alarm costs more than a miss, so mashing every cell
+  never beats watching carefully.
+- Completing a level — mistakes or not — unlocks the next; every level stays replayable from a
+  numbered level-select grid showing locks and star ratings. Stars reward a clean run (high Hit
+  Rate, low False Alarm Rate, zero Empty Taps) but never gate progression.
+- No manual Pause: backgrounding the app auto-pauses and discards whatever was mid-air uncounted,
+  then resumes with a countdown and a fresh gap before replaying that exact stimulus — nothing in
+  a level is ever silently skipped or double-counted. No autosave/Continue either — a level is
+  short enough that resuming an interrupted one mid-stream wasn't worth the complexity.
+
+See [`Whack-a-Mole-SPEC.md`](./specs/Whack-a-Mole-SPEC.md) for the full design rationale.
+
 Every history entry carries a per-game `metricVersion` (currently `1` everywhere) and the app
 version that recorded it. If a score formula or measurement ever changes meaningfully, that game's
 version number gets bumped so old and new sessions are never silently averaged together. Entries
@@ -501,11 +525,11 @@ Compose picks up `.env` automatically from then on, no need to pass anything on 
 
 ## Project structure
 
-All sixteen games live in one Vue app, chosen from a landing screen (`GameChooser.vue`) in
+All seventeen games live in one Vue app, chosen from a landing screen (`GameChooser.vue`) in
 `App.vue`. Stroop's files sit flat under `components/`, `composables/` and `constants/`; the other
-fifteen each have their own subfolder (`schulte/`, `nback/`, `sudoku/`, `set/`, `sequence-memory/`,
+sixteen each have their own subfolder (`schulte/`, `nback/`, `sudoku/`, `set/`, `sequence-memory/`,
 `switchtrail/`, `memorypairs/`, `marblejump/`, `mentalrotation/`, `emojimahjong/`, `numbermatch/`,
-`oddoneout/`, `targettap/`, `hanoi/`, `lightsout/`),
+`oddoneout/`, `targettap/`, `hanoi/`, `lightsout/`, `whackamole/`),
 all with the same shape: a
 `MainMenu`/`AboutPage`/`HistoryPage`/`GameScreen`/`ResultsScreen` set of components, a `useXGame.js`
 state machine plus a stats composable (and, for games with a resumable in-progress state, a storage
@@ -546,7 +570,7 @@ npm test
 ```
 
 Runs the automated test suite ([Vitest](https://vitest.dev/)): deterministic unit tests for the
-actual game math and generation logic across all sixteen games (trial/board/sequence generation,
+actual game math and generation logic across all seventeen games (trial/board/sequence generation,
 validators, difficulty classification, scoring, statistics), plus the shared session model and
 Activity dashboard logic. No component/DOM testing yet, everything covered so far is plain JS
 logic, testable without mounting a Vue component. Each tested module has a co-located `*.test.js`

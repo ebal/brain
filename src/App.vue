@@ -505,6 +505,36 @@
         @history="handleLightsOutHistory"
       />
     </template>
+
+    <template v-else-if="activeGame === 'whackamole'">
+      <WhackAMoleMainMenu
+        v-if="whackAMoleScreen === 'menu'"
+        @start="handleWhackAMoleStart"
+        @about="whackAMoleScreen = 'about'"
+        @history="handleWhackAMoleHistory"
+        @exit="activeGame = null"
+      />
+      <WhackAMoleAboutPage v-else-if="whackAMoleScreen === 'about'" @menu="whackAMoleScreen = 'menu'" />
+      <WhackAMoleHistoryPage
+        v-else-if="whackAMoleScreen === 'history'"
+        :initial-level="whackAMoleLevel || 1"
+        @menu="whackAMoleScreen = 'menu'"
+      />
+      <WhackAMoleGameScreen
+        v-else-if="whackAMoleScreen === 'game'"
+        :level="whackAMoleLevel"
+        @finished="handleWhackAMoleFinished"
+        @exit="whackAMoleScreen = 'menu'"
+      />
+      <WhackAMoleResultsScreen
+        v-else-if="whackAMoleScreen === 'results'"
+        :results="whackAMoleResults"
+        @next="handleWhackAMoleStart"
+        @replay="handleWhackAMoleStart"
+        @menu="whackAMoleScreen = 'menu'"
+        @history="handleWhackAMoleHistory"
+      />
+    </template>
   </main>
 </template>
 
@@ -624,6 +654,12 @@ const LightsOutAboutPage = lazy(() => import('./components/lightsout/AboutPage.v
 const LightsOutHistoryPage = lazy(() => import('./components/lightsout/HistoryPage.vue'))
 const LightsOutGameScreen = lazy(() => import('./components/lightsout/GameScreen.vue'))
 const LightsOutResultsScreen = lazy(() => import('./components/lightsout/ResultsScreen.vue'))
+
+const WhackAMoleMainMenu = lazy(() => import('./components/whackamole/MainMenu.vue'))
+const WhackAMoleAboutPage = lazy(() => import('./components/whackamole/AboutPage.vue'))
+const WhackAMoleHistoryPage = lazy(() => import('./components/whackamole/HistoryPage.vue'))
+const WhackAMoleGameScreen = lazy(() => import('./components/whackamole/GameScreen.vue'))
+const WhackAMoleResultsScreen = lazy(() => import('./components/whackamole/ResultsScreen.vue'))
 
 const activeGame = ref(null) // null | 'stroop' | 'schulte' | 'nback' | 'sudoku' | 'set' | 'sequence-memory' | 'switchtrail' | 'memorypairs' | 'data' | 'activity' | 'about'
 
@@ -1030,5 +1066,28 @@ function handleLightsOutFinished(results) {
   lightsOutResults.value = results
   lightsOutLevel.value = results.level
   lightsOutScreen.value = 'results'
+}
+
+// --- Whack-a-Mole --- Level-based like Hanoi/Lights Out, but no
+// Continue/autosave flow (SPEC §19 leaves mid-level persistence optional
+// given how short a level is) — closer to Target Tap's simpler wiring.
+const whackAMoleScreen = ref('menu')
+const whackAMoleLevel = ref(null)
+const whackAMoleResults = ref(null)
+
+function handleWhackAMoleStart(level) {
+  whackAMoleLevel.value = level
+  whackAMoleScreen.value = 'game'
+}
+
+function handleWhackAMoleHistory(payload) {
+  if (payload?.level) whackAMoleLevel.value = payload.level
+  whackAMoleScreen.value = 'history'
+}
+
+function handleWhackAMoleFinished(results) {
+  whackAMoleResults.value = results
+  whackAMoleLevel.value = results.level
+  whackAMoleScreen.value = 'results'
 }
 </script>
