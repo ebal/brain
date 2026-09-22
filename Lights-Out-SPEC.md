@@ -128,11 +128,6 @@ All levels, solver, visuals, progression, and history are local. No
 API/CDN/remote assets. Cold-start and Continue must work in installed
 Brain PWA in Airplane Mode.
 
-## Benchmark
-
-Do not add to Brain Benchmark v1. Repeated fixed levels have strong
-learning effects.
-
 ## Future
 
 No endless procedural mode, Daily Challenge, custom editor, alternate
@@ -155,4 +150,3 @@ toggle rules, leaderboards, themes, or global Brain Score in v1.
 13. Existing Brain architecture.
 14. No backend.
 15. Full offline/PWA.
-16. Not in Benchmark v1.

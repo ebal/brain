@@ -808,7 +808,6 @@ This supports:
 
 - tests
 - debugging
-- future benchmark pools
 
 Normal play uses a random seed.
 
@@ -941,22 +940,7 @@ Adding Mental Rotation introduces **zero required runtime network dependencies**
 
 ---
 
-## 36. Benchmark
-
-Do not add Mental Rotation to Brain Benchmark v1.
-
-First collect normal-play data and tune:
-
-- difficulty
-- shape pools
-- score thresholds
-- timing
-
-A future Benchmark version may use a versioned deterministic shape/trial pool.
-
----
-
-## 37. Mobile-first UX
+## 36. Mobile-first UX
 
 Primary target: iPhone portrait.
 
@@ -980,7 +964,7 @@ Do not shrink four candidates into one cramped horizontal row.
 
 ---
 
-## 38. Future changes
+## 37. Future changes
 
 Not part of v1:
 
@@ -991,7 +975,6 @@ Not part of v1:
 - user-generated shapes
 - adaptive difficulty
 - daily challenge
-- fixed benchmark trials
 - multiplayer
 - global leaderboards
 - population norms
@@ -1001,7 +984,7 @@ Keep v1 as a robust 2D rotation game.
 
 ---
 
-## 39. Final v1 decisions
+## 38. Final v1 decisions
 
 1. Name: **Mental Rotation**.
 2. Single-player timed cognitive game.
@@ -1034,11 +1017,10 @@ Keep v1 as a robust 2D rotation game.
 29. Existing Brain architecture.
 30. No backend/database.
 31. Full offline/PWA support.
-32. Do not add to Brain Benchmark v1.
 
 ---
 
-## 40. Changelog since initial build
+## 39. Changelog since initial build
 
 - **Added an Untimed round mode**, requested for stress-free/kid-friendly play. A menu toggle
   (Timed / Untimed) sits alongside the existing difficulty grid; Untimed reuses the exact same

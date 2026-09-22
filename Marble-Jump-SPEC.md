@@ -431,13 +431,7 @@ Marble Jump must work fully offline inside Brain:
 
 Adding the game introduces zero required runtime network dependencies.
 
-## 28. Benchmark
-
-Do not add Marble Jump to Brain Benchmark v1.
-
-Puzzle-specific practice effects and configuration-dependent difficulty make normal-play data the right first step.
-
-## 29. Future changes
+## 28. Future changes
 
 Not v1:
 
@@ -452,7 +446,7 @@ Not v1:
 - cloud sync
 - 3D marbles
 
-## 30. Final v1 decisions
+## 29. Final v1 decisions
 
 1. Name: **Marble Jump**.
 2. Single-player capture/removal puzzle.
@@ -475,4 +469,3 @@ Not v1:
 19. Existing Brain architecture.
 20. No backend/database.
 21. Full offline/PWA support.
-22. Not part of Benchmark v1.

@@ -118,7 +118,7 @@ Support an internal deterministic seed:
 
 Normal play uses a random seed.
 
-Seed support is for automated testing, debugging, future Daily Challenges, and future Brain Benchmark support.
+Seed support is for automated testing, debugging, and future Daily Challenges.
 
 ## 7. Starting a game
 
@@ -684,24 +684,7 @@ Requirements:
 - active game resumable offline
 - cold-start usable in iPhone Airplane Mode after the current Brain build is cached
 
-## 32. Future Benchmark compatibility
-
-Keep seeded generation compatible with future Brain Benchmark mode.
-
-A future benchmark might use:
-
-```text
-Memory Pairs Benchmark v1
-Medium
-8 pairs
-versioned fixed seed pool
-```
-
-Do not always reuse one identical board because repeated exposure would create a strong practice/memorization effect.
-
-A future benchmark should rotate through a versioned seed pool.
-
-## 33. Future changes
+## 32. Future changes
 
 Not part of v1:
 
@@ -717,7 +700,7 @@ Not part of v1:
 - replay/heatmaps
 - custom image cards
 
-## 34. Final v1 decisions
+## 33. Final v1 decisions
 
 1. Name: **Memory Pairs**.
 2. Emoji instead of image cards.

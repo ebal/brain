@@ -71,7 +71,6 @@
     </div>
 
     <div class="footer-links">
-      <button class="data-link" @click="$emit('choose', 'benchmark-menu')">Run a Benchmark</button>
       <button class="data-link" @click="$emit('choose', 'activity')">Activity</button>
     </div>
     <div class="footer-links footer-links--tertiary">

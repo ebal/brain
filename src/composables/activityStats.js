@@ -1,16 +1,12 @@
 // Longitudinal statistics / Activity dashboard, built on top of the common
-// session model and personal baseline. Purely a read/aggregation layer:
-// no new storage, nothing here is ever written back.
+// session model. Purely a read/aggregation layer: no new storage, nothing
+// here is ever written back.
 //
 // Deliberately NOT doing: a unified cross-game "Brain Score," fake
 // population percentiles, or any framing beyond "your performance on these
 // specific tasks, over time."
 
-import { median } from './mathStats.js'
-import { computeBaseline, compareToBaseline, METRIC_DIRECTION } from './baseline.js'
 import { getAllSessions } from './sessionModel.js'
-import { useBenchmarkHistory } from './benchmarkHistory.js'
-import { BENCHMARK_CONFIGS } from '../constants/benchmark.js'
 
 const RANGE_DAYS = { '7d': 7, '30d': 30, '90d': 90, all: Infinity }
 
@@ -32,15 +28,8 @@ export function localDayKey(isoString) {
   return localDayKeyFromDate(new Date(isoString))
 }
 
-export function medianAbsoluteDeviation(values) {
-  if (!values.length) return 0
-  const m = median(values)
-  return median(values.map((v) => Math.abs(v - m)))
-}
-
-// sessions: any list of common-shape sessions (play + benchmark combined —
-// engagement doesn't care about difficulty-comparability the way a
-// performance metric does).
+// sessions: any list of common-shape sessions. Engagement doesn't care about
+// difficulty-comparability the way a performance metric does.
 export function computeActivityStats(sessions) {
   const sessionsPerGame = {}
   for (const s of sessions) sessionsPerGame[s.game] = (sessionsPerGame[s.game] || 0) + 1
@@ -70,45 +59,15 @@ export function computeCurrentStreak(sessions, now = new Date()) {
   return streak
 }
 
-// entries: common-shape BENCHMARK sessions for ONE game, already filtered to
-// whatever date range the caller wants reflected. Pure — no localStorage.
-export function computeGamePerformance(game, entries) {
-  const baseline = computeBaseline(entries)
-  const metrics = entries.map((e) => e.primaryMetric)
-  const direction = METRIC_DIRECTION[game]
-  const mostRecent = entries.length ? entries[entries.length - 1] : null
-  const recentDelta = mostRecent && baseline.ready
-    ? compareToBaseline(game, baseline, mostRecent.primaryMetric)
-    : null
-
-  return {
-    game,
-    sampleSize: entries.length,
-    baseline,
-    rollingMedian: metrics.length ? median(metrics) : null,
-    mad: metrics.length ? medianAbsoluteDeviation(metrics) : null,
-    best: metrics.length ? (direction === 'lower' ? Math.min(...metrics) : Math.max(...metrics)) : null,
-    mostRecent,
-    recentDelta,
-  }
-}
-
-// The one function that touches localStorage (via getAllSessions() and
-// useBenchmarkHistory()) — not unit-tested directly, same as
-// sessionModel.js's getAllSessions() and for the same reason: correctness
-// follows from the pure functions above, which are.
+// The one function that touches localStorage (via getAllSessions()) — not
+// unit-tested directly, same as sessionModel.js's getAllSessions() and for
+// the same reason: correctness follows from the pure functions above, which
+// are.
 export function getActivityDashboardData(rangeKey, now = new Date()) {
   const allSessions = filterByDateRange(getAllSessions(), rangeKey, now)
-  const { getHistory } = useBenchmarkHistory()
-
-  const gamePerformance = Object.keys(BENCHMARK_CONFIGS).map((game) => {
-    const entries = filterByDateRange(getHistory(game), rangeKey, now)
-    return computeGamePerformance(game, entries)
-  })
 
   return {
     activity: computeActivityStats(allSessions),
     currentStreak: computeCurrentStreak(getAllSessions(), now), // streak always uses all-time data, not the range filter
-    gamePerformance,
   }
 }
