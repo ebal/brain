@@ -1,5 +1,5 @@
 <template>
-  <div class="app-shell">
+  <main class="app-shell">
     <GameChooser v-if="!activeGame" @choose="activeGame = $event" />
 
     <ActivityDashboard v-else-if="activeGame === 'activity'" @menu="activeGame = null" />
@@ -505,7 +505,7 @@
         @history="handleLightsOutHistory"
       />
     </template>
-  </div>
+  </main>
 </template>
 
 <script setup>
