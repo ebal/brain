@@ -3,14 +3,17 @@
     v-if="!removed"
     class="mahjong-tile"
     :class="{ free, blocked: !free, selected, hinted, mismatch, 'blocked-flash': blockedFlash }"
+    :aria-label="stateLabel"
     @click="$emit('click')"
   >
-    <span class="emoji">{{ emoji }}</span>
+    <span class="emoji" aria-hidden="true">{{ emoji }}</span>
   </button>
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+
+const props = defineProps({
   emoji: { type: String, required: true },
   removed: { type: Boolean, default: false },
   free: { type: Boolean, default: false },
@@ -20,6 +23,16 @@ defineProps({
   blockedFlash: { type: Boolean, default: false },
 })
 defineEmits(['click'])
+
+// The emoji itself is aria-hidden (its exact identity matters for sighted
+// matching, not for a screen-reader description) — state is what a
+// non-visual player actually needs to know before tapping.
+const stateLabel = computed(() => {
+  const parts = [props.free ? 'Free tile' : 'Blocked tile']
+  if (props.selected) parts.push('selected')
+  if (props.hinted) parts.push('hinted')
+  return parts.join(', ')
+})
 </script>
 
 <style scoped>
@@ -37,12 +50,25 @@ defineEmits(['click'])
   user-select: none;
   -webkit-user-select: none;
   touch-action: manipulation;
-  transition: transform 0.08s ease, border-color 0.12s ease, background-color 0.12s ease;
+  transition: transform 0.08s ease, border-color 0.12s ease, background-color 0.12s ease, filter 0.12s ease, box-shadow 0.12s ease;
 }
 
+/* Free needs its own positive treatment, not just "not dimmed" — a
+   brighter border and a more raised shadow, so the free/blocked gap reads
+   at a glance instead of needing side-by-side comparison. */
+.mahjong-tile.free {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--surface-2));
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.3), 0 5px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Flatter (reduced shadow), darker (blended toward black) and mildly
+   desaturated (filter, not opacity — opacity alone barely reads on a
+   dark background). The emoji is inside the same filtered element, so it
+   dims and desaturates too, but mildly enough to stay identifiable. */
 .mahjong-tile.blocked {
-  opacity: 0.65;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+  background: color-mix(in srgb, black 22%, var(--surface));
+  filter: saturate(0.6) brightness(0.82);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
 }
 
 .mahjong-tile.free:not(.selected):active {
