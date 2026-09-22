@@ -129,6 +129,9 @@ h1 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 0.25rem;
 }
 
 .game-card {

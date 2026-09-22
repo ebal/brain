@@ -5,6 +5,16 @@
 import { getAllSessions } from './sessionModel.js'
 
 const GAME_PREFIXES = ['stroop:', 'schulte:', 'nback:', 'sudoku:', 'set:', 'sequence-memory:', 'switchtrail:', 'memorypairs:', 'marblejump:', 'mentalrotation:', 'emojimahjong:', 'numbermatch:', 'oddoneout:', 'targettap:', 'hanoi:', 'lightsout:', 'whackamole:']
+
+// Prefixes belonging to a feature that has since been removed from the app
+// entirely (Benchmark Mode, removed in 6373d5f) — never added to
+// GAME_PREFIXES, so Export/Import/describeExport still only ever see
+// current games' data. Kept here purely so Delete All Data and the storage-
+// footprint estimate can still find and clean up old keys a returning user's
+// browser may still be holding, instead of leaving them permanently
+// invisible and undeletable. Add a removed feature's old prefix here at
+// removal time, so this doesn't need rediscovering by hand again later.
+const DEPRECATED_PREFIXES = ['benchmark:']
 export const SCHEMA_VERSION = 1
 
 function safeGet(key) {
@@ -45,6 +55,18 @@ function safeParse(raw) {
 function ownKeys() {
   try {
     return Object.keys(localStorage).filter((key) => GAME_PREFIXES.some((p) => key.startsWith(p)))
+  } catch {
+    return []
+  }
+}
+
+// Export/Import stay scoped to ownKeys() (current games only) — this wider
+// set is only for operations that should genuinely remove/measure
+// everything this app has ever written, deprecated features included.
+function ownKeysIncludingDeprecated() {
+  try {
+    const prefixes = [...GAME_PREFIXES, ...DEPRECATED_PREFIXES]
+    return Object.keys(localStorage).filter((key) => prefixes.some((p) => key.startsWith(p)))
   } catch {
     return []
   }
@@ -131,7 +153,9 @@ export function applyImport(parsed, mode) {
   const incomingKeys = validateImportFile(parsed)
 
   if (mode === 'replace') {
-    for (const key of ownKeys()) safeRemove(key)
+    // Wipes deprecated-feature keys too — "Replace" means local state
+    // becomes exactly the imported file's state, nothing lingering behind.
+    for (const key of ownKeysIncludingDeprecated()) safeRemove(key)
     let written = 0
     for (const key of incomingKeys) {
       if (safeSet(key, parsed.data[key])) written += 1
@@ -153,7 +177,7 @@ export function applyImport(parsed, mode) {
 }
 
 export function deleteAllData() {
-  const keys = ownKeys()
+  const keys = ownKeysIncludingDeprecated()
   for (const key of keys) safeRemove(key)
   return { keysDeleted: keys.length }
 }
@@ -161,10 +185,12 @@ export function deleteAllData() {
 // Rough approximation of what this app's data actually occupies — key +
 // value string lengths (UTF-16 code units, same unit localStorage's own
 // quota is measured in), not exact bytes, but close enough for "how much am
-// I using" context.
+// I using" context. Includes deprecated-feature keys too — they're still
+// bytes sitting in this device's localStorage, whether or not the feature
+// that wrote them still exists.
 export function storageFootprintChars() {
   let total = 0
-  for (const key of ownKeys()) {
+  for (const key of ownKeysIncludingDeprecated()) {
     total += key.length + (safeGet(key) || '').length
   }
   return total

@@ -135,17 +135,6 @@ watch(status, (val) => {
   gap: 0.5rem;
 }
 
-.exit-icon-btn {
-  background: none;
-  border: none;
-  color: var(--text-dim);
-  font-size: 1.1rem;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0.35rem;
-  justify-self: start;
-}
-
 .difficulty-label {
   text-align: center;
   font-size: 0.95rem;
@@ -240,32 +229,13 @@ watch(status, (val) => {
   color: var(--wrong);
 }
 
-.paused-overlay {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  padding: 3rem 1rem;
-  color: var(--text-dim);
-}
-
 .paused-title {
   font-size: 1.6rem;
-  font-weight: 800;
-  color: var(--accent);
   letter-spacing: 0.06em;
   margin: 0;
 }
 
 .resume-btn {
-  background: var(--accent);
-  color: #10121a;
-  border: none;
-  border-radius: 10px;
-  padding: 0.85rem 1.75rem;
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
   min-width: 200px;
 }
 
@@ -279,16 +249,5 @@ watch(status, (val) => {
   font-weight: 700;
   cursor: pointer;
   min-width: 200px;
-}
-
-.quit-btn {
-  background: none;
-  border: none;
-  color: var(--text-dim);
-  font-size: 0.9rem;
-  font-weight: 600;
-  text-decoration: underline;
-  cursor: pointer;
-  padding: 0.5rem;
 }
 </style>

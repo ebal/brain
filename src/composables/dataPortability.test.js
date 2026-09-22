@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { validateImportFile, mergeValue, csvEscape, buildHistoryCSV, SCHEMA_VERSION } from './dataPortability.js'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { validateImportFile, mergeValue, csvEscape, buildHistoryCSV, buildExport, deleteAllData, storageFootprintChars, SCHEMA_VERSION } from './dataPortability.js'
 
 describe('validateImportFile', () => {
   it('accepts a well-formed export', () => {
@@ -90,5 +90,61 @@ describe('buildHistoryCSV', () => {
   it('produces at least a header row without throwing, even with no localStorage available', () => {
     const csv = buildHistoryCSV()
     expect(csv.split('\n')[0]).toBe('game,difficulty,mode,completedAt,primaryMetric,accuracy,medianRT,mistakes,hints,duration,metricVersion')
+  })
+})
+
+// A minimal in-memory localStorage so deleteAllData()/buildExport()/
+// storageFootprintChars() can be exercised against real key presence —
+// this environment's built-in global localStorage no-ops without a
+// --localstorage-file flag (every safeGet/safeSet call hits its catch
+// block), so the bug this test guards against (orphaned deprecated-feature
+// keys surviving "Delete All Data") would otherwise go untested.
+function installFakeLocalStorage(initialEntries) {
+  // Data lives as plain enumerable own properties (so Object.keys(localStorage),
+  // used throughout dataPortability.js, sees exactly the stored keys);
+  // getItem/setItem/removeItem are non-enumerable so they never show up as
+  // "keys" themselves, and mutate this same object directly.
+  const fake = { ...initialEntries }
+  Object.defineProperties(fake, {
+    getItem: { value: (k) => (k in fake ? fake[k] : null) },
+    setItem: { value: (k, v) => { fake[k] = v } },
+    removeItem: { value: (k) => { delete fake[k] } },
+  })
+  return fake
+}
+
+describe('deprecated-feature key cleanup (orphaned benchmark: keys)', () => {
+  let restore
+
+  beforeEach(() => {
+    const fake = installFakeLocalStorage({
+      'sudoku:history': '[]',
+      'benchmark:history:stroop': '[{"score":1}]',
+      'unrelated:other-app-key': 'x', // must never be touched
+    })
+    const original = globalThis.localStorage
+    Object.defineProperty(globalThis, 'localStorage', { value: fake, configurable: true, writable: true })
+    restore = () => Object.defineProperty(globalThis, 'localStorage', { value: original, configurable: true, writable: true })
+  })
+
+  afterEach(() => restore())
+
+  it('buildExport does not include deprecated benchmark: keys', () => {
+    const exported = buildExport()
+    expect(Object.keys(exported.data)).toEqual(['sudoku:history'])
+  })
+
+  it('deleteAllData removes both current-game and deprecated benchmark: keys, but never unrelated keys', () => {
+    const result = deleteAllData()
+    expect(result.keysDeleted).toBe(2)
+    expect(localStorage.getItem('sudoku:history')).toBeNull()
+    expect(localStorage.getItem('benchmark:history:stroop')).toBeNull()
+    expect(localStorage.getItem('unrelated:other-app-key')).toBe('x')
+  })
+
+  it('storageFootprintChars counts deprecated keys too', () => {
+    const total = storageFootprintChars()
+    const gameOnly = 'sudoku:history'.length + '[]'.length
+    expect(total).toBeGreaterThan(gameOnly) // includes the benchmark: key's bytes too
   })
 })

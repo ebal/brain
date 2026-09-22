@@ -169,31 +169,9 @@ watch(status, (val) => {
   color: var(--accent);
 }
 
-.paused-overlay {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  padding: 3rem 1rem;
-  color: var(--text-dim);
-}
-
 .paused-title {
   font-size: 2rem;
-  font-weight: 800;
-  color: var(--accent);
   letter-spacing: 0.1em;
-}
-
-.resume-btn {
-  background: var(--accent);
-  color: #10121a;
-  border: none;
-  border-radius: 10px;
-  padding: 0.85rem 1.75rem;
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
 }
 
 .exit-btn {

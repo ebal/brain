@@ -1,30 +1,5 @@
-const KEY = 'sudoku:active'
-
-function read() {
-  try {
-    const raw = localStorage.getItem(KEY)
-    return raw ? JSON.parse(raw) : null
-  } catch {
-    return null
-  }
-}
-
-function write(state) {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(state))
-  } catch {
-    // localStorage unavailable (private mode, quota, etc.) — silently skip persistence
-  }
-}
-
-function clear() {
-  try {
-    localStorage.removeItem(KEY)
-  } catch {
-    // ignore
-  }
-}
+import { createActiveLevelStorage } from '../storage.js'
 
 export function useSudokuStorage() {
-  return { getActive: read, saveActive: write, clearActive: clear }
+  return createActiveLevelStorage('sudoku:active')
 }
