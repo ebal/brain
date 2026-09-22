@@ -21,17 +21,22 @@
            working memory. -->
       <p class="target-indicator">Target: <strong>{{ targetLetter }}</strong></p>
 
-      <div class="tap-surface" @click="handleTap">
-        <div v-if="status === 'countdown'" class="countdown-overlay">
+      <button
+        class="tap-surface"
+        :disabled="status !== 'playing'"
+        aria-label="Tap area — tap here whenever your target letter appears"
+        @click="handleTap"
+      >
+        <div v-if="status === 'countdown'" class="countdown-overlay" aria-hidden="true">
           <p class="target-preview">TARGET: {{ targetLetter }}</p>
           <span>{{ countdownValue > 0 ? countdownValue : 'Go!' }}</span>
         </div>
-        <span v-else class="stimulus">{{ currentLetter }}</span>
+        <span v-else class="stimulus" aria-hidden="true">{{ currentLetter }}</span>
         <div v-if="feedback" class="feedback-icon" :class="feedback" aria-live="polite">
           {{ feedback === 'hit' ? '✓' : '✕' }}
         </div>
-        <p v-if="status === 'playing'" class="tap-hint">TAP ANYWHERE</p>
-      </div>
+        <p v-if="status === 'playing'" class="tap-hint" aria-hidden="true">TAP ANYWHERE</p>
+      </button>
     </template>
 
     <ConfirmDialog
@@ -171,12 +176,18 @@ watch(status, (val) => {
   align-items: center;
   justify-content: center;
   background: var(--surface);
+  border: none;
   border-radius: 16px;
+  padding: 0;
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
   touch-action: manipulation;
   overflow: hidden;
+}
+
+.tap-surface:disabled {
+  cursor: default;
 }
 
 .stimulus {
