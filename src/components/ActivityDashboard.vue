@@ -103,6 +103,7 @@ const GAME_LABELS = {
   hanoi: 'Tower of Hanoi',
   lightsout: 'Lights Out',
   whackamole: 'Whack-a-Mole',
+  flagsoftheworld: 'Flags of the World',
 }
 function gameLabel(game) {
   return GAME_LABELS[game] || game

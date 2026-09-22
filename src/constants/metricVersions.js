@@ -34,4 +34,5 @@ export const METRIC_VERSIONS = {
   hanoi: 1,
   lightsout: 1,
   whackamole: 1,
+  flagsoftheworld: 1,
 }
