@@ -20,8 +20,8 @@
         <span class="stat">Streak {{ currentStreak }}</span>
       </div>
 
-      <div v-if="currentQuestion" class="prompt-wrap">
-        <p class="prompt-label" aria-live="polite">
+      <div v-if="currentQuestion" class="prompt-wrap" aria-live="polite" aria-atomic="true">
+        <p class="prompt-label">
           <template v-if="status === 'feedback'">
             <span :class="lastAnswer.correct ? 'result-correct' : 'result-wrong'">
               {{ lastAnswer.correct ? '✓ Correct' : '✕' }}
@@ -40,6 +40,7 @@
           v-for="(code, i) in currentQuestion?.choices ?? []"
           :key="code"
           :country="getCountry(code)"
+          :index="i + 1"
           :disabled="status !== 'playing'"
           :reveal-name="status === 'feedback' && (i === currentQuestion.correctIndex || i === selectedIndex)"
           :state="cardState(i)"

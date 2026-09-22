@@ -3,7 +3,7 @@
     class="flag-card"
     :class="{ correct: state === 'correct', wrong: state === 'wrong', dimmed: state === 'dimmed' }"
     :disabled="disabled"
-    :aria-label="revealName ? country.name : 'Flag option'"
+    :aria-label="revealName ? country.name : `Flag option ${index}`"
     @click="$emit('click')"
   >
     <span class="flag-box">
@@ -19,8 +19,14 @@
 // `country` codes/serves the SVG straight from public/flags/ — a static
 // asset, not bundled/hashed by Vite, so a plain root-relative <img src> is
 // correct here (no new URL()/import).
+//
+// Pre-reveal, the four cards must stay visually anonymous (that's the game),
+// but "Flag option" x4 as the accessible name left them indistinguishable to
+// a screen reader — `index` gives each one a stable, distinct name ("Flag
+// option 2") without leaking the country.
 defineProps({
   country: { type: Object, required: true }, // { code, name, ... } from countries.js
+  index: { type: Number, required: true }, // 1-based grid position, used for the pre-reveal accessible name
   disabled: { type: Boolean, default: false },
   revealName: { type: Boolean, default: false }, // feedback state: show the name under the flag
   state: { type: String, default: null }, // null | 'correct' | 'wrong' | 'dimmed'
