@@ -54,7 +54,7 @@ which is what produces the measurable slowdown the test is named for.
 - Tracks accuracy, response time and an interference score (incongruent RT minus congruent RT).
   Personal bests and history are kept per mode and difficulty.
 
-See [`SPEC.md`](./SPEC.md) for the full design rationale and changelog.
+See [`SPEC.md`](./specs/SPEC.md) for the full design rationale and changelog.
 
 ## Schulte Tables
 
@@ -71,7 +71,7 @@ attention, not memory.
   background color per cell) and **Random Position** (numbers reshuffle among unsolved cells after
   every correct tap). Each is tracked separately from Classic.
 
-See [`Schulte-SPEC.md`](./Schulte-SPEC.md) for the full design rationale.
+See [`Schulte-SPEC.md`](./specs/Schulte-SPEC.md) for the full design rationale.
 
 ## Number N-Back
 
@@ -91,7 +91,7 @@ Recalling what's under them is still the actual task.
 - Sequences are generated and validated to keep the target ratio stable across rounds.
 - Score and accuracy are tracked separately from raw hit/miss/false-alarm counts.
 
-See [`NBack-SPEC.md`](./NBack-SPEC.md) for the full design rationale.
+See [`NBack-SPEC.md`](./specs/NBack-SPEC.md) for the full design rationale.
 
 ## Sudoku
 
@@ -109,7 +109,7 @@ to have exactly one solution.
 - Autosave and Continue Game. The timer pauses and the board hides when the tab goes to the
   background.
 
-See [`Sudoku-SPEC.md`](./Sudoku-SPEC.md) for the full design rationale.
+See [`Sudoku-SPEC.md`](./specs/Sudoku-SPEC.md) for the full design rationale.
 
 ## SET
 
@@ -129,7 +129,7 @@ same or all different, checked against the actual rule rather than a lookup tabl
 - Autosave and Continue Game, auto-pause when the tab is hidden, per-difficulty stats and history.
 - No synthetic score. Completion time, mistakes, hints and find time are the primary measurements.
 
-See [`SET-SPEC.md`](./SET-SPEC.md) for the full design rationale.
+See [`SET-SPEC.md`](./specs/SET-SPEC.md) for the full design rationale.
 
 ## Sequence Memory
 
@@ -146,7 +146,7 @@ a pattern you can hold, not luck.
   order alone.
 - Longest sequence completed is the primary result and personal-best metric.
 
-See [`Sequence-Memory-SPEC.md`](./Sequence-Memory-SPEC.md) for the full design rationale.
+See [`Sequence-Memory-SPEC.md`](./specs/Sequence-Memory-SPEC.md) for the full design rationale.
 
 ## Switch Trail
 
@@ -165,7 +165,7 @@ switching, not memory of positions.
   live Score, the round just ends whenever the whole trail is completed instead of at a time
   limit).
 
-See [`Switch-Trail-SPEC.md`](./Switch-Trail-SPEC.md) for the full design rationale.
+See [`Switch-Trail-SPEC.md`](./specs/Switch-Trail-SPEC.md) for the full design rationale.
 
 ## Memory Pairs
 
@@ -183,7 +183,7 @@ recall.
   separately from Score.
 - Autosave and Continue Game. Pausing cancels any in-progress selection without penalty.
 
-See [`Memory-Pairs-SPEC.md`](./Memory-Pairs-SPEC.md) for the full design rationale.
+See [`Memory-Pairs-SPEC.md`](./specs/Memory-Pairs-SPEC.md) for the full design rationale.
 
 ## Marble Jump
 
@@ -200,7 +200,7 @@ jumps remain. The goal is to leave as few marbles as possible.
 - Undo (unlimited, exact-state) and Restart (reloads the original puzzle), plus autosave/Continue.
 - No in-game Hint in v1 — omitted rather than shipping a weak one.
 
-See [`Marble-Jump-SPEC.md`](./Marble-Jump-SPEC.md) for the full design rationale.
+See [`Marble-Jump-SPEC.md`](./specs/Marble-Jump-SPEC.md) for the full design rationale.
 
 ## Mental Rotation
 
@@ -226,7 +226,7 @@ look close at a glance.
 - A separate untimed, unscored Practice mode (a tiny fixed 3-shape teaching demo on the About page)
   is also still available.
 
-See [`Mental-Rotation-SPEC.md`](./Mental-Rotation-SPEC.md) for the full design rationale.
+See [`Mental-Rotation-SPEC.md`](./specs/Mental-Rotation-SPEC.md) for the full design rationale.
 
 ## Emoji Mahjong
 
@@ -253,8 +253,8 @@ side is open — to remove them, until the board is cleared.
   the one active level. Stars (zero Hints for ★★★, one for ★★☆, otherwise ★☆☆) track mastery
   per level; completion alone — not stars — unlocks the next one.
 
-See [`Emoji-Mahjong-Level-SPEC.md`](./Emoji-Mahjong-Level-SPEC.md) for the full design rationale
-([`Emoji-Mahjong-SPEC.md`](./Emoji-Mahjong-SPEC.md) covers the original difficulty-based design
+See [`Emoji-Mahjong-Level-SPEC.md`](./specs/Emoji-Mahjong-Level-SPEC.md) for the full design rationale
+([`Emoji-Mahjong-SPEC.md`](./specs/Emoji-Mahjong-SPEC.md) covers the original difficulty-based design
 this replaced).
 
 ## Number Match
@@ -279,7 +279,7 @@ so board positions stay stable for planning.
   secondary and only shown on Results; using Add Numbers costs points but never disqualifies a
   Clean result.
 
-See [`Number-Match-SPEC.md`](./Number-Match-SPEC.md) for the full design rationale.
+See [`Number-Match-SPEC.md`](./specs/Number-Match-SPEC.md) for the full design rationale.
 
 ## Odd One Out
 
@@ -303,7 +303,7 @@ the others in a grid of otherwise-identical cells, and tap it before the overall
   and **Random Color** (a random background per cell, reassigned every grid — pure visual noise,
   never a hint). Each combination is tracked separately from Classic.
 
-See [`Odd-One-Out-SPEC.md`](./Odd-One-Out-SPEC.md) for the full design rationale.
+See [`Odd-One-Out-SPEC.md`](./specs/Odd-One-Out-SPEC.md) for the full design rationale.
 
 ## Target Tap
 
@@ -326,7 +326,7 @@ ignoring every other letter.
   slower, unscored practice widget on the About page demonstrates the four outcomes before playing
   for real.
 
-See [`Target-Tap-SPEC.md`](./Target-Tap-SPEC.md) for the full design rationale.
+See [`Target-Tap-SPEC.md`](./specs/Target-Tap-SPEC.md) for the full design rationale.
 
 ## Tower of Hanoi
 
@@ -347,7 +347,7 @@ a time, never placing a larger disk on a smaller one.
   Autosave restores an interrupted level exactly — board, history, moves, mistakes, undos, hints
   and elapsed time — down to the tap.
 
-See [`Tower-of-Hanoi-SPEC.md`](./Tower-of-Hanoi-SPEC.md) for the full design rationale.
+See [`Tower-of-Hanoi-SPEC.md`](./specs/Tower-of-Hanoi-SPEC.md) for the full design rationale.
 
 ## Lights Out
 
@@ -370,7 +370,7 @@ A progressive, 50-level Lights Out: tap a cell to toggle it and its up/down/left
   moves of it, ★☆☆ for any completion. ON/OFF is never color-only — a filled, glowing bulb vs. an
   empty outline carries the state. Autosave restores an interrupted level exactly.
 
-See [`Lights-Out-SPEC.md`](./Lights-Out-SPEC.md) for the full design rationale.
+See [`Lights-Out-SPEC.md`](./specs/Lights-Out-SPEC.md) for the full design rationale.
 
 Every history entry carries a per-game `metricVersion` (currently `1` everywhere) and the app
 version that recorded it. If a score formula or measurement ever changes meaningfully, that game's
@@ -418,7 +418,7 @@ lives in `localStorage` and works the same offline, since it was never network-b
 This only applies to a **production build** (`npm run build`, served via `npm run preview` or
 similar). `npm run dev` intentionally serves no Service Worker, so local development is unaffected.
 Installing on a phone also requires HTTPS, a browser rule and not something this app controls. See
-§10 of [`SPEC.md`](./SPEC.md) for details.
+§10 of [`SPEC.md`](./specs/SPEC.md) for details.
 
 ## Privacy
 
@@ -523,7 +523,7 @@ chunk files without needing to know they exist.
 
 ```
 brain/
-├── SPEC.md, <Game>-SPEC.md ...   # one design doc per game
+├── specs/                        # SPEC.md, <Game>-SPEC.md ... — one design doc per game
 ├── docker-compose.yml, package.json, vite.config.js, vitest.config.js
 ├── public/                       # PWA icons
 └── src/
