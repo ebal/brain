@@ -21,6 +21,7 @@ describe('METRIC_VERSIONS', () => {
       'hanoi',
       'lightsout',
       'whackamole',
+      'flagsoftheworld',
     ]
     for (const game of expectedGames) {
       expect(METRIC_VERSIONS).toHaveProperty(game)

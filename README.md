@@ -36,6 +36,7 @@ or another player.
 | [🗼 Tower of Hanoi](#tower-of-hanoi) | Planning / sequential problem solving |
 | [💡 Lights Out](#lights-out) | Spatial planning / cause-and-effect |
 | [🐹 Whack-a-Mole](#whack-a-mole) | Spatial attention / reaction speed |
+| [🌍 Flags of the World](#flags-of-the-world) | Visual recognition / geographic learning |
 
 Detailed rules, scoring formulas and design rationale for each game live in its own `*-SPEC.md`
 file, linked from each section below.
@@ -414,6 +415,30 @@ tap it before it disappears. Later levels add a distractor (🐰) that must be l
 
 See [`Whack-a-Mole-SPEC.md`](./specs/Whack-a-Mole-SPEC.md) for the full design rationale.
 
+## Flags of the World
+
+A country's name appears — pick its flag from four choices. Not a reaction test: there's no
+timer, and tapping the correct flag repeatedly is genuinely how you learn 195 flags, not a
+speed contest.
+
+- 50 levels, 10 questions each, progressing from the world's most recognizable flags through
+  each region in turn to the full 195-country pool, then finishing on deliberately similar
+  flags (Chad vs. Romania, Indonesia vs. Monaco, and other classic mix-ups) — always exactly
+  four choices; harder means better distractors, never smaller targets or a shrinking clock.
+  Completing a level — mistakes or not — unlocks the next; stars reward accuracy but never
+  gate progress.
+- Per-country learning state (New / Learning / Mastered / Needs Practice) tracked locally
+  across every level, including which specific wrong flag you picked for a missed country, so
+  a repeated mix-up can resurface as a distractor later. A Practice Weak Flags mode appears
+  once enough countries need it — a short, unlocked-anytime round that updates learning
+  progress without touching campaign unlocks or stars.
+- All 195 flags are local, optimized SVGs (public domain, from
+  [hampusborgos/country-flags](https://github.com/hampusborgos/country-flags)), fully
+  bundled and precached for offline play — no CDN or runtime image service.
+
+See [`brain-Flags-of-the-World-SPEC.md`](./specs/brain-Flags-of-the-World-SPEC.md) for the full
+design rationale.
+
 Every history entry carries a per-game `metricVersion` (currently `1` everywhere) and the app
 version that recorded it. If a score formula or measurement ever changes meaningfully, that game's
 version number gets bumped so old and new sessions are never silently averaged together. Entries
@@ -543,11 +568,11 @@ Compose picks up `.env` automatically from then on, no need to pass anything on 
 
 ## Project structure
 
-All seventeen games live in one Vue app, chosen from a landing screen (`GameChooser.vue`) in
+All eighteen games live in one Vue app, chosen from a landing screen (`GameChooser.vue`) in
 `App.vue`. Stroop's files sit flat under `components/`, `composables/` and `constants/`; the other
-sixteen each have their own subfolder (`schulte/`, `nback/`, `sudoku/`, `set/`, `sequence-memory/`,
+seventeen each have their own subfolder (`schulte/`, `nback/`, `sudoku/`, `set/`, `sequence-memory/`,
 `switchtrail/`, `memorypairs/`, `marblejump/`, `mentalrotation/`, `emojimahjong/`, `numbermatch/`,
-`oddoneout/`, `targettap/`, `hanoi/`, `lightsout/`, `whackamole/`),
+`oddoneout/`, `targettap/`, `hanoi/`, `lightsout/`, `whackamole/`, `flags/`),
 all with the same shape: a
 `MainMenu`/`AboutPage`/`HistoryPage`/`GameScreen`/`ResultsScreen` set of components, a `useXGame.js`
 state machine plus a stats composable (and, for games with a resumable in-progress state, a storage
@@ -567,7 +592,7 @@ chunk files without needing to know they exist.
 brain/
 ├── specs/                        # SPEC.md, <Game>-SPEC.md ... — one design doc per game
 ├── docker-compose.yml, package.json, vite.config.js, vitest.config.js
-├── public/                       # PWA icons
+├── public/                       # PWA icons, flags/ (195 local SVG flags)
 └── src/
     ├── App.vue
     ├── components/                # GameChooser, ActivityDashboard, DataManagement, AboutBrain,
@@ -588,7 +613,7 @@ npm test
 ```
 
 Runs the automated test suite ([Vitest](https://vitest.dev/)): deterministic unit tests for the
-actual game math and generation logic across all seventeen games (trial/board/sequence generation,
+actual game math and generation logic across all eighteen games (trial/board/sequence generation,
 validators, difficulty classification, scoring, statistics), plus the shared session model and
 Activity dashboard logic. No component/DOM testing yet, everything covered so far is plain JS
 logic, testable without mounting a Vue component. Each tested module has a co-located `*.test.js`

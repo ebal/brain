@@ -42,6 +42,8 @@ import { EMOJIMAHJONG_LEVELS } from '../constants/emojimahjong/levels.js'
 import { useEmojiMahjongStats } from './emojimahjong/useEmojiMahjongStats.js'
 import { WHACKAMOLE_LEVELS } from '../constants/whackamole/levels.js'
 import { useWhackAMoleStats } from './whackamole/useWhackAMoleStats.js'
+import { FLAGS_LEVELS } from '../constants/flags/levels.js'
+import { useFlagsStats } from './flags/useFlagsStats.js'
 import { METRIC_VERSIONS } from '../constants/metricVersions.js'
 
 export function mapStroopEntry(entry, mode, difficultyKey) {
@@ -415,6 +417,31 @@ export function mapWhackAMoleEntry(entry) {
   }
 }
 
+// Level-based, same shape as Whack-a-Mole/Hanoi/Lights Out/Emoji Mahjong.
+// Practice Weak Flags completions never appear here — recordCompletion(null,
+// ...) deliberately skips history entirely (Flags-of-the-World SPEC §16:
+// "does not affect campaign unlocking"), so this only ever sees level-based
+// history, exactly like the per-level getHistory(id) loop below expects.
+export function mapFlagsEntry(entry) {
+  return {
+    id: `flagsoftheworld:${entry.level}:${entry.completedAt}`,
+    game: 'flagsoftheworld',
+    difficulty: String(entry.level),
+    sessionType: 'play',
+    startedAt: null,
+    completedAt: entry.completedAt,
+    duration: entry.duration,
+    completed: true,
+    primaryMetric: entry.score,
+    accuracy: entry.accuracy,
+    medianRT: null, // self-paced, no reaction-time concept (SPEC §13)
+    mistakes: entry.totalCount - entry.correctCount,
+    hints: null, // Flags of the World has no hint concept
+    metricVersion: entry.metricVersion ?? METRIC_VERSIONS.flagsoftheworld,
+    appVersion: entry.appVersion ?? null,
+  }
+}
+
 // Touches localStorage (via each game's own history/stats composable) to
 // aggregate every game's sessions into one common-shape list, sorted oldest
 // first. Deliberately not phrased as "all N games" (a stale count here is
@@ -536,6 +563,13 @@ export function getAllSessions() {
   for (const { id } of WHACKAMOLE_LEVELS) {
     for (const entry of whackAMoleStats.getHistory(id)) {
       sessions.push(mapWhackAMoleEntry(entry))
+    }
+  }
+
+  const flagsStats = useFlagsStats()
+  for (const { id } of FLAGS_LEVELS) {
+    for (const entry of flagsStats.getHistory(id)) {
+      sessions.push(mapFlagsEntry(entry))
     }
   }
 

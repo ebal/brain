@@ -72,6 +72,10 @@
         <h2>Whack-a-Mole</h2>
         <p>Spot the mole, ignore distractions and react fast. Spatial attention &amp; reaction speed.</p>
       </button>
+      <button class="game-card" @click="$emit('choose', 'flagsoftheworld')">
+        <h2>🌍 Flags of the World</h2>
+        <p>See the country, find its flag. Visual recognition &amp; geographic learning.</p>
+      </button>
     </div>
 
     <div class="footer-links">

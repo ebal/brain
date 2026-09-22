@@ -540,6 +540,41 @@
         @history="handleWhackAMoleHistory"
       />
     </template>
+
+    <template v-else-if="activeGame === 'flagsoftheworld'">
+      <FlagsMainMenu
+        v-if="flagsScreen === 'menu'"
+        @start="handleFlagsStart"
+        @continue="handleFlagsContinue"
+        @practiceWeak="handleFlagsPracticeWeak"
+        @about="flagsScreen = 'about'"
+        @history="handleFlagsHistory"
+        @exit="activeGame = null"
+      />
+      <FlagsAboutPage v-else-if="flagsScreen === 'about'" @menu="flagsScreen = 'menu'" />
+      <FlagsHistoryPage
+        v-else-if="flagsScreen === 'history'"
+        :initial-level="flagsLevel || 1"
+        @menu="flagsScreen = 'menu'"
+      />
+      <FlagsGameScreen
+        v-else-if="flagsScreen === 'game'"
+        :level="flagsLevel"
+        :practice-mode="flagsPracticeMode"
+        :continue-game="flagsContinue"
+        @finished="handleFlagsFinished"
+        @exit="flagsScreen = 'menu'"
+      />
+      <FlagsResultsScreen
+        v-else-if="flagsScreen === 'results'"
+        :results="flagsResults"
+        @next="handleFlagsStart"
+        @replay="handleFlagsStart"
+        @practiceWeak="handleFlagsPracticeWeak"
+        @menu="flagsScreen = 'menu'"
+        @history="handleFlagsHistory"
+      />
+    </template>
   </main>
 </template>
 
@@ -667,7 +702,13 @@ const WhackAMoleHistoryPage = lazy(() => import('./components/whackamole/History
 const WhackAMoleGameScreen = lazy(() => import('./components/whackamole/GameScreen.vue'))
 const WhackAMoleResultsScreen = lazy(() => import('./components/whackamole/ResultsScreen.vue'))
 
-const activeGame = ref(null) // null | 'stroop' | 'schulte' | 'nback' | 'sudoku' | 'set' | 'sequence-memory' | 'switchtrail' | 'memorypairs' | 'data' | 'activity' | 'about'
+const FlagsMainMenu = lazy(() => import('./components/flags/MainMenu.vue'))
+const FlagsAboutPage = lazy(() => import('./components/flags/AboutPage.vue'))
+const FlagsHistoryPage = lazy(() => import('./components/flags/HistoryPage.vue'))
+const FlagsGameScreen = lazy(() => import('./components/flags/GameScreen.vue'))
+const FlagsResultsScreen = lazy(() => import('./components/flags/ResultsScreen.vue'))
+
+const activeGame = ref(null) // null | 'stroop' | 'schulte' | 'nback' | 'sudoku' | 'set' | 'sequence-memory' | 'switchtrail' | 'memorypairs' | 'whackamole' | 'flagsoftheworld' | 'data' | 'activity' | 'about'
 
 // --- Stroop Effect Test ---
 const stroopScreen = ref('menu')
@@ -1095,6 +1136,47 @@ function handleWhackAMoleFinished(results) {
   whackAMoleResults.value = results
   whackAMoleLevel.value = results.level
   whackAMoleScreen.value = 'results'
+}
+
+// --- Flags of the World --- Level-based like Lights Out (needs
+// Continue/autosave, SPEC §24's backgrounding-resume requirement), plus a
+// non-level-scoped Practice Weak Flags mode (SPEC §16) that reuses the same
+// GameScreen with `level: null, practiceMode: true`.
+const flagsScreen = ref('menu')
+const flagsLevel = ref(null)
+const flagsPracticeMode = ref(false)
+const flagsContinue = ref(false)
+const flagsResults = ref(null)
+
+function handleFlagsStart(level) {
+  flagsLevel.value = level
+  flagsPracticeMode.value = false
+  flagsContinue.value = false
+  flagsScreen.value = 'game'
+}
+
+function handleFlagsPracticeWeak() {
+  flagsLevel.value = null
+  flagsPracticeMode.value = true
+  flagsContinue.value = false
+  flagsScreen.value = 'game'
+}
+
+function handleFlagsContinue() {
+  flagsContinue.value = true
+  flagsScreen.value = 'game'
+}
+
+function handleFlagsHistory(payload) {
+  if (payload?.level) flagsLevel.value = payload.level
+  flagsScreen.value = 'history'
+}
+
+function handleFlagsFinished(results) {
+  flagsResults.value = results
+  flagsLevel.value = results.level
+  flagsPracticeMode.value = results.isPractice
+  flagsScreen.value = 'results'
 }
 </script>
 

@@ -27,6 +27,7 @@ import { useTargetTapStats } from './targettap/useTargetTapStats.js'
 import { useHanoiStats } from './hanoi/useHanoiStats.js'
 import { useLightsOutStats } from './lightsout/useLightsOutStats.js'
 import { useWhackAMoleStats } from './whackamole/useWhackAMoleStats.js'
+import { useFlagsStats } from './flags/useFlagsStats.js'
 
 describe('mapStroopEntry', () => {
   it('maps every field, leaving untracked ones null', () => {
@@ -191,7 +192,7 @@ describe('getAllSessions (full-suite regression)', () => {
 
   afterEach(() => restore())
 
-  it('every one of the 17 games appears at least once after a completion is recorded for each', () => {
+  it('every one of the 18 games appears at least once after a completion is recorded for each', () => {
     useStroopHistory().addEntry('color', 'easy', { score: 1, accuracy: 1, avgResponseTime: 1 })
     useSchulteHistory().addEntry('classic', { completionTime: 1, errors: 0, accuracy: 100, avgSearchTime: 1, medianSearchTime: 1 })
     useNBackHistory().addEntry('2', { score: 1, accuracy: 1, hits: 1, misses: 0, falseAlarms: 0, correctRejections: 1, avgRT: 1, medianRT: 1 })
@@ -216,12 +217,16 @@ describe('getAllSessions (full-suite regression)', () => {
       falseAlarms: 0, correctRejections: 0, emptyTaps: 0, hitRate: 100, falseAlarmRate: 0,
       avgHitRT: 1, medianHitRT: 1, fastestHitRT: 1, stars: 3, duration: 1,
     })
+    useFlagsStats().recordCompletion(1, {
+      correctCount: 10, totalCount: 10, accuracy: 100, bestStreak: 10, score: 1000, stars: 3,
+      duration: 1, perQuestionLog: [],
+    })
 
     const games = new Set(getAllSessions().map((s) => s.game))
     const expectedGames = [
       'stroop', 'schulte', 'nback', 'sudoku', 'set', 'sequence-memory', 'switchtrail',
       'memorypairs', 'marblejump', 'mentalrotation', 'emojimahjong', 'numbermatch',
-      'oddoneout', 'targettap', 'hanoi', 'lightsout', 'whackamole',
+      'oddoneout', 'targettap', 'hanoi', 'lightsout', 'whackamole', 'flagsoftheworld',
     ]
     for (const game of expectedGames) {
       expect(games, `expected getAllSessions() to include a "${game}" session`).toContain(game)
