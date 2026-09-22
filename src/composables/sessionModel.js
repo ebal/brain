@@ -28,6 +28,7 @@ import { useSwitchTrailStats } from './switchtrail/useSwitchTrailStats.js'
 import { useMemoryPairsStats } from './memorypairs/useMemoryPairsStats.js'
 import { useMarbleJumpStats } from './marblejump/useMarbleJumpStats.js'
 import { useMentalRotationStats } from './mentalrotation/useMentalRotationStats.js'
+import { useNumberMatchStats } from './numbermatch/useNumberMatchStats.js'
 import { ODDONEOUT_DIFFICULTIES } from '../constants/oddoneout/difficulties.js'
 import { ODDONEOUT_VARIANTS } from '../constants/oddoneout/variants.js'
 import { useOddOneOutStats } from './oddoneout/useOddOneOutStats.js'
@@ -235,11 +236,18 @@ export function mapMarbleJumpEntry(entry) {
   }
 }
 
+// mode here is 'timed' | 'untimed' (see constants/mentalrotation — there's
+// no shared MODES export, MainMenu.vue defines the pair inline; entry.mode
+// always carries it since useMentalRotationStats.js's history entries have
+// stamped it since Untimed shipped). Named `mode` to match every other
+// mode-aware mapper's parameter/field name.
 export function mapMentalRotationEntry(entry) {
+  const mode = entry.mode || 'timed'
   return {
-    id: `mentalrotation:${entry.difficulty}:${entry.completedAt}`,
+    id: `mentalrotation:${mode}:${entry.difficulty}:${entry.completedAt}`,
     game: 'mentalrotation',
     difficulty: entry.difficulty,
+    mode,
     sessionType: 'play',
     startedAt: null,
     completedAt: entry.completedAt,
@@ -251,6 +259,32 @@ export function mapMentalRotationEntry(entry) {
     mistakes: entry.wrong,
     hints: null, // Mental Rotation has no hint concept
     metricVersion: entry.metricVersion ?? METRIC_VERSIONS.mentalrotation,
+    appVersion: entry.appVersion ?? null,
+  }
+}
+
+// Was previously entirely missing from this file (a real gap, unlike
+// Emoji Mahjong's comment above which documents an already-fixed one) —
+// Number Match sessions never appeared in Activity/CSV before this, even
+// though numbermatch: was already correctly registered in GAME_PREFIXES,
+// METRIC_VERSIONS and GAME_LABELS, so Export/Import/Delete-All were
+// unaffected.
+export function mapNumberMatchEntry(entry) {
+  return {
+    id: `numbermatch:${entry.difficulty}:${entry.completedAt}`,
+    game: 'numbermatch',
+    difficulty: entry.difficulty,
+    sessionType: 'play',
+    startedAt: null,
+    completedAt: entry.completedAt,
+    duration: entry.completionTime,
+    completed: entry.boardCleared,
+    primaryMetric: entry.score,
+    accuracy: null, // Number Match has no accuracy-percentage concept
+    medianRT: null, // no per-move response time is tracked
+    mistakes: entry.mistakes,
+    hints: entry.hints,
+    metricVersion: entry.metricVersion ?? METRIC_VERSIONS.numbermatch,
     appVersion: entry.appVersion ?? null,
   }
 }
@@ -447,8 +481,17 @@ export function getAllSessions() {
   const marbleJumpStats = useMarbleJumpStats()
   for (const entry of marbleJumpStats.getHistory('all')) sessions.push(mapMarbleJumpEntry(entry))
 
+  // Both modes, not just the 'timed' default getHistory('all') alone would
+  // give — Untimed has its own separate history key (mentalrotation:history:untimed,
+  // see useMentalRotationStats.js's historyKeyFor) and was invisible here
+  // entirely before this fix.
   const mentalRotationStats = useMentalRotationStats()
-  for (const entry of mentalRotationStats.getHistory('all')) sessions.push(mapMentalRotationEntry(entry))
+  for (const modeKey of ['timed', 'untimed']) {
+    for (const entry of mentalRotationStats.getHistory('all', modeKey)) sessions.push(mapMentalRotationEntry(entry))
+  }
+
+  const numberMatchStats = useNumberMatchStats()
+  for (const entry of numberMatchStats.getHistory('all')) sessions.push(mapNumberMatchEntry(entry))
 
   // Per-difficulty, per-variant history keys (like Switch Trail), not a
   // combined 'all' key — see useOddOneOutStats.js's getHistory().
