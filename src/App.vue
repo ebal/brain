@@ -1,5 +1,10 @@
 <template>
   <main class="app-shell">
+    <div v-if="updateAvailable" class="update-banner">
+      A new version is available.
+      <button class="update-btn" @click="applyUpdate">Reload to update</button>
+    </div>
+
     <GameChooser v-if="!activeGame" @choose="activeGame = $event" />
 
     <ActivityDashboard v-else-if="activeGame === 'activity'" @menu="activeGame = null" />
@@ -542,6 +547,7 @@
 import { ref, defineAsyncComponent } from 'vue'
 import GameChooser from './components/GameChooser.vue'
 import LoadingScreen from './components/LoadingScreen.vue'
+import { updateAvailable, applyUpdate } from './composables/pwaUpdate.js'
 
 // GameChooser (the landing screen) is the only component the initial page
 // load actually needs, so it's the only one imported eagerly above.
@@ -1091,3 +1097,35 @@ function handleWhackAMoleFinished(results) {
   whackAMoleScreen.value = 'results'
 }
 </script>
+
+<style scoped>
+.update-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 10;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.5rem 1rem;
+  background: var(--accent);
+  color: #10121a;
+}
+
+.update-btn {
+  background: #10121a;
+  color: var(--accent);
+  border: none;
+  border-radius: 999px;
+  padding: 0.3rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+</style>
