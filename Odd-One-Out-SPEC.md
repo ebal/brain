@@ -696,7 +696,7 @@ This controls:
 - odd positions
 - confusion pairs
 
-Useful for tests and future benchmark mode.
+Useful for tests.
 
 Normal play uses random seeds.
 
@@ -817,17 +817,7 @@ Adding Odd One Out must introduce **zero runtime network dependencies**.
 
 ---
 
-## 36. Benchmark
-
-Do not add Odd One Out to Brain Benchmark v1.
-
-Character familiarity, font rendering, and practice effects make benchmark design more sensitive than the simple game suggests.
-
-A future benchmark can use a versioned fixed stimulus pool.
-
----
-
-## 37. Future changes
+## 36. Future changes
 
 Not part of v1:
 
@@ -847,7 +837,7 @@ Keep v1 focused on one different number/letter in a static grid.
 
 ---
 
-## 38. Final v1 decisions
+## 37. Final v1 decisions
 
 1. Name: **Odd One Out**.
 2. Static grid, exactly one odd item.
@@ -875,9 +865,8 @@ Keep v1 focused on one different number/letter in a static grid.
 24. Mobile/iPhone-first.
 25. No backend/database.
 26. Full offline/PWA support.
-27. Do not add to Benchmark v1.
 
-## 39. v2 addition: Random Color variant
+## 38. v2 addition: Random Color variant
 
 Added after v1, at the user's request — the same role it plays in Schulte Tables' and Switch
 Trail's own Random Color variants. A single checkbox, **Random Color**, available at every
@@ -895,7 +884,7 @@ difficulty.
   variant bucket per difficulty (own best score/accuracy/trial-count/median RT, own history), so
   it can never distort or be distorted by plain (Classic) results.
 
-## 40. v2 addition: Untimed variant
+## 39. v2 addition: Untimed variant
 
 Added alongside Random Color, at the user's request — modeled on Mental Rotation's Timed/Untimed
 mode, not on Switch Trail's. A second independent checkbox, **Untimed**, available at every

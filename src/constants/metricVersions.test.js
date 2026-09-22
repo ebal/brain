@@ -1,12 +1,17 @@
 import { describe, it, expect } from 'vitest'
 import { METRIC_VERSIONS } from './metricVersions.js'
-import { BENCHMARK_CONFIGS } from './benchmark.js'
 
 describe('METRIC_VERSIONS', () => {
-  it('covers every game that participates in Benchmark, plus Sudoku, Marble Jump, Mental Rotation, Emoji Mahjong, Number Match, Odd One Out, Target Tap, Tower of Hanoi and Lights Out (Benchmark-excluded but still games)', () => {
+  it('covers every game in the suite', () => {
     const expectedGames = [
-      ...Object.keys(BENCHMARK_CONFIGS),
+      'stroop',
+      'schulte',
+      'nback',
       'sudoku',
+      'set',
+      'sequence-memory',
+      'switchtrail',
+      'memorypairs',
       'marblejump',
       'mentalrotation',
       'emojimahjong',

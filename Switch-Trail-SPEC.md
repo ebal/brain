@@ -378,7 +378,7 @@ Board generation supports an internal deterministic seed:
 
 Normal play uses random seeds.
 
-Seed support is for automated tests, debugging, and future standardized Benchmark mode. It need not be exposed in v1.
+Seed support is for automated tests and debugging. It need not be exposed in v1.
 
 ## 21. Mobile-first UX
 
@@ -568,22 +568,7 @@ Requirements:
 
 The game must introduce **zero new runtime network dependencies**.
 
-## 30. Benchmark mode (implemented)
-
-Suite-wide Benchmark mode (see the top-level app spec) now includes Switch Trail, using:
-
-```text
-Medium
-16 targets
-45 seconds
-```
-
-No fixed seed — each benchmark run gets a freshly generated board, same as normal play. Only the
-difficulty (Medium) and variant (Classic, not Random Color) are pinned. A benchmark run is also
-recorded as a normal play session (own history/stats/best), plus separately in benchmark history,
-matching every other benchmark-eligible game.
-
-## 31. Future changes
+## 30. Future changes
 
 Not part of v1:
 
@@ -598,7 +583,7 @@ Not part of v1:
 - visible connecting path
 - multiplayer/global leaderboards
 
-## 32. Final v1 decisions
+## 31. Final v1 decisions
 
 1. Name: **Switch Trail**.
 2. Inspired by Trail Making/task switching, not a clinical test.
@@ -630,7 +615,7 @@ Not part of v1:
 28. No backend.
 29. Full offline/PWA support.
 
-## 33. v2 addition: Extreme (Dynamic) difficulty
+## 32. v2 addition: Extreme (Dynamic) difficulty
 
 Added after initial v1 implementation and playtesting, at the user's request. A fourth
 difficulty, **Extreme**, sits alongside Easy/Medium/Hard:
@@ -653,7 +638,7 @@ difficulty, **Extreme**, sits alongside Easy/Medium/Hard:
   packing — measured well under 0.1% of correct taps in simulation), that single reshuffle is
   skipped rather than failing the round: positions simply stay put until the next correct tap.
 
-## 34. v2 addition: Random Color variant
+## 33. v2 addition: Random Color variant
 
 Added after Extreme, at the user's request. A single checkbox, **Random Color**, available at
 every difficulty (Easy/Medium/Hard/Extreme, independent of Extreme's reshuffling):
@@ -675,7 +660,7 @@ every difficulty (Easy/Medium/Hard/Extreme, independent of Extreme's reshuffling
   distort or be distorted by plain results, mirroring how Schulte Tables keeps its Random
   Color/Random Position variants separate from Classic.
 
-## 35. v3 addition: Untimed variant
+## 34. v3 addition: Untimed variant
 
 Added after Random Color, at the user's request — the same stress-free/kid-friendly motivation as
 Mental Rotation's Timed/Untimed mode. A second independent checkbox, **Untimed**, available at
@@ -700,5 +685,3 @@ total: Classic, Random Color, Untimed, and Untimed + Color.
   of whether the round has a time limit.
 - Tracked as its own variant bucket per difficulty (own best score/time, own history), never mixed
   with timed results, mirroring how Random Color and Schulte's variants are kept separate.
-- Not available from Benchmark Mode — a benchmark run always pins Classic (plain timed), same as
-  before.

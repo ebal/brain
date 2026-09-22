@@ -1,7 +1,7 @@
 // Common session-metadata model: a shared shape for "a session happened,"
-// used only to support suite-wide views (the Activity dashboard, Benchmark/
-// Baseline comparisons). Each game keeps writing and reading its own
-// detailed history exactly as it always has; nothing here replaces that.
+// used only to support suite-wide views (the Activity dashboard). Each game
+// keeps writing and reading its own detailed history exactly as it always
+// has; nothing here replaces that.
 //
 // Deliberately derive-on-demand rather than stored: the mapper functions
 // below are pure (entry in, common-shape session out), so a session record
@@ -304,7 +304,7 @@ export function mapHanoiEntry(entry) {
     completedAt: entry.completedAt,
     duration: entry.duration,
     completed: true,
-    primaryMetric: entry.moves, // lower is better; not in METRIC_DIRECTION since Hanoi isn't a Benchmark game
+    primaryMetric: entry.moves, // lower is better
     accuracy: null, // Tower of Hanoi has no accuracy-percentage concept
     medianRT: null, // no per-move response time is tracked
     mistakes: entry.mistakes,
@@ -324,7 +324,7 @@ export function mapLightsOutEntry(entry) {
     completedAt: entry.completedAt,
     duration: entry.duration,
     completed: true,
-    primaryMetric: entry.moves, // lower is better; not in METRIC_DIRECTION since Lights Out isn't a Benchmark game
+    primaryMetric: entry.moves, // lower is better
     accuracy: null, // Lights Out has no accuracy-percentage concept
     medianRT: null, // no per-move response time is tracked
     mistakes: null, // Lights Out has no Mistakes concept — every tap is legal

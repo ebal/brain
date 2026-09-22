@@ -8,15 +8,14 @@ minutes free, open Brain and play a small game instead.
 
 It's a Vue 3 + Vite app. Also deployed at brain.ebal.gr. Pick a game from the landing screen; each
 keeps its own scoring, history and personal bests. There's also a suite-wide
-[Benchmark mode](#benchmark-mode) with [personal baselines](#personal-baseline), an
-[Activity dashboard](#activity-dashboard), and full [data export/import](#your-data).
+[Activity dashboard](#activity-dashboard) and full [data export/import](#your-data).
 
 **Brain measures your performance on these specific games, over time.** It isn't a measure of
 general intelligence, brain health or clinical cognitive ability, and doesn't claim to be.
 Repeated practice can raise a score just from getting familiar with a task's mechanics, so a rising
 score means better performance on that particular game, not proven improvement in general
-cognition. Benchmark and Activity always compare you against your own past results, never a
-population average or another player.
+cognition. Activity always compares you against your own past results, never a population average
+or another player.
 
 | Game | Main focus |
 | --- | --- |
@@ -373,55 +372,19 @@ A progressive, 50-level Lights Out: tap a cell to toggle it and its up/down/left
 
 See [`Lights-Out-SPEC.md`](./Lights-Out-SPEC.md) for the full design rationale.
 
-## Benchmark Mode
-
-Fixed-difficulty runs of seven of the sixteen games, reachable via **Run a Benchmark** below the
-game grid, so a result today is comparable to one from months ago rather than a personal best set
-on whatever difficulty you happened to pick. Starting a benchmark locks the configuration: Stroop
-(Medium, Color Match), Schulte (5×5 Classic), N-Back (2-Back), SET (Medium), Sequence Memory
-(Medium), Switch Trail (Medium, 16 targets), Memory Pairs (Medium, 8 pairs).
-
-- **Sudoku, Marble Jump, Mental Rotation, Emoji Mahjong, Number Match, Odd One Out, Target Tap,
-  Tower of Hanoi and Lights Out are excluded.** Puzzle/trial difficulty genuinely varies within one
-  labeled tier for each (and for Odd One Out/Target Tap, character familiarity and font rendering
-  add their own variability; Target Tap's tuning also hasn't been validated against real play data
-  yet), so a fixed benchmark would mostly measure which puzzle/trial/layout/pair/stream you got,
-  not your performance. Tower of Hanoi and Lights Out share a second reason: both are a fixed
-  sequence of levels, so once a level (or its optimal strategy) is learned, repeated play
-  increasingly measures familiarity/execution rather than fresh problem-solving.
-- A benchmark run also counts as a normal play session, recorded in that game's usual history and
-  stats as well as a separate benchmark history.
-- Every benchmark session is stamped with a version number, so if these fixed configurations ever
-  change, old and new results are never mixed into the same comparison.
-
-Regular (non-benchmark) history entries carry the same idea: a per-game `metricVersion` (currently
-`1` everywhere) and the app version that recorded them. If a score formula or measurement ever
-changes meaningfully, that game's version number gets bumped so old and new sessions are never
-silently averaged together. Entries from before this field existed are treated as version 1.
-
-## Personal Baseline
-
-Once a game has at least 3 recorded benchmark sessions, a baseline exists: the median of that
-game's primary benchmark metric (completion time, score, or longest sequence, depending on the
-game). Every benchmark run after that compares against your own history *before* that run, eg.
-`Baseline (n=5): 2.5s, Today: 2.1s (+16.0% better)`. There's no population average and no other
-players to compare against (no such dataset exists or is fabricated). Before 3 sessions exist, it
-just tells you how many more you need.
+Every history entry carries a per-game `metricVersion` (currently `1` everywhere) and the app
+version that recorded it. If a score formula or measurement ever changes meaningfully, that game's
+version number gets bumped so old and new sessions are never silently averaged together. Entries
+from before this field existed are treated as version 1.
 
 ## Activity Dashboard
 
-A suite-wide view, reachable via **Activity**, of how much you've played and how your benchmark
-performance is trending, filterable to the last 7, 30, 90 days or all time.
+A suite-wide view, reachable via **Activity**, of how much you've played, filterable to the last 7,
+30, 90 days or all time.
 
 - **Overview**: current activity streak, games played, active days, total sessions. A streak still
   counts through yesterday if you haven't played yet today.
 - **Sessions by Game**: a per-game session count for the selected range.
-- **Benchmark Performance**: per game (Sudoku, Marble Jump, Mental Rotation, Emoji Mahjong, Number
-  Match, Odd One Out, Target Tap, Tower of Hanoi and Lights Out excluded, same reasoning as
-  Benchmark Mode above),
-  your baseline, rolling median, a consistency measure (median absolute deviation), best result,
-  most recent result, and today vs. baseline. Every stat shows its sample size, so a trend from 3
-  sessions is never confused with one from 40.
 
 There's no unified cross-game score and no invented population percentiles. A note on the page
 itself says these numbers describe performance on specific tasks over time, not general cognitive
@@ -432,9 +395,9 @@ ability, and that practice alone can raise a score.
 Reachable via **Manage Your Data**. There's no account and no backend, so this is the only way to
 back up or move your data.
 
-- **Export All Data (JSON)**: a complete backup of history, stats, personal bests, benchmark
-  history and any in-progress game, across every game. Versioned so a future format change is
-  never misread as an older one.
+- **Export All Data (JSON)**: a complete backup of history, stats, personal bests and any
+  in-progress game, across every game. Versioned so a future format change is never misread as an
+  older one.
 - **Export History (CSV)**: a flattened, spreadsheet-friendly view of every session across every
   game.
 - **Import**: restore from a previously exported JSON file. Shows a preview (record counts per
@@ -546,13 +509,12 @@ fifteen each have their own subfolder (`schulte/`, `nback/`, `sudoku/`, `set/`, 
 all with the same shape: a
 `MainMenu`/`AboutPage`/`HistoryPage`/`GameScreen`/`ResultsScreen` set of components, a `useXGame.js`
 state machine plus a stats composable (and, for games with a resumable in-progress state, a storage
-composable), and a `difficulties.js` constants file. Benchmark Mode, the Activity dashboard and
-Data Management are cross-cutting rather than per-game, so they live top-level alongside
-`GameChooser.vue`.
+composable), and a `difficulties.js` constants file. The Activity dashboard and Data Management are
+cross-cutting rather than per-game, so they live top-level alongside `GameChooser.vue`.
 
 `GameChooser.vue` (the landing screen) is the only one of those components `App.vue` imports
-eagerly — every game screen and every cross-cutting screen (Benchmark, Activity, Data Management,
-About) is loaded via `defineAsyncComponent`, so the homepage's initial JS/CSS payload doesn't
+eagerly — every game screen and every cross-cutting screen (Activity, Data Management, About) is
+loaded via `defineAsyncComponent`, so the homepage's initial JS/CSS payload doesn't
 include code for games or screens the visitor hasn't opened yet. `LoadingScreen.vue` is the shared
 fallback shown if a chunk takes more than 150ms to arrive — normally invisible once the Service
 Worker has this cached. This changes nothing about offline support: `vite.config.js`'s Workbox
@@ -566,12 +528,12 @@ brain/
 ├── public/                       # PWA icons
 └── src/
     ├── App.vue
-    ├── components/                # GameChooser, BenchmarkMenu, ActivityDashboard, DataManagement,
-    │                               # AboutBrain, Stroop's own screens flat here, and one folder
-    │                               # per remaining game (same MainMenu/AboutPage/... shape)
-    ├── composables/                # mathStats, sessionModel, benchmarkHistory, baseline,
-    │                               # activityStats, dataPortability, plus one folder per game
-    └── constants/                  # benchmark, metricVersions, plus one folder per game
+    ├── components/                # GameChooser, ActivityDashboard, DataManagement, AboutBrain,
+    │                               # Stroop's own screens flat here, and one folder per remaining
+    │                               # game (same MainMenu/AboutPage/... shape)
+    ├── composables/                # mathStats, sessionModel, activityStats, dataPortability,
+    │                               # plus one folder per game
+    └── constants/                  # metricVersions, plus one folder per game
 ```
 
 Each game's own `*-SPEC.md` (linked from its section above) has the full design rationale: rules,
@@ -585,8 +547,8 @@ npm test
 
 Runs the automated test suite ([Vitest](https://vitest.dev/)): deterministic unit tests for the
 actual game math and generation logic across all sixteen games (trial/board/sequence generation,
-validators, difficulty classification, scoring, statistics), plus the shared session model,
-Benchmark, and Baseline logic. No component/DOM testing yet, everything covered so far is plain JS
+validators, difficulty classification, scoring, statistics), plus the shared session model and
+Activity dashboard logic. No component/DOM testing yet, everything covered so far is plain JS
 logic, testable without mounting a Vue component. Each tested module has a co-located `*.test.js`
 file next to it.
 

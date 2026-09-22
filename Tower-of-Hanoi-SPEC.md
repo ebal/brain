@@ -152,11 +152,6 @@ All logic and SVG/CSS visuals local. No API/CDN/images. Progress/history
 and active game work offline and cold-start from installed Brain PWA in
 Airplane Mode.
 
-## Benchmark
-
-Do not add to Brain Benchmark v1. Once the algorithm is learned,
-repeated performance increasingly measures familiarity/execution.
-
 ## Future
 
 No 4+ pegs, Reve's puzzle, mandatory drag-and-drop, 9+ disks, Daily
@@ -181,4 +176,3 @@ Challenge, leaderboards, themes, or global Brain Score in v1.
 15. Existing Brain architecture.
 16. No backend.
 17. Full offline/PWA.
-18. Not in Benchmark v1.

@@ -872,7 +872,6 @@ This is useful for:
 
 -   automated tests
 -   debugging
--   future benchmark design
 
 Do not expose seeds in normal v1 UI.
 
@@ -1063,24 +1062,7 @@ dependencies**.
 
 ------------------------------------------------------------------------
 
-## 40. Benchmark
-
-Do not add Target Tap to Brain Benchmark v1.
-
-First collect normal-play data and tune:
-
--   presentation intervals
--   target frequencies
--   duration
--   target spacing
--   scoring
-
-A future Benchmark version may use a versioned fixed configuration and
-deterministic stream pool.
-
-------------------------------------------------------------------------
-
-## 41. Future changes
+## 40. Future changes
 
 Not part of v1:
 
@@ -1102,7 +1084,7 @@ stream.
 
 ------------------------------------------------------------------------
 
-## 42. Final v1 decisions
+## 41. Final v1 decisions
 
 1.  Name: **Target Tap**.
 2.  Single uppercase target letter per game.
@@ -1139,4 +1121,3 @@ stream.
 33. Existing Brain architecture.
 34. No backend/database.
 35. Full offline/PWA support.
-36. Not part of Brain Benchmark v1.

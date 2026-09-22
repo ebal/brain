@@ -425,15 +425,7 @@ Emoji Mahjong must work completely offline inside Brain:
 
 Introduce zero required runtime network dependencies.
 
-## 32. Benchmark
-
-Do not add Emoji Mahjong to Brain Benchmark v1.
-
-Layouts and repeated exposure create practice effects. Collect normal-play data first.
-
-A future benchmark may use a rotating versioned pool of validated layouts/seeds.
-
-## 33. Future changes
+## 32. Future changes
 
 Not v1:
 
@@ -448,7 +440,7 @@ Not v1:
 - themed emoji packs
 - custom layouts
 
-## 34. Final v1 decisions
+## 33. Final v1 decisions
 
 1. Name: **Emoji Mahjong**.
 2. Mahjong Solitaire-style single-player puzzle.
@@ -479,11 +471,10 @@ Not v1:
 27. Existing Brain architecture.
 28. No backend/database.
 29. Full offline/PWA support.
-30. Not part of Brain Benchmark v1.
 
 ---
 
-## 35. v2: Hard/Very Hard redesign, and two new tiers (Extreme, Master)
+## 34. v2: Hard/Very Hard redesign, and two new tiers (Extreme, Master)
 
 User feedback after playing: Emoji Mahjong felt easy, even on Very Hard. Investigation confirmed
 it — the original Hard/Very Hard layouts topped out at 2-4 layers with **20-33% of all tiles
@@ -527,5 +518,4 @@ this redesign only changed board *geometry*, not the generation guarantee. All e
 difficulty list or layout count.
 
 Not changed: scoring formula shape (§21 — extreme/master just get their own base scores, 12500 and
-15000, continuing the existing progression), Hint/Undo/Restart behavior, offline/PWA guarantees,
-and Benchmark exclusion (§32 — still excluded, now for six difficulties instead of four).
+15000, continuing the existing progression), Hint/Undo/Restart behavior, offline/PWA guarantees.

@@ -1321,17 +1321,7 @@ dependencies**.
 
 ------------------------------------------------------------------------
 
-## 53. Benchmark
-
-Do not add Emoji Mahjong to Brain Benchmark v1.
-
-Fixed campaign levels create strong practice effects.
-
-Emoji Mahjong belongs primarily to Brain's puzzle/progression side.
-
-------------------------------------------------------------------------
-
-## 54. Future changes
+## 53. Future changes
 
 Not v1:
 
@@ -1353,7 +1343,7 @@ added later.
 
 ------------------------------------------------------------------------
 
-## 55. Final v1 decisions
+## 54. Final v1 decisions
 
 1.  Name: **Emoji Mahjong**.
 2.  Mahjong Solitaire-style single-player puzzle using Unicode emoji.
@@ -1394,4 +1384,3 @@ added later.
 35. Existing Brain architecture.
 36. No backend/database.
 37. Full offline/PWA support.
-38. Not part of Brain Benchmark v1.

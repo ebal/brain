@@ -46,52 +46,6 @@
       </div>
     </section>
 
-    <section class="card">
-      <h2>Benchmark Performance</h2>
-      <p class="card-desc">
-        Compared only against your own past Benchmark runs — never a population, never each other.
-        A baseline needs at least 3 benchmark sessions to be meaningful.
-      </p>
-
-      <div v-for="perf in data.gamePerformance" :key="perf.game" class="perf-card">
-        <h3>{{ gameLabel(perf.game) }}</h3>
-
-        <p v-if="!perf.baseline.ready" class="not-ready">
-          {{ perf.sampleSize }}/3 benchmark sessions — play {{ perf.baseline.sessionsNeeded }} more to
-          establish a baseline.
-        </p>
-
-        <div v-else class="perf-grid">
-          <div class="perf-stat">
-            <span class="label">Baseline (median, n={{ perf.baseline.sampleSize }})</span>
-            <span class="value">{{ formatMetric(perf.game, perf.baseline.medianPrimaryMetric) }}</span>
-          </div>
-          <div class="perf-stat">
-            <span class="label">Rolling Median (n={{ perf.sampleSize }})</span>
-            <span class="value">{{ formatMetric(perf.game, perf.rollingMedian) }}</span>
-          </div>
-          <div class="perf-stat">
-            <span class="label">Consistency (MAD, n={{ perf.sampleSize }})</span>
-            <span class="value">{{ formatMetric(perf.game, perf.mad) }}</span>
-          </div>
-          <div class="perf-stat">
-            <span class="label">Best</span>
-            <span class="value">{{ formatMetric(perf.game, perf.best) }}</span>
-          </div>
-          <div class="perf-stat" v-if="perf.mostRecent">
-            <span class="label">Most Recent</span>
-            <span class="value">{{ formatMetric(perf.game, perf.mostRecent.primaryMetric) }}</span>
-          </div>
-          <div class="perf-stat" v-if="perf.recentDelta">
-            <span class="label">Recent vs. Baseline (n={{ perf.baseline.sampleSize }})</span>
-            <span class="value" :class="perf.recentDelta.percentDelta >= 0 ? 'better' : 'worse'">
-              {{ perf.recentDelta.percentDelta >= 0 ? '+' : '' }}{{ perf.recentDelta.percentDelta.toFixed(1) }}%
-            </span>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <section class="card about-data">
       <h2>About This Data</h2>
       <p>
@@ -101,8 +55,8 @@
       <p>
         Results are best read as your performance on these specific tasks over time, not a general
         measure of cognitive ability. Repeated practice can improve scores just through familiarity
-        with a task's mechanics — that's expected, and part of why comparing against your own
-        baseline matters more than the raw number.
+        with a task's mechanics — that's expected, so a rising number reflects your own trend, not
+        a comparison against anyone else.
       </p>
     </section>
 
@@ -151,11 +105,6 @@ const GAME_LABELS = {
 }
 function gameLabel(game) {
   return GAME_LABELS[game] || game
-}
-
-function formatMetric(game, value) {
-  if (value === null || value === undefined) return '—'
-  return game === 'schulte' || game === 'set' ? `${(value / 1000).toFixed(1)}s` : `${Math.round(value)}`
 }
 </script>
 
@@ -280,60 +229,6 @@ h1 {
   font-weight: 700;
 }
 
-.perf-card {
-  border-top: 1px solid var(--surface-2);
-  padding-top: 0.85rem;
-  margin-top: 0.85rem;
-}
-
-.perf-card:first-of-type {
-  border-top: none;
-  padding-top: 0;
-  margin-top: 0;
-}
-
-.perf-card h3 {
-  margin: 0 0 0.5rem;
-  font-size: 0.95rem;
-  color: var(--accent);
-}
-
-.not-ready {
-  color: var(--text-dim);
-  font-size: 0.85rem;
-  margin: 0;
-}
-
-.perf-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.6rem;
-}
-
-.perf-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-.perf-stat .label {
-  font-size: 0.72rem;
-  color: var(--text-dim);
-}
-
-.perf-stat .value {
-  font-size: 1rem;
-  font-weight: 700;
-}
-
-.perf-stat .value.better {
-  color: var(--correct);
-}
-
-.perf-stat .value.worse {
-  color: var(--wrong);
-}
-
 .about-data p {
   color: var(--text-dim);
   font-size: 0.82rem;
@@ -360,10 +255,6 @@ h1 {
 
 @media (max-width: 480px) {
   .overview {
-    grid-template-columns: 1fr;
-  }
-
-  .perf-grid {
     grid-template-columns: 1fr;
   }
 

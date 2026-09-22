@@ -498,13 +498,7 @@ Fully offline inside Brain:
 
 Introduce zero runtime network dependencies.
 
-## 30. Benchmark
-
-Do not add to Brain Benchmark v1.
-
-Puzzle variation and Add Numbers create substantial practice/configuration effects. A future benchmark may use a rotating versioned seed pool.
-
-## 31. Future changes
+## 30. Future changes
 
 Not v1:
 
@@ -516,7 +510,7 @@ Not v1:
 - multiplayer/leaderboards
 - cloud sync
 
-## 32. Final v1 decisions
+## 31. Final v1 decisions
 
 1. **Number Match**.
 2. Digits 1–9.
@@ -548,11 +542,10 @@ Not v1:
 28. Existing Brain architecture.
 29. No backend/database.
 30. Full offline/PWA.
-31. Not part of Benchmark v1.
 
 ---
 
-## 33. Implementation note: distinguishing "not a pair" from "blocked"
+## 32. Implementation note: distinguishing "not a pair" from "blocked"
 
 **Superseded by §34.** After shipping this fix, further playtesting feedback was that the
 connection-rule concept itself (§5-§7) was the wrong design for this game, not just under-explained
@@ -584,7 +577,7 @@ clear path. Fixed by distinguishing the two:
 
 ---
 
-## 34. v2: position never matters — the connection rule is removed
+## 33. v2: position never matters — the connection rule is removed
 
 Further user feedback after §33's fix: even with clearer messaging, the connection-rule concept
 itself (§5 "Connection rules", §6 "Sequential row-wrap", §7 "Legal-pair function") felt arbitrary

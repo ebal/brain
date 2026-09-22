@@ -19,8 +19,7 @@
       Repeated practice can improve performance through familiarity with a task's own mechanics,
       not just the ability the task is meant to probe — so a rising score is best read as
       <em>your performance on this specific game improving</em>, not proof of general cognitive
-      improvement. That's also why Benchmark mode compares each result only against your own past
-      results on the same fixed task, never against a population or against other games.
+      improvement.
     </p>
 
     <p class="intro">

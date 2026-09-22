@@ -1,14 +1,6 @@
 <template>
   <div class="app-shell">
-    <div v-if="benchmarkActive" class="benchmark-banner">Benchmark Run — {{ benchmarkConfigLabel }}</div>
-    <div v-else-if="benchmarkFeedback" class="benchmark-feedback">
-      {{ benchmarkFeedback.message }}
-      <button class="dismiss-btn" @click="benchmarkFeedback = null">×</button>
-    </div>
-
     <GameChooser v-if="!activeGame" @choose="activeGame = $event" />
-
-    <BenchmarkMenu v-else-if="activeGame === 'benchmark-menu'" @start="handleBenchmarkStart" @menu="activeGame = null" />
 
     <ActivityDashboard v-else-if="activeGame === 'activity'" @menu="activeGame = null" />
 
@@ -34,7 +26,7 @@
         :difficulty-key="stroopDifficulty"
         :mode="stroopMode"
         @finished="handleStroopFinished"
-        @exit="stroopScreen = 'menu'; benchmarkActive = false"
+        @exit="stroopScreen = 'menu'"
       />
       <ResultsScreen
         v-else-if="stroopScreen === 'results'"
@@ -69,7 +61,7 @@
         :color-mode="schulteColorMode"
         :dynamic-mode="schulteDynamicMode"
         @finished="handleSchulteFinished"
-        @exit="schulteScreen = 'menu'; benchmarkActive = false"
+        @exit="schulteScreen = 'menu'"
       />
       <SchulteResultsScreen
         v-else-if="schulteScreen === 'results'"
@@ -101,7 +93,7 @@
         v-else-if="nbackScreen === 'game'"
         :difficulty-key="nbackDifficulty"
         @finished="handleNBackFinished"
-        @exit="nbackScreen = 'menu'; benchmarkActive = false"
+        @exit="nbackScreen = 'menu'"
       />
       <NBackResultsScreen
         v-else-if="nbackScreen === 'results'"
@@ -129,7 +121,7 @@
         :difficulty-key="sudokuDifficulty"
         :continue-game="sudokuContinue"
         @finished="handleSudokuFinished"
-        @exit="sudokuScreen = 'menu'; benchmarkActive = false"
+        @exit="sudokuScreen = 'menu'"
       />
       <SudokuResultsScreen
         v-else-if="sudokuScreen === 'results'"
@@ -158,7 +150,7 @@
         :continue-game="setContinue"
         :light-colors="setLightColors"
         @finished="handleSetFinished"
-        @exit="setScreen = 'menu'; benchmarkActive = false"
+        @exit="setScreen = 'menu'"
       />
       <SetResultsScreen
         v-else-if="setScreen === 'results'"
@@ -188,7 +180,7 @@
         :difficulty-key="sequenceDifficulty"
         :continue-game="sequenceContinue"
         @finished="handleSequenceFinished"
-        @exit="sequenceScreen = 'menu'; benchmarkActive = false"
+        @exit="sequenceScreen = 'menu'"
       />
       <SequenceResultsScreen
         v-else-if="sequenceScreen === 'results'"
@@ -222,7 +214,7 @@
         :color-mode="switchtrailColorMode"
         :untimed="switchtrailUntimed"
         @finished="handleSwitchTrailFinished"
-        @exit="switchtrailScreen = 'menu'; benchmarkActive = false"
+        @exit="switchtrailScreen = 'menu'"
       />
       <SwitchTrailResultsScreen
         v-else-if="switchtrailScreen === 'results'"
@@ -252,7 +244,7 @@
         :difficulty-key="memoryPairsDifficulty"
         :continue-game="memoryPairsContinue"
         @finished="handleMemoryPairsFinished"
-        @exit="memoryPairsScreen = 'menu'; benchmarkActive = false"
+        @exit="memoryPairsScreen = 'menu'"
       />
       <MemoryPairsResultsScreen
         v-else-if="memoryPairsScreen === 'results'"
@@ -280,7 +272,7 @@
         :difficulty-key="marbleJumpDifficulty"
         :continue-game="marbleJumpContinue"
         @finished="handleMarbleJumpFinished"
-        @exit="marbleJumpScreen = 'menu'; benchmarkActive = false"
+        @exit="marbleJumpScreen = 'menu'"
       />
       <MarbleJumpResultsScreen
         v-else-if="marbleJumpScreen === 'results'"
@@ -311,7 +303,7 @@
         :difficulty-key="mentalRotationDifficulty"
         :mode="mentalRotationMode"
         @finished="handleMentalRotationFinished"
-        @exit="mentalRotationScreen = 'menu'; benchmarkActive = false"
+        @exit="mentalRotationScreen = 'menu'"
       />
       <MentalRotationResultsScreen
         v-else-if="mentalRotationScreen === 'results'"
@@ -344,7 +336,7 @@
         :level="emojiMahjongLevel"
         :continue-game="emojiMahjongContinue"
         @finished="handleEmojiMahjongFinished"
-        @exit="emojiMahjongScreen = 'menu'; benchmarkActive = false"
+        @exit="emojiMahjongScreen = 'menu'"
       />
       <EmojiMahjongResultsScreen
         v-else-if="emojiMahjongScreen === 'results'"
@@ -372,7 +364,7 @@
         :difficulty-key="numberMatchDifficulty"
         :continue-game="numberMatchContinue"
         @finished="handleNumberMatchFinished"
-        @exit="numberMatchScreen = 'menu'; benchmarkActive = false"
+        @exit="numberMatchScreen = 'menu'"
       />
       <NumberMatchResultsScreen
         v-else-if="numberMatchScreen === 'results'"
@@ -406,7 +398,7 @@
         :color-mode="oddOneOutColorMode"
         :untimed="oddOneOutUntimed"
         @finished="handleOddOneOutFinished"
-        @exit="oddOneOutScreen = 'menu'; benchmarkActive = false"
+        @exit="oddOneOutScreen = 'menu'"
       />
       <OddOneOutResultsScreen
         v-else-if="oddOneOutScreen === 'results'"
@@ -438,7 +430,7 @@
         v-else-if="targetTapScreen === 'game'"
         :difficulty-key="targetTapDifficulty"
         @finished="handleTargetTapFinished"
-        @exit="targetTapScreen = 'menu'; benchmarkActive = false"
+        @exit="targetTapScreen = 'menu'"
       />
       <TargetTapResultsScreen
         v-else-if="targetTapScreen === 'results'"
@@ -470,7 +462,7 @@
         :level="hanoiLevel"
         :continue-game="hanoiContinue"
         @finished="handleHanoiFinished"
-        @exit="hanoiScreen = 'menu'; benchmarkActive = false"
+        @exit="hanoiScreen = 'menu'"
       />
       <HanoiResultsScreen
         v-else-if="hanoiScreen === 'results'"
@@ -502,7 +494,7 @@
         :level="lightsOutLevel"
         :continue-game="lightsOutContinue"
         @finished="handleLightsOutFinished"
-        @exit="lightsOutScreen = 'menu'; benchmarkActive = false"
+        @exit="lightsOutScreen = 'menu'"
       />
       <LightsOutResultsScreen
         v-else-if="lightsOutScreen === 'results'"
@@ -517,21 +509,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, defineAsyncComponent } from 'vue'
+import { ref, defineAsyncComponent } from 'vue'
 import GameChooser from './components/GameChooser.vue'
 import LoadingScreen from './components/LoadingScreen.vue'
-import { BENCHMARK_CONFIGS } from './constants/benchmark.js'
-import { useBenchmarkHistory } from './composables/benchmarkHistory.js'
-import { getBaseline, compareToBaseline } from './composables/baseline.js'
-import {
-  mapStroopEntry,
-  mapSchulteEntry,
-  mapNBackEntry,
-  mapSetEntry,
-  mapSequenceMemoryEntry,
-  mapSwitchTrailEntry,
-  mapMemoryPairsEntry,
-} from './composables/sessionModel.js'
 
 // GameChooser (the landing screen) is the only component the initial page
 // load actually needs, so it's the only one imported eagerly above.
@@ -546,7 +526,6 @@ function lazy(loader) {
 }
 
 const DataManagement = lazy(() => import('./components/DataManagement.vue'))
-const BenchmarkMenu = lazy(() => import('./components/BenchmarkMenu.vue'))
 const ActivityDashboard = lazy(() => import('./components/ActivityDashboard.vue'))
 const AboutBrain = lazy(() => import('./components/AboutBrain.vue'))
 
@@ -646,58 +625,7 @@ const LightsOutHistoryPage = lazy(() => import('./components/lightsout/HistoryPa
 const LightsOutGameScreen = lazy(() => import('./components/lightsout/GameScreen.vue'))
 const LightsOutResultsScreen = lazy(() => import('./components/lightsout/ResultsScreen.vue'))
 
-const activeGame = ref(null) // null | 'stroop' | 'schulte' | 'nback' | 'sudoku' | 'set' | 'sequence-memory' | 'switchtrail' | 'memorypairs' | 'data' | 'benchmark-menu' | 'activity' | 'about'
-
-// --- Benchmark mode ---
-// A thin layer over normal play: launching from BenchmarkMenu reuses each
-// game's own handleXStart with the difficulty/mode pinned from
-// BENCHMARK_CONFIGS, and each handleXFinished below additionally records a
-// separate, versioned benchmark session when this flag is set — the game's
-// own normal history/stats/best-scores recording (inside its GameScreen)
-// is untouched either way.
-const { recordBenchmarkSession } = useBenchmarkHistory()
-const benchmarkActive = ref(false)
-const benchmarkConfigLabel = computed(() => BENCHMARK_CONFIGS[activeGame.value]?.label || '')
-
-// Personal baseline: shown as a small, dismissible banner right after a
-// benchmark session finishes, rather than wiring a prop into every game's
-// own ResultsScreen.vue.
-const benchmarkFeedback = ref(null) // { game, message } | null
-watch(activeGame, () => { benchmarkFeedback.value = null })
-
-function formatMetricValue(game, value) {
-  return game === 'schulte' || game === 'set' ? `${(value / 1000).toFixed(1)}s` : `${Math.round(value)}`
-}
-
-// Computed from the baseline as it stood BEFORE this session was recorded —
-// comparing today's result against yesterday's baseline, not a baseline that
-// already includes today's own number.
-function describeBenchmarkFeedback(game, priorBaseline, latestValue) {
-  if (!priorBaseline.ready) {
-    return `Benchmark recorded (${priorBaseline.sampleSize}/3) — play ${priorBaseline.sessionsNeeded} more to establish your baseline.`
-  }
-  const comparison = compareToBaseline(game, priorBaseline, latestValue)
-  if (!comparison) return `Benchmark recorded — baseline: ${formatMetricValue(game, priorBaseline.medianPrimaryMetric)}.`
-  const sign = comparison.percentDelta >= 0 ? '+' : ''
-  const verdict = comparison.percentDelta >= 0 ? 'better' : 'worse'
-  return (
-    `Baseline (n=${priorBaseline.sampleSize}): ${formatMetricValue(game, priorBaseline.medianPrimaryMetric)}` +
-    ` — Today: ${formatMetricValue(game, latestValue)} (${sign}${comparison.percentDelta.toFixed(1)}% ${verdict})`
-  )
-}
-
-function handleBenchmarkStart(game) {
-  benchmarkActive.value = true
-  activeGame.value = game
-  const config = BENCHMARK_CONFIGS[game]
-  if (game === 'stroop') handleStroopStart({ difficultyKey: config.difficultyKey, mode: config.mode })
-  else if (game === 'schulte') handleSchulteStart({ difficultyKey: config.difficultyKey, colorMode: false, dynamicMode: false })
-  else if (game === 'nback') handleNBackStart(config.difficultyKey)
-  else if (game === 'set') handleSetStart(config.difficultyKey)
-  else if (game === 'sequence-memory') handleSequenceStart(config.difficultyKey)
-  else if (game === 'switchtrail') handleSwitchTrailStart({ difficultyKey: config.difficultyKey, colorMode: false })
-  else if (game === 'memorypairs') handleMemoryPairsStart(config.difficultyKey)
-}
+const activeGame = ref(null) // null | 'stroop' | 'schulte' | 'nback' | 'sudoku' | 'set' | 'sequence-memory' | 'switchtrail' | 'memorypairs' | 'data' | 'activity' | 'about'
 
 // --- Stroop Effect Test ---
 const stroopScreen = ref('menu')
@@ -725,16 +653,6 @@ function handleStroopHistory(payload) {
 function handleStroopFinished(results) {
   stroopResults.value = results
   stroopScreen.value = 'results'
-  if (benchmarkActive.value) {
-    const priorBaseline = getBaseline('stroop')
-    const session = recordBenchmarkSession(mapStroopEntry(
-      { score: results.score, accuracy: results.accuracy, avgResponseTime: results.avgResponseTime, date: new Date().toISOString() },
-      stroopMode.value,
-      stroopDifficulty.value,
-    ))
-    benchmarkFeedback.value = { game: 'stroop', message: describeBenchmarkFeedback('stroop', priorBaseline, session.primaryMetric) }
-    benchmarkActive.value = false
-  }
 }
 
 // --- Schulte Tables ---
@@ -761,22 +679,6 @@ function handleSchulteHistory(payload) {
 function handleSchulteFinished(results) {
   schulteResults.value = results
   schulteScreen.value = 'results'
-  if (benchmarkActive.value) {
-    const priorBaseline = getBaseline('schulte')
-    const session = recordBenchmarkSession(mapSchulteEntry(
-      {
-        completionTime: results.completionTime,
-        errors: results.errors,
-        accuracy: results.accuracy,
-        avgSearchTime: results.avgSearchTime,
-        medianSearchTime: results.medianSearchTime,
-        date: new Date().toISOString(),
-      },
-      schulteDifficulty.value,
-    ))
-    benchmarkFeedback.value = { game: 'schulte', message: describeBenchmarkFeedback('schulte', priorBaseline, session.primaryMetric) }
-    benchmarkActive.value = false
-  }
 }
 
 // --- Number N-Back ---
@@ -797,25 +699,6 @@ function handleNBackHistory(payload) {
 function handleNBackFinished(results) {
   nbackResults.value = results
   nbackScreen.value = 'results'
-  if (benchmarkActive.value) {
-    const priorBaseline = getBaseline('nback')
-    const session = recordBenchmarkSession(mapNBackEntry(
-      {
-        score: results.score,
-        accuracy: results.accuracy,
-        hits: results.hits,
-        misses: results.misses,
-        falseAlarms: results.falseAlarms,
-        correctRejections: results.correctRejections,
-        avgRT: results.avgRT,
-        medianRT: results.medianRT,
-        date: new Date().toISOString(),
-      },
-      nbackDifficulty.value,
-    ))
-    benchmarkFeedback.value = { game: 'nback', message: describeBenchmarkFeedback('nback', priorBaseline, session.primaryMetric) }
-    benchmarkActive.value = false
-  }
 }
 
 // --- Sudoku ---
@@ -848,10 +731,10 @@ const setContinue = ref(false)
 const setLightColors = ref(false)
 const setResults = ref(null)
 
-// Accepts either a plain difficultyKey string (ResultsScreen's replay,
-// Benchmark mode) or { difficultyKey, lightColors } (MainMenu's emit, which
-// also carries the Light Colors checkbox) — the string form reuses whatever
-// lightColors was last set, since it isn't a benchmark-relevant setting.
+// Accepts either a plain difficultyKey string (ResultsScreen's replay) or
+// { difficultyKey, lightColors } (MainMenu's emit, which also carries the
+// Light Colors checkbox) — the string form reuses whatever lightColors was
+// last set.
 function handleSetStart(payload) {
   const { difficultyKey, lightColors } =
     typeof payload === 'string' ? { difficultyKey: payload, lightColors: setLightColors.value } : payload
@@ -870,12 +753,6 @@ function handleSetFinished(results) {
   setResults.value = results
   setDifficulty.value = results.difficulty
   setScreen.value = 'results'
-  if (benchmarkActive.value) {
-    const priorBaseline = getBaseline('set')
-    const session = recordBenchmarkSession(mapSetEntry({ ...results, completedAt: new Date().toISOString() }))
-    benchmarkFeedback.value = { game: 'set', message: describeBenchmarkFeedback('set', priorBaseline, session.primaryMetric) }
-    benchmarkActive.value = false
-  }
 }
 
 // --- Sequence Memory ---
@@ -899,12 +776,6 @@ function handleSequenceFinished(results) {
   sequenceResults.value = results
   sequenceDifficulty.value = results.difficulty
   sequenceScreen.value = 'results'
-  if (benchmarkActive.value) {
-    const priorBaseline = getBaseline('sequence-memory')
-    const session = recordBenchmarkSession(mapSequenceMemoryEntry({ ...results, completedAt: new Date().toISOString() }))
-    benchmarkFeedback.value = { game: 'sequence-memory', message: describeBenchmarkFeedback('sequence-memory', priorBaseline, session.primaryMetric) }
-    benchmarkActive.value = false
-  }
 }
 
 // --- Switch Trail ---
@@ -931,12 +802,6 @@ function handleSwitchTrailHistory(payload) {
 function handleSwitchTrailFinished(results) {
   switchtrailResults.value = results
   switchtrailScreen.value = 'results'
-  if (benchmarkActive.value) {
-    const priorBaseline = getBaseline('switchtrail')
-    const session = recordBenchmarkSession(mapSwitchTrailEntry({ ...results, completedAt: new Date().toISOString() }))
-    benchmarkFeedback.value = { game: 'switchtrail', message: describeBenchmarkFeedback('switchtrail', priorBaseline, session.primaryMetric) }
-    benchmarkActive.value = false
-  }
 }
 
 // --- Memory Pairs ---
@@ -960,17 +825,9 @@ function handleMemoryPairsFinished(results) {
   memoryPairsResults.value = results
   memoryPairsDifficulty.value = results.difficulty
   memoryPairsScreen.value = 'results'
-  if (benchmarkActive.value) {
-    const priorBaseline = getBaseline('memorypairs')
-    const session = recordBenchmarkSession(mapMemoryPairsEntry({ ...results, completedAt: new Date().toISOString() }))
-    benchmarkFeedback.value = { game: 'memorypairs', message: describeBenchmarkFeedback('memorypairs', priorBaseline, session.primaryMetric) }
-    benchmarkActive.value = false
-  }
 }
 
-// --- Marble Jump --- not part of Benchmark v1 (SPEC §28), so unlike the
-// games above there is no benchmarkActive/recordBenchmarkSession branch here
-// — same as Sudoku, the other benchmark-excluded game.
+// --- Marble Jump ---
 const marbleJumpScreen = ref('menu')
 const marbleJumpDifficulty = ref(null)
 const marbleJumpContinue = ref(false)
@@ -993,10 +850,8 @@ function handleMarbleJumpFinished(results) {
   marbleJumpScreen.value = 'results'
 }
 
-// --- Mental Rotation --- not part of Benchmark v1 (SPEC §36), so like
-// Marble Jump and Sudoku there is no benchmarkActive/recordBenchmarkSession
-// branch here. GameScreen.vue itself calls recordStart/recordCompletion
-// (via useMentalRotationStats) — App.vue just routes screens.
+// --- Mental Rotation --- GameScreen.vue itself calls recordStart/
+// recordCompletion (via useMentalRotationStats) — App.vue just routes screens.
 const mentalRotationScreen = ref('menu')
 const mentalRotationDifficulty = ref(null)
 const mentalRotationMode = ref('timed')
@@ -1022,9 +877,7 @@ function handleMentalRotationFinished(results) {
   mentalRotationScreen.value = 'results'
 }
 
-// --- Emoji Mahjong --- not part of Benchmark v1 (SPEC §32), so like Marble
-// Jump and Mental Rotation there is no benchmarkActive/recordBenchmarkSession
-// branch here.
+// --- Emoji Mahjong ---
 const emojiMahjongScreen = ref('menu')
 const emojiMahjongLevel = ref(null)
 const emojiMahjongContinue = ref(false)
@@ -1052,8 +905,7 @@ function handleEmojiMahjongFinished(results) {
   emojiMahjongScreen.value = 'results'
 }
 
-// --- Number Match --- not part of Benchmark v1 (SPEC §30), same reasoning
-// as Emoji Mahjong/Marble Jump/Mental Rotation.
+// --- Number Match ---
 const numberMatchScreen = ref('menu')
 const numberMatchDifficulty = ref(null)
 const numberMatchContinue = ref(false)
@@ -1076,8 +928,7 @@ function handleNumberMatchFinished(results) {
   numberMatchScreen.value = 'results'
 }
 
-// --- Odd One Out --- not part of Benchmark v1 (SPEC §36), same reasoning as
-// Emoji Mahjong/Marble Jump/Mental Rotation/Number Match.
+// --- Odd One Out ---
 const oddOneOutScreen = ref('menu')
 const oddOneOutDifficulty = ref(null)
 const oddOneOutColorMode = ref(false)
@@ -1103,8 +954,7 @@ function handleOddOneOutFinished(results) {
   oddOneOutScreen.value = 'results'
 }
 
-// --- Target Tap --- not part of Benchmark v1 (SPEC §40), same reasoning as
-// Emoji Mahjong/Marble Jump/Mental Rotation/Number Match/Odd One Out.
+// --- Target Tap ---
 const targetTapScreen = ref('menu')
 const targetTapDifficulty = ref(null)
 const targetTapResults = ref(null)
@@ -1124,9 +974,7 @@ function handleTargetTapFinished(results) {
   targetTapScreen.value = 'results'
 }
 
-// --- Tower of Hanoi --- not part of Benchmark v1 (SPEC "Benchmark"), same
-// reasoning as Emoji Mahjong/Marble Jump/Mental Rotation/Number Match/Odd
-// One Out/Target Tap. Level-based rather than difficulty-based (SPEC
+// --- Tower of Hanoi --- Level-based rather than difficulty-based (SPEC
 // "Natural progression") — hanoiLevel plays the same role every other
 // game's xxxDifficulty ref does.
 const hanoiScreen = ref('menu')
@@ -1156,9 +1004,7 @@ function handleHanoiFinished(results) {
   hanoiScreen.value = 'results'
 }
 
-// --- Lights Out --- not part of Benchmark v1 (SPEC "Benchmark"), same
-// reasoning as Tower of Hanoi and every other Benchmark-excluded game.
-// Level-based, mirroring Hanoi's exact wiring shape.
+// --- Lights Out --- Level-based, mirroring Hanoi's exact wiring shape.
 const lightsOutScreen = ref('menu')
 const lightsOutLevel = ref(null)
 const lightsOutContinue = ref(false)
@@ -1186,42 +1032,3 @@ function handleLightsOutFinished(results) {
   lightsOutScreen.value = 'results'
 }
 </script>
-
-<style scoped>
-.benchmark-banner,
-.benchmark-feedback {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 10;
-  width: 100%;
-  text-align: center;
-  font-weight: 700;
-  font-size: 0.85rem;
-  padding: 0.5rem 1rem;
-}
-
-.benchmark-banner {
-  background: var(--accent);
-  color: #10121a;
-}
-
-.benchmark-feedback {
-  background: var(--surface-2);
-  color: var(--text);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-}
-
-.dismiss-btn {
-  background: none;
-  border: none;
-  color: var(--text-dim);
-  font-size: 1.1rem;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0;
-}
-</style>
