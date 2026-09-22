@@ -224,31 +224,9 @@ watch(status, (val) => {
   gap: 0.75rem;
 }
 
-.paused-overlay {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  padding: 3rem 1rem;
-  color: var(--text-dim);
-}
-
 .paused-title {
   font-size: 2rem;
-  font-weight: 800;
-  color: var(--accent);
   letter-spacing: 0.1em;
-}
-
-.resume-btn {
-  background: var(--accent);
-  color: #10121a;
-  border: none;
-  border-radius: 10px;
-  padding: 0.85rem 1.75rem;
-  font-size: 1rem;
-  font-weight: 700;
-  cursor: pointer;
 }
 
 .exit-btn {
@@ -274,17 +252,6 @@ watch(status, (val) => {
   display: grid;
   grid-template-columns: auto 1fr auto;
   gap: 0.5rem;
-}
-
-.exit-icon-btn {
-  background: none;
-  border: none;
-  color: var(--text-dim);
-  font-size: 1.1rem;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0.35rem;
-  justify-self: start;
 }
 
 .difficulty-label {

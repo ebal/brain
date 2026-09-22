@@ -165,17 +165,6 @@ watch(status, (val) => {
   gap: 0.5rem;
 }
 
-.exit-icon-btn {
-  background: none;
-  border: none;
-  color: var(--text-dim);
-  font-size: 1.1rem;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0.35rem;
-  justify-self: start;
-}
-
 .difficulty-label {
   text-align: center;
   font-size: 0.85rem;
