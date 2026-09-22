@@ -1,14 +1,14 @@
-# Reference cache-header config for serving ./dist in production.
+# Reference cache-header + compression config for serving ./dist in production.
 #
 # Not wired into docker-compose.yml on purpose — that file runs Vite's own
 # dev server (see README.md), and this project's actual production
 # deployment (brain.ebal.gr) is external to this repo, handled by whatever
-# reverse proxy/static host sits in front of it. Copy the two `location`
-# blocks below into that host's config; the rest is boilerplate to make the
-# example runnable standalone (`nginx -t -c deploy/nginx.conf.example`, path
-# adjusted).
+# reverse proxy/static host sits in front of it. Copy the `gzip`/`types`
+# directives and the two `location` blocks below into that host's config;
+# the rest is boilerplate to make the example runnable standalone
+# (`nginx -t -c deploy/nginx.conf.example`, path adjusted).
 #
-# Why these two rules and nothing else:
+# Why these rules and nothing else:
 # - Every file Vite writes to dist/assets/ has a content hash in its
 #   filename (index-IU-Q1wnn.js, GameScreen-BR3ZWZxg.css, ...). A code change
 #   always produces a new filename, so it's always safe to cache these
@@ -20,10 +20,33 @@
 #   stale from a shared/browser cache, or a visitor can get stuck on an old
 #   build (or, worse, sw.js caching that never lets a new Service Worker
 #   install at all — a well-known PWA footgun).
+# - `gzip` is off by default in stock nginx and only compresses text/html
+#   out of the box — without `gzip_types` naming them explicitly, every JS
+#   and CSS file (the bulk of this app's transfer weight) is sent
+#   uncompressed even when the client sends `Accept-Encoding: gzip`. The
+#   `types` block fixes manifest.webmanifest's Content-Type: nginx has no
+#   built-in mapping for the .webmanifest extension, so it falls back to
+#   application/octet-stream — which both looks wrong and is invisible to
+#   gzip_types matching by content type.
+gzip on;
+gzip_vary on;
+gzip_min_length 256;
+gzip_types
+    text/css
+    text/plain
+    application/javascript
+    application/json
+    application/manifest+json
+    image/svg+xml;
+
 server {
     listen 80;
     root /path/to/brain/dist;
     index index.html;
+
+    types {
+        application/manifest+json webmanifest;
+    }
 
     location /assets/ {
         add_header Cache-Control "public, max-age=31536000, immutable";

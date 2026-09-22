@@ -102,6 +102,7 @@ const GAME_LABELS = {
   targettap: 'Target Tap',
   hanoi: 'Tower of Hanoi',
   lightsout: 'Lights Out',
+  whackamole: 'Whack-a-Mole',
 }
 function gameLabel(game) {
   return GAME_LABELS[game] || game
