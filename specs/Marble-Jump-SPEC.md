@@ -16,7 +16,7 @@ User-facing name: **Marble Jump**.
 
 Brain chooser:
 
-> **Marble Jump**  
+> **⚪ Marble Jump**  
 > Jump over marbles and remove them. Plan ahead and leave as few as possible.
 
 Do not call this `Super Chinese Checkers`. The intended one-player capture/removal mechanic is much closer to **Peg Solitaire / Marble Solitaire** than to standard or Super Chinese Checkers.

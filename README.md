@@ -19,23 +19,23 @@ or another player.
 
 | Game | Main focus |
 | --- | --- |
-| [Stroop Effect Test](#stroop-effect-test) | Inhibition / interference |
-| [Schulte Tables](#schulte-tables) | Visual search / attention |
-| [Number N-Back](#number-n-back) | Working memory |
-| [Sudoku](#sudoku) | Logic / reasoning |
-| [SET](#set) | Pattern recognition |
-| [Sequence Memory](#sequence-memory) | Visuospatial sequence memory |
-| [Switch Trail](#switch-trail) | Cognitive flexibility |
-| [Memory Pairs](#memory-pairs) | Visual/spatial associative memory |
-| [Marble Jump](#marble-jump) | Planning / spatial reasoning |
-| [Mental Rotation](#mental-rotation) | Spatial reasoning / visualization |
-| [Emoji Mahjong](#emoji-mahjong) | Visual search / planning |
-| [Number Match](#number-match) | Numerical search / planning |
-| [Odd One Out](#odd-one-out) | Visual discrimination / attention |
-| [Target Tap](#target-tap) | Sustained attention / reaction speed |
-| [Tower of Hanoi](#tower-of-hanoi) | Planning / sequential problem solving |
-| [Lights Out](#lights-out) | Spatial planning / cause-and-effect |
-| [Whack-a-Mole](#whack-a-mole) | Spatial attention / reaction speed |
+| [🌈 Stroop Effect Test](#stroop-effect-test) | Inhibition / interference |
+| [🔍 Schulte Tables](#schulte-tables) | Visual search / attention |
+| [🃏 Number N-Back](#number-n-back) | Working memory |
+| [🧩 Sudoku](#sudoku) | Logic / reasoning |
+| [🔷 SET](#set) | Pattern recognition |
+| [🔴 Sequence Memory](#sequence-memory) | Visuospatial sequence memory |
+| [🔀 Switch Trail](#switch-trail) | Cognitive flexibility |
+| [🎴 Memory Pairs](#memory-pairs) | Visual/spatial associative memory |
+| [⚪ Marble Jump](#marble-jump) | Planning / spatial reasoning |
+| [🔄 Mental Rotation](#mental-rotation) | Spatial reasoning / visualization |
+| [🀄 Emoji Mahjong](#emoji-mahjong) | Visual search / planning |
+| [🔟 Number Match](#number-match) | Numerical search / planning |
+| [👁️ Odd One Out](#odd-one-out) | Visual discrimination / attention |
+| [🎯 Target Tap](#target-tap) | Sustained attention / reaction speed |
+| [🗼 Tower of Hanoi](#tower-of-hanoi) | Planning / sequential problem solving |
+| [💡 Lights Out](#lights-out) | Spatial planning / cause-and-effect |
+| [🐹 Whack-a-Mole](#whack-a-mole) | Spatial attention / reaction speed |
 
 Detailed rules, scoring formulas and design rationale for each game live in its own `*-SPEC.md`
 file, linked from each section below.

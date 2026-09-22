@@ -1,5 +1,7 @@
 Number N-Back — Working Memory and Attention — Specification
 
+Brain chooser icon: 🃏
+
 1. Background: what an n-back task actually is
 
 The n-back task is a continuous working-memory task. A sequence of stimuli is presented one item at a time and the player decides whether the current item matches the item shown N positions earlier.

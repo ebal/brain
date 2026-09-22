@@ -1,5 +1,7 @@
 # Sequence Memory — Visual & Spatial Memory — Specification
 
+**Brain chooser icon: 🔴**
+
 ## 1. Goal
 
 A simple, mobile-first **Sequence Memory** game.
