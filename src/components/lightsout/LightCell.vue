@@ -3,6 +3,8 @@
     class="light-cell"
     :class="{ on: isOn, hint: isHint }"
     :disabled="!interactive"
+    :aria-pressed="isOn"
+    :aria-label="label"
     @click="$emit('click')"
   >
     <span class="bulb" aria-hidden="true"></span>
@@ -10,12 +12,26 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+
+const props = defineProps({
   isOn: { type: Boolean, required: true },
   isHint: { type: Boolean, default: false },
   interactive: { type: Boolean, default: true },
+  row: { type: Number, required: true },
+  col: { type: Number, required: true },
 })
 defineEmits(['click'])
+
+// aria-pressed above already carries on/off as a toggle-button state for
+// anyone using that directly; the label spells it out too since not every
+// screen reader announces aria-pressed the same way, and position (this
+// is a grid, not a list) is otherwise completely unavailable non-visually.
+const label = computed(() => {
+  const state = props.isOn ? 'on' : 'off'
+  const hint = props.isHint ? ', hinted' : ''
+  return `Row ${props.row}, column ${props.col}, light ${state}${hint}`
+})
 </script>
 
 <style scoped>

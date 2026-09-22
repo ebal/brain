@@ -36,6 +36,9 @@
           :key="i"
           class="demo-cell"
           :class="{ on: cell === 1 }"
+          :disabled="practiceDone"
+          :aria-pressed="cell === 1"
+          :aria-label="`Row ${Math.floor(i / SIZE) + 1}, column ${(i % SIZE) + 1}, light ${cell === 1 ? 'on' : 'off'}`"
           @click="practiceTap(i)"
         >
           <span class="demo-bulb" aria-hidden="true"></span>
