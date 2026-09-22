@@ -53,6 +53,7 @@
         :cols="2"
         :portrait-cols="2"
         :wrong-ids="practiceWrongIds"
+        :interactive="!practiceDone && !practiceFeedback"
         @tap="practiceTap"
       />
       <button class="next-btn" @click="newPracticeBoard">New Board</button>
