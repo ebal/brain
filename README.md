@@ -188,6 +188,8 @@ See [`Memory-Pairs-SPEC.md`](./specs/Memory-Pairs-SPEC.md) for the full design r
 
 ## Marble Jump
 
+![Marble Jump](docs/screenshots/brain-Marble-Jump.png)
+
 A single-player peg-solitaire puzzle on a hexagonal/triangular board: jump one marble over an
 adjacent marble into the empty hole directly beyond it, removing the jumped marble, until no legal
 jumps remain. The goal is to leave as few marbles as possible.
@@ -204,6 +206,8 @@ jumps remain. The goal is to leave as few marbles as possible.
 See [`Marble-Jump-SPEC.md`](./specs/Marble-Jump-SPEC.md) for the full design rationale.
 
 ## Mental Rotation
+
+![Mental Rotation](docs/screenshots/brain-Mental-Rotation.png)
 
 A spatial-reasoning game: see a reference shape and 2-4 candidates, tap the one that's the
 reference *rotated*. Mirrored or structurally different candidates are always wrong, even when they
@@ -230,6 +234,8 @@ look close at a glance.
 See [`Mental-Rotation-SPEC.md`](./specs/Mental-Rotation-SPEC.md) for the full design rationale.
 
 ## Emoji Mahjong
+
+![Emoji Mahjong](docs/screenshots/brain-Emoji-Mahjong.png)
 
 A progressive, 50-level Mahjong Solitaire-style puzzle using emoji instead of traditional tiles:
 tap two identical **free** tiles — nothing covers them from above, and at least one horizontal
@@ -260,6 +266,8 @@ this replaced).
 
 ## Number Match
 
+![Number Match](docs/screenshots/brain-Number-Match.png)
+
 A [Make 10](https://artfulmath.com/make-10-game/)-style number-matching game: tap any two numbers,
 anywhere on the board, that are identical or add up to 10. Position never matters — no adjacency or
 path requirement, unlike Emoji Mahjong's covering rule. Removed cells stay empty and never reflow,
@@ -283,6 +291,8 @@ so board positions stay stable for planning.
 See [`Number-Match-SPEC.md`](./specs/Number-Match-SPEC.md) for the full design rationale.
 
 ## Odd One Out
+
+![Odd One Out](docs/screenshots/brain-Odd-One-Out.png)
 
 A visual-discrimination and search task: find the one number or letter that's different from all
 the others in a grid of otherwise-identical cells, and tap it before the overall timer runs out.
@@ -308,6 +318,8 @@ See [`Odd-One-Out-SPEC.md`](./specs/Odd-One-Out-SPEC.md) for the full design rat
 
 ## Target Tap
 
+![Target Tap](docs/screenshots/brain-Target-Tap.png)
+
 A continuous-performance / vigilance task: a stream of letters appears one at a time, at a fixed
 pace, and you tap anywhere on the game area whenever your assigned target letter shows up —
 ignoring every other letter.
@@ -331,6 +343,8 @@ See [`Target-Tap-SPEC.md`](./specs/Target-Tap-SPEC.md) for the full design ratio
 
 ## Tower of Hanoi
 
+![Tower of Hanoi](docs/screenshots/brain-Tower-of-Hanoi.png)
+
 A progressive, 6-level Tower of Hanoi: move the whole disk tower from peg A to peg C, one disk at
 a time, never placing a larger disk on a smaller one.
 
@@ -351,6 +365,8 @@ a time, never placing a larger disk on a smaller one.
 See [`Tower-of-Hanoi-SPEC.md`](./specs/Tower-of-Hanoi-SPEC.md) for the full design rationale.
 
 ## Lights Out
+
+![Lights Out](docs/screenshots/brain-Lights-Out.png)
 
 A progressive, 50-level Lights Out: tap a cell to toggle it and its up/down/left/right neighbours
 (never diagonals), turning every light off to complete the level.
@@ -374,6 +390,8 @@ A progressive, 50-level Lights Out: tap a cell to toggle it and its up/down/left
 See [`Lights-Out-SPEC.md`](./specs/Lights-Out-SPEC.md) for the full design rationale.
 
 ## Whack-a-Mole
+
+![Whack-a-Mole](docs/screenshots/brain-Whack-a-Mole.png)
 
 A progressive, 50-level Whack-a-Mole: a mole (🐹) pops up briefly in one of the grid's holes —
 tap it before it disappears. Later levels add a distractor (🐰) that must be left alone.
