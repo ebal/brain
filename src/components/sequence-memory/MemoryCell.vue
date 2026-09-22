@@ -2,14 +2,24 @@
   <button
     class="memory-cell"
     :class="{ active: isActive, wrong: isWrong }"
+    :disabled="!interactive"
+    :aria-label="`Row ${row}, column ${col}`"
     @click="$emit('click')"
   ></button>
 </template>
 
 <script setup>
+// No aria-pressed here — unlike Lights Out, a cell has no persistent
+// on/off state to report (SPEC: "cells have no permanent identity, only a
+// temporary flash"). Position is the only thing that stays stable and
+// worth announcing; the active/wrong flash is inherently a fast, visual-
+// only cue that a screen reader couldn't usefully keep up with either way.
 defineProps({
   isActive: { type: Boolean, default: false },
   isWrong: { type: Boolean, default: false },
+  interactive: { type: Boolean, default: false },
+  row: { type: Number, required: true },
+  col: { type: Number, required: true },
 })
 defineEmits(['click'])
 </script>
@@ -27,6 +37,10 @@ defineEmits(['click'])
   -webkit-user-select: none;
   touch-action: manipulation;
   transition: background-color 0.08s ease, border-color 0.08s ease;
+}
+
+.memory-cell:disabled {
+  cursor: default;
 }
 
 .memory-cell.active {
