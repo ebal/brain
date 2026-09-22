@@ -8,17 +8,27 @@
       { 'value-highlight': isSameValueHighlight && !isSelected },
       { wrong: isWrong },
     ]"
+    :aria-selected="isSelected"
+    :aria-label="label"
     @click="$emit('click')"
   >
-    <span v-if="value" class="value">{{ value }}</span>
-    <div v-else-if="notes.length" class="notes-grid">
+    <span v-if="value" class="value" aria-hidden="true">{{ value }}</span>
+    <div v-else-if="notes.length" class="notes-grid" aria-hidden="true">
       <span v-for="n in 9" :key="n" class="note">{{ notes.includes(n) ? n : '' }}</span>
     </div>
   </button>
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+
+// Deliberately never disabled, even when fixed/hinted — tapping a given
+// or hinted cell is still a valid selection (it highlights its peers/
+// same-value cells), it just can't accept a new digit from the number
+// pad. That distinction is "editable" vs "not editable", not
+// "interactive" vs "not" — SudokuGameScreen/the number pad are what
+// actually refuse to write into a fixed/hinted cell, not this button.
+const props = defineProps({
   value: { type: Number, default: 0 },
   notes: { type: Array, default: () => [] },
   isFixed: { type: Boolean, default: false },
@@ -29,8 +39,27 @@ defineProps({
   isWrong: { type: Boolean, default: false },
   boxRight: { type: Boolean, default: false },
   boxBottom: { type: Boolean, default: false },
+  // Default to 0 rather than required — the About page's single static
+  // notes-example cell isn't part of a real board and has no meaningful
+  // position (see AboutPage.vue, wrapped in aria-hidden there instead).
+  row: { type: Number, default: 0 },
+  col: { type: Number, default: 0 },
 })
 defineEmits(['click'])
+
+const label = computed(() => {
+  const position = `Row ${props.row + 1}, column ${props.col + 1}`
+  let content
+  if (props.value) {
+    const qualifier = props.isFixed ? ' (given)' : props.isHinted ? ' (hint)' : ''
+    content = `${props.value}${qualifier}`
+  } else if (props.notes.length) {
+    content = `empty, notes ${props.notes.join(', ')}`
+  } else {
+    content = 'empty'
+  }
+  return `${position}, ${content}${props.isWrong ? ', incorrect' : ''}`
+})
 </script>
 
 <style scoped>

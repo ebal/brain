@@ -20,7 +20,7 @@
       Toggle <strong>Notes</strong> to jot down candidate numbers instead of committing to one — useful
       for tracking possibilities as you narrow them down. A cell can hold several notes at once:
     </p>
-    <div class="notes-example">
+    <div class="notes-example" aria-hidden="true">
       <SudokuCell :value="0" :notes="[1, 3, 5, 9]" />
     </div>
     <p class="intro">
