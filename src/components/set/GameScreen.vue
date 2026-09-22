@@ -39,6 +39,7 @@
         :hint-card-ids="hintCardIds"
         :feedback="feedback"
         :light-colors="props.lightColors"
+        :interactive="status === 'playing' && !feedback"
         @select="handleSelect"
       />
 

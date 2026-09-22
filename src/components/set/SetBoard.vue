@@ -12,6 +12,7 @@
       :wrong="feedback === 'invalid' && selected.includes(card.id)"
       :valid="feedback === 'valid' && selected.includes(card.id)"
       :light-colors="lightColors"
+      :interactive="interactive"
       @click="$emit('select', card.id)"
     />
   </div>
@@ -26,6 +27,7 @@ defineProps({
   hintCardIds: { type: Array, default: () => [] },
   feedback: { type: String, default: null },
   lightColors: { type: Boolean, default: false },
+  interactive: { type: Boolean, default: true },
 })
 defineEmits(['select'])
 </script>
