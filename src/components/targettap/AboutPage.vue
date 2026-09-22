@@ -34,12 +34,17 @@
 
     <div class="demo">
       <p class="demo-target">TARGET: <strong>{{ practiceTarget }}</strong></p>
-      <div class="demo-surface" @click="practiceTap">
-        <span v-if="!practiceDone" class="demo-letter">{{ practiceLetter }}</span>
-        <div v-if="practiceFeedback" class="demo-feedback-icon" :class="practiceFeedback">
+      <button
+        class="demo-surface"
+        :disabled="practiceDone"
+        aria-label="Practice tap area — tap when you see your target letter"
+        @click="practiceTap"
+      >
+        <span v-if="!practiceDone" class="demo-letter" aria-hidden="true">{{ practiceLetter }}</span>
+        <div v-if="practiceFeedback" class="demo-feedback-icon" :class="practiceFeedback" aria-live="polite">
           {{ practiceFeedback === 'hit' ? '✓' : practiceFeedback === 'falseAlarm' ? '✕' : '' }}
         </div>
-      </div>
+      </button>
       <p class="demo-caption">
         <template v-if="practiceDone">That's the practice stream — start over to try again.</template>
         <template v-else-if="practiceFeedback === 'hit'">Hit! That was your target.</template>
@@ -216,9 +221,15 @@ h2 {
   align-items: center;
   justify-content: center;
   background: var(--surface-2);
+  border: none;
   border-radius: 12px;
+  padding: 0;
   cursor: pointer;
   user-select: none;
+}
+
+.demo-surface:disabled {
+  cursor: default;
 }
 
 .demo-letter {

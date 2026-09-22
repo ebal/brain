@@ -10,6 +10,8 @@
       :selected="selected === cell.idx"
       :legal="legalDestinations.includes(cell.idx)"
       :last-move="lastMoveCells.includes(cell.idx)"
+      :row="cell.row"
+      :col="cell.col"
       @click="$emit('tap', cell.idx)"
     />
   </svg>

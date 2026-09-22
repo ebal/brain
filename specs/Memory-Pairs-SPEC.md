@@ -566,7 +566,7 @@ Practice has no Score, History, or Timer.
 ## 27. Brain chooser entry
 
 ```text
-Memory Pairs
+🎴 Memory Pairs
 
 Flip tiles and find matching emoji pairs.
 Visual memory & spatial recall.

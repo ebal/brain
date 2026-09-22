@@ -721,27 +721,15 @@ Keep the explanation visual and short.
 ## 28. Brain chooser entry
 
 ```text
-Mental Rotation
+🔄 Mental Rotation
 
 Find the same shape after it has been rotated.
 Spatial reasoning & visualization.
 ```
 
-Suggested emoji:
-
-```text
-🔄
-```
-
-If that conflicts visually with another Brain game, alternatives:
-
-```text
-🧊
-🌀
-🔷
-```
-
-Prefer a unique icon across the game chooser.
+Chosen emoji: 🔄 — unique across the game chooser as of the README/SPEC pass that assigned an
+icon to every game. If it ever needs to change, `🧊`/`🌀` remain free alternatives (`🔷` is now
+SET's, so no longer a free option here).
 
 ---
 

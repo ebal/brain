@@ -29,6 +29,8 @@
             :is-on="cell === 1"
             :is-hint="hintCell === i"
             :interactive="status === 'playing'"
+            :row="Math.floor(i / size) + 1"
+            :col="(i % size) + 1"
             @click="handleTap(i)"
           />
         </div>

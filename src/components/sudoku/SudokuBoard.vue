@@ -4,6 +4,8 @@
       <SudokuCell
         v-for="i in 81"
         :key="i"
+        :row="rowOf(i - 1)"
+        :col="colOf(i - 1)"
         :value="values[rowOf(i - 1)][colOf(i - 1)]"
         :notes="notes[rowOf(i - 1)][colOf(i - 1)]"
         :is-fixed="fixedCells[rowOf(i - 1)][colOf(i - 1)]"

@@ -1,5 +1,7 @@
 # SET — Visual Perception and Pattern Recognition — Specification
 
+**Brain chooser icon: 🔷**
+
 ## 1. Background: what SET is
 
 SET is a visual pattern-recognition card game built around **81 unique cards**. Every card has four independent properties, each with three possible values:

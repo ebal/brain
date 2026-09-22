@@ -27,6 +27,7 @@
           :cols="difficulty?.cols"
           :portrait-cols="difficulty?.portraitCols"
           :wrong-ids="wrongIds"
+          :interactive="status === 'playing' && !feedback"
           @tap="handleTap"
         />
         <div v-if="status === 'countdown'" class="countdown-overlay">

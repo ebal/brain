@@ -460,7 +460,7 @@ Mention that Switch Trail is inspired by the Trail Making task-switching paradig
 ## 25. Brain chooser entry
 
 ```text
-Switch Trail
+🔀 Switch Trail
 
 Alternate between numbers and letters before time runs out.
 Cognitive flexibility & visual attention.

@@ -1,5 +1,7 @@
 # Stroop Effect Test — Specification
 
+**Brain chooser icon: 🌈**
+
 ## 1. Background: what a Stroop test actually is
 
 The Stroop effect (Stroop, 1935) is the measurable slowdown and increase in errors that occurs when a person must name the **ink color** a word is printed in, while the word itself spells out a *different* color name (an "incongruent" trial — e.g. the word "RED" printed in blue ink) versus a "congruent" trial where word and ink match, or a neutral trial with no color-word meaning at all.

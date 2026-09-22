@@ -2,9 +2,12 @@
   <button
     class="set-card"
     :class="{ selected, wrong, hinted, correct: valid }"
+    :disabled="!interactive"
+    :aria-pressed="selected"
+    :aria-label="label"
     @click="$emit('click')"
   >
-    <svg viewBox="0 0 200 300" class="card-svg">
+    <svg viewBox="0 0 200 300" class="card-svg" aria-hidden="true">
       <defs>
         <pattern :id="patternId" width="8" height="8" patternUnits="userSpaceOnUse">
           <rect width="8" height="8" fill="white" />
@@ -55,7 +58,7 @@ let patternIdCounter = 0
 
 <script setup>
 import { computed } from 'vue'
-import { COLOR_HEX, COLOR_HEX_LIGHT } from '../../constants/set/cardProperties.js'
+import { COLOR_HEX, COLOR_HEX_LIGHT, NUMBER_NAMES, SHAPE_NAMES, COLOR_NAMES, SHADING_NAMES } from '../../constants/set/cardProperties.js'
 
 const patternId = `set-stripe-${patternIdCounter++}`
 
@@ -69,6 +72,13 @@ const props = defineProps({
   hinted: { type: Boolean, default: false },
   valid: { type: Boolean, default: false },
   lightColors: { type: Boolean, default: false },
+  // Defaults true rather than false, unlike other games' cell components —
+  // this component is also used for AboutPage.vue's two static illustration
+  // rows, which pass no interactivity-related props at all and were never
+  // meant to be disabled (they're wrapped in aria-hidden instead, since
+  // they're purely decorative). Real boards (SetBoard.vue, the practice
+  // widget) always pass this explicitly.
+  interactive: { type: Boolean, default: true },
 })
 defineEmits(['click'])
 
@@ -87,6 +97,22 @@ const symbolPositions = computed(() => {
   const totalHeight = count * symbolHeight + (count - 1) * gap
   const startY = (300 - totalHeight) / 2
   return Array.from({ length: count }, (_, i) => startY + i * (symbolHeight + gap))
+})
+
+// Built from the same NUMBER/SHAPE/COLOR/SHADING_NAMES the rest of the app
+// already uses to describe a card's four properties (e.g. the Easy-mode
+// wrong-guess explanation) — nothing new to keep in sync. The SVG itself
+// is aria-hidden since this label is a full textual equivalent of it.
+const label = computed(() => {
+  const count = props.number + 1
+  const shapeName = SHAPE_NAMES[props.shape] + (count > 1 ? 's' : '')
+  const base = `${NUMBER_NAMES[props.number]} ${COLOR_NAMES[props.color]} ${SHADING_NAMES[props.shading]} ${shapeName}`
+  const state = []
+  if (props.selected) state.push('selected')
+  if (props.hinted) state.push('hinted')
+  if (props.wrong) state.push('not a SET')
+  if (props.valid) state.push('part of a SET')
+  return state.length ? `${base}, ${state.join(', ')}` : base
 })
 </script>
 

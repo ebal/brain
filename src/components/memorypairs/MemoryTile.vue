@@ -2,20 +2,41 @@
   <button
     class="memory-tile"
     :class="[state, { wrong }]"
-    :disabled="state === 'matched'"
+    :disabled="state === 'matched' || !interactive"
+    :aria-label="label"
     @click="$emit('click')"
   >
-    <span v-if="state !== 'facedown'" class="emoji">{{ emoji }}</span>
+    <span v-if="state !== 'facedown'" class="emoji" aria-hidden="true">{{ emoji }}</span>
   </button>
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+
+const props = defineProps({
   emoji: { type: String, required: true },
   state: { type: String, default: 'facedown' }, // facedown | revealed | matched
   wrong: { type: Boolean, default: false }, // brief mismatch flash
+  interactive: { type: Boolean, default: false },
+  index: { type: Number, required: true },
+  total: { type: Number, required: true },
 })
 defineEmits(['click'])
+
+// "Tile N of M" rather than row/column — the board's own column count
+// changes between portrait and landscape (MemoryBoard.vue's CSS media
+// query), so a row/col computed once in script could describe the wrong
+// layout depending on viewport. An ordinal position is correct either
+// way. Once a tile is face-up, its emoji is already visible information
+// (announced via the OS's own emoji name, same as any text) — the
+// aria-hidden span only hides it from the accessibility tree while
+// face-down, when nobody, sighted or not, can see it either.
+const label = computed(() => {
+  const position = `Tile ${props.index + 1} of ${props.total}`
+  if (props.state === 'facedown') return `${position}, face down`
+  if (props.state === 'matched') return `${position}, matched, ${props.emoji}`
+  return `${position}, ${props.emoji}${props.wrong ? ', mismatch' : ''}`
+})
 </script>
 
 <style scoped>

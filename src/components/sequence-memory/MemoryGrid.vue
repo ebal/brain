@@ -5,7 +5,10 @@
       :key="i - 1"
       :is-active="activeCell === i - 1 || (tapFeedback?.cell === i - 1 && tapFeedback.correct)"
       :is-wrong="tapFeedback?.cell === i - 1 && !tapFeedback.correct"
-      @click="interactive && $emit('select', i - 1)"
+      :interactive="interactive"
+      :row="Math.floor((i - 1) / 3) + 1"
+      :col="((i - 1) % 3) + 1"
+      @click="$emit('select', i - 1)"
     />
   </div>
 </template>

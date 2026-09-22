@@ -10,7 +10,7 @@
     </p>
 
     <h2>A valid example</h2>
-    <div class="example-row">
+    <div class="example-row" aria-hidden="true">
       <SetCard v-for="(c, i) in validExample" :key="i" v-bind="c" />
     </div>
     <p class="intro">
@@ -19,7 +19,7 @@
     </p>
 
     <h2>An invalid example</h2>
-    <div class="example-row">
+    <div class="example-row" aria-hidden="true">
       <SetCard v-for="(c, i) in invalidExample" :key="i" v-bind="c" />
     </div>
     <p class="intro">
@@ -67,6 +67,7 @@
           :selected="practiceSelected.includes(card.id)"
           :wrong="feedback === 'invalid' && practiceSelected.includes(card.id)"
           :valid="feedback === 'valid' && practiceSelected.includes(card.id)"
+          :interactive="!feedback"
           @click="practiceSelect(card.id)"
         />
       </div>

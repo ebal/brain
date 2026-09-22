@@ -1,6 +1,8 @@
 
 Schulte Tables — Visual Attention and Speed — Specification
 
+Brain chooser icon: 🔍
+
 1. Background: what a Schulte Table actually is
 
 A Schulte Table is a square grid containing numbers placed in randomized positions. The task is to find and select the numbers in ascending order as quickly and accurately as possible.

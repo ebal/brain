@@ -1,5 +1,7 @@
 # Sudoku — Logic, Time and Progress — Specification
 
+**Brain chooser icon: 🧩**
+
 ## 1. Goal
 
 A clean, mobile-first Sudoku game for personal use.

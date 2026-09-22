@@ -15,7 +15,14 @@ export default defineConfig({
   plugins: [
     vue(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt', not 'autoUpdate' — a new build's service worker installs
+      // and waits rather than self-activating immediately. autoUpdate risks
+      // an already-open tab losing access to its OWN build's lazy chunk
+      // files the moment the new SW's precache evicts them, if that tab
+      // then navigates to a game screen it hasn't loaded yet. main.js's
+      // onNeedRefresh + App.vue's update banner hand control of exactly
+      // when to switch over to the user instead. See composables/pwaUpdate.js.
+      registerType: 'prompt',
       injectRegister: false, // registered explicitly in main.js instead
       includeAssets: ['apple-touch-icon.png'],
       manifest: {

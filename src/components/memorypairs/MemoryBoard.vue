@@ -4,11 +4,14 @@
     :style="{ '--portrait-cols': portraitCols, '--landscape-cols': cols }"
   >
     <MemoryTile
-      v-for="tile in tiles"
+      v-for="(tile, index) in tiles"
       :key="tile.id"
       :emoji="tile.emoji"
       :state="tile.state"
       :wrong="wrongIds.includes(tile.id)"
+      :interactive="interactive"
+      :index="index"
+      :total="tiles.length"
       @click="$emit('tap', tile.id)"
     />
   </div>
@@ -22,6 +25,7 @@ defineProps({
   cols: { type: Number, required: true },
   portraitCols: { type: Number, required: true },
   wrongIds: { type: Array, default: () => [] },
+  interactive: { type: Boolean, default: false },
 })
 defineEmits(['tap'])
 </script>
