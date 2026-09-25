@@ -1,8 +1,8 @@
-# Brain Sync — Phase 0 Persistence Audit (and Phase 1 record)
+# Brain Sync — Phase 0 Persistence Audit (and Phase 1–2 record)
 
 Audit of Brain's local persistence as of **1.1.1** (`45a9015`), per
 [`BRAIN-SYNC-SPEC.md`](./BRAIN-SYNC-SPEC.md) §55/§65. The last section records what Phase 1
-(§56) changed. No sync, merge engine, outbox or backend exists yet. Those are Phases 2–7.
+(§56) and Phase 2 (§57) changed. No outbox, backend or sync UI exists yet. Those are Phases 3–7.
 
 ## 1. Baseline
 
@@ -188,8 +188,8 @@ PWAs (standalone display mode). Firefox shows a permission prompt, so gate it.
 |---|---|---|
 | 0 | This audit | ✅ |
 | 1 | schemaVersion, sequential migrations, fixtures, Device ID, session IDs, release-safety guard | ✅ (below) |
-| 2 | Pure merge engine: sessions ∪, bests MAX/MIN with eligibility, level union + derived progression, counter derivation, `levelVersion`, best provenance. Blue/Green/Red tests, commutativity/associativity/idempotence properties | next |
-| 3 | IndexedDB migration (non-destructive), durable outbox, Flags learning events, mock transport | |
+| 2 | Pure merge engine: sessions ∪, bests via each game's own order with eligibility, level union + derived progression, counters MAX. Blue/Green/Red tests, commutativity/associativity/idempotence properties | ✅ (§10) |
+| 3 | IndexedDB migration (non-destructive), durable outbox, Flags learning events, uncapped sessions, session-derived counters, best provenance (`sessionId`) and `levelVersion` stamping, mock transport | next |
 | 4 | Backend (small HTTPS API + SQLite/Postgres): identity, devices, sync endpoint, cursors, idempotency | |
 | 5 | QR pairing tokens, recovery code + rotation, revocation | |
 | 6 | Status UI, Sync Now, auto-sync triggers, device management, cloud delete/disconnect | |
@@ -235,3 +235,57 @@ unmodified `main`** (2 failures in 15 isolated runs), apparently depending on ra
 Import → *Replace* was kept. It is an explicit, confirmed user action rather than an upgrade reset.
 Spec §40 (never blindly replace better progress on a *synced* device) should turn it into a
 merge-only path once sync exists (Phase 6).
+
+## 10. Phase 2 — what was implemented
+
+The merge engine is pure and deterministic, and the app doesn't call it yet. Two snapshots (the
+canonical `{ storageKey: value }` shape at the current schema version) go in, and one merged
+snapshot comes out.
+
+- **`src/composables/sync/mergeRules.js`**: a declarative best-record rule for every game.
+  Each rule restates the game's own "is this a new best" comparison, field by field
+  (for example Emoji Mahjong compares stars, then score, then undos, then time). Eligibility is
+  re-checked from each record's own fields: Target Tap's RT best needs hit rate ≥ 80 and false
+  alarms ≤ 20, Mental Rotation's and Odd One Out's RT bests need accuracy ≥ 80, and every `bestClean`
+  needs `hints === 0`. Those thresholds are now exported from the games' stats modules instead of
+  copied. Campaign level counts come from the games' level constants.
+- **`src/composables/sync/mergeEngine.js`**: `mergeData`, `mergeAll`, `describeMerge`,
+  `syncableData`.
+
+  | Data | Merge |
+  |---|---|
+  | history | union by `sessionId`; a same-ID conflict is resolved by content, deterministically |
+  | best records | the game's own order; an ineligible record counts as absent; a full tie is broken by content, **never by timestamp** |
+  | `completedLevels` | set union |
+  | `highestUnlocked`, `totalStars`, `threeStarLevels` | **re-derived** from merged completions and per-level best stars, never merged; highest-unlocked is also kept ≥ its stored value |
+  | counters, running totals, streaks | MAX |
+  | `completions[]` samples | multiset union |
+  | Flags learning | per country, the record with more attempts (interim, §4.4) |
+  | autosaves, UI flags, non-Brain keys | never part of a sync snapshot |
+  | anything else (e.g. retired-mode keys) | generic join: numbers MAX, booleans OR, arrays multiset-union, objects per field |
+
+  A structurally invalid value (for example a non-array history) is treated as absent, so it can
+  never displace valid data (§45). A key missing from the result means "nothing to write", never
+  "delete".
+- **Tests** (`mergeEngine.test.js`, 39 tests):
+  - The §51 Blue/Green/Red Mahjong scenario, built with the real Emoji Mahjong save code. All
+    six merge orders produce identical output, and it checks union of completions, derived
+    unlock level 39, the preserved L30 ★★★ and best L37, and that no session is lost.
+  - Each rule unit-tested: MAX, MIN, eligible-only RT, clean-only, timestamp-independence,
+    union/OR, invalid payloads, device-local exclusion.
+  - **Every rule cross-checked against the game's real save code**: for random result pairs
+    where the game itself keeps the same bests regardless of the order it sees them in, merging
+    two single-result devices must give exactly those bests.
+  - Commutativity, associativity (all 3-device combinations), idempotence and "no regression"
+    over randomized multi-game devices built with the real save code. A one-off heavier run
+    (30 devices, 400 result pairs per game) also passed.
+
+Known limits, taken on deliberately:
+
+- **Counters (MAX) are a lower bound.** Two devices that each completed a level 3 times show 3
+  after merging, not 6. Nothing is double-counted and nothing regresses. Exact totals need
+  counters derived from uncapped sessions (Phase 3).
+- **Flags learning is not fully mergeable** until per-attempt events exist (Phase 3).
+- **Best provenance (`sessionId` on best records) and `levelVersion` are deferred to Phase 3.**
+  Phase 3 changes every save function for the outbox anyway, and every level is currently at
+  version 1, so a missing value will read as 1.

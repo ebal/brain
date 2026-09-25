@@ -6,7 +6,7 @@ const STATS_PREFIX = 'mentalrotation:stats:'
 const HISTORY_PREFIX = 'mentalrotation:history'
 const MAX_HISTORY = 30
 const MAX_STATS_SAMPLES = 50 // per-difficulty sample cap for avg/median, separate from the 30-entry combined history
-const RT_ELIGIBILITY_ACCURACY = 80 // SPEC §22: a round must hit >=80% accuracy to be eligible for Best Median RT
+export const RT_ELIGIBILITY_ACCURACY = 80 // SPEC §22: a round must hit >=80% accuracy to be eligible for Best Median RT
 
 // 'timed' keeps the original, pre-existing key shape (`mentalrotation:stats:<difficultyKey>`,
 // `mentalrotation:history`) so nobody's already-saved timed bests/history

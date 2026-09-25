@@ -13,7 +13,7 @@ const STATS_PREFIX = 'oddoneout:stats:'
 const HISTORY_PREFIX = 'oddoneout:history:'
 const MAX_HISTORY = 30 // SPEC §22
 const MAX_STATS_SAMPLES = 50 // per-difficulty sample cap for avg/median, separate from the 30-entry history
-const RT_BEST_MIN_ACCURACY = 80 // SPEC §21: "RT personal best requires accuracy >= 80%"
+export const RT_BEST_MIN_ACCURACY = 80 // SPEC §21: "RT personal best requires accuracy >= 80%"
 
 // 'classic' keeps Odd One Out's original, pre-existing storage key shape
 // (`oddoneout:stats:<difficulty>` / `oddoneout:history:<difficulty>`) so

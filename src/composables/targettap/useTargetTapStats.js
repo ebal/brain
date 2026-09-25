@@ -14,8 +14,8 @@ const HISTORY_PREFIX = 'targettap:history:'
 const LAST_TARGET_KEY = 'targettap:last-target'
 const MAX_HISTORY = 30 // SPEC §27
 const MAX_STATS_SAMPLES = 50 // per-difficulty sample cap for avg/median, separate from the 30-entry history
-const RT_BEST_MIN_HIT_RATE = 80 // SPEC §26
-const RT_BEST_MAX_FALSE_ALARM_RATE = 20 // SPEC §26
+export const RT_BEST_MIN_HIT_RATE = 80 // SPEC §26
+export const RT_BEST_MAX_FALSE_ALARM_RATE = 20 // SPEC §26
 
 function statsKeyFor(difficultyKey) {
   return `${STATS_PREFIX}${difficultyKey}`
