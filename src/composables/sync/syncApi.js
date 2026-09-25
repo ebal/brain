@@ -10,6 +10,7 @@
 import { SYNC_CREDENTIAL_KEY } from '../../constants/storageKeys.js'
 import { getDeviceId } from '../persistence/device.js'
 import { enableSync, disableSync } from './outbox.js'
+import { isValidRecoveryCode, normalizeRecoveryCode } from './recoveryCode.js'
 
 export class SyncHttpError extends Error {
   constructor(status, code) {
@@ -84,7 +85,91 @@ export async function createIdentity({ baseUrl, displayName, deviceLabel, fetchF
   })
   storeCredential({ baseUrl, syncId: created.syncId, credential: created.credential })
   enableSync()
-  return { syncId: created.syncId, deviceId: created.deviceId }
+  // The recovery code is returned exactly once — the caller must show it
+  // (and explain that losing every device AND the code can make cloud
+  // recovery impossible, §12). It is never stored on the device.
+  return { syncId: created.syncId, deviceId: created.deviceId, recoveryCode: created.recoveryCode }
+}
+
+// ---- pairing (§10, §11) --------------------------------------------------
+//
+// QR payload: `BRAINPAIR1.<token>.<base64url(baseUrl)>` — deliberately not
+// a URL, so a camera app won't open it in a browser (and log it in history)
+// and it can't be mistaken for a link to share. It carries a short-lived,
+// single-use secret; treat it like one.
+
+const PAIR_PREFIX = 'BRAINPAIR1'
+
+function base64UrlEncode(text) {
+  return btoa(String.fromCharCode(...new TextEncoder().encode(text))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+function base64UrlDecode(text) {
+  const b64 = text.replace(/-/g, '+').replace(/_/g, '/')
+  return new TextDecoder().decode(Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)))
+}
+
+export function encodePairingPayload(baseUrl, token) {
+  return `${PAIR_PREFIX}.${token}.${base64UrlEncode(baseUrl)}`
+}
+
+export function decodePairingPayload(text) {
+  const parts = typeof text === 'string' ? text.trim().split('.') : []
+  if (parts.length !== 3 || parts[0] !== PAIR_PREFIX || !/^bpt_[A-Za-z0-9_-]{20,}$/.test(parts[1])) return null
+  try {
+    const baseUrl = base64UrlDecode(parts[2])
+    const url = new URL(baseUrl)
+    if (url.protocol !== 'https:' && url.hostname !== 'localhost' && url.hostname !== '127.0.0.1') return null
+    return { token: parts[1], baseUrl }
+  } catch {
+    return null
+  }
+}
+
+// On the trusted device: a fresh token, ready to render as a QR code.
+export async function createPairingPayload({ fetchFn } = {}) {
+  const stored = getStoredCredential()
+  const { token, expiresAt } = await authed('POST', '/v1/pairing-tokens', undefined, fetchFn)
+  return { payload: encodePairingPayload(stored.baseUrl, token), expiresAt }
+}
+
+export const cancelPairing = ({ fetchFn } = {}) => authed('DELETE', '/v1/pairing-tokens', undefined, fetchFn)
+
+// Joining (by QR or recovery code) keeps any progress already on this
+// device: sync is enabled with a full resync, so local + cloud are merged
+// (§31/§32) — never "keep local" vs "keep cloud".
+function joined(baseUrl, result) {
+  storeCredential({ baseUrl, syncId: result.syncId, credential: result.credential })
+  enableSync()
+  return { syncId: result.syncId, deviceId: result.deviceId, displayName: result.displayName ?? null }
+}
+
+// On the new device: claim the scanned payload.
+export async function pairWithPayload(payloadText, { deviceLabel, fetchFn } = {}) {
+  const decoded = decodePairingPayload(payloadText)
+  if (!decoded) throw new SyncHttpError(400, 'invalid_pairing_payload')
+  const result = await request(decoded.baseUrl, 'POST', '/v1/pairing/claim', {
+    body: { token: decoded.token, deviceId: getDeviceId(), deviceLabel },
+    fetchFn,
+  })
+  return joined(decoded.baseUrl, result)
+}
+
+// ---- recovery code (§12) -------------------------------------------------
+
+export const getRecoveryStatus = ({ fetchFn } = {}) => authed('GET', '/v1/recovery-code', undefined, fetchFn)
+
+// Replaces the recovery code; the old one stops working immediately.
+export const rotateRecoveryCode = ({ fetchFn } = {}) => authed('POST', '/v1/recovery-code', undefined, fetchFn)
+
+export async function recoverWithCode(baseUrl, recoveryCode, { deviceLabel, fetchFn } = {}) {
+  // Checked locally first, so a typo never uses up a rate-limited attempt.
+  if (!isValidRecoveryCode(recoveryCode)) throw new SyncHttpError(400, 'invalid_recovery_code_format')
+  const result = await request(baseUrl, 'POST', '/v1/recover', {
+    body: { recoveryCode: normalizeRecoveryCode(recoveryCode), deviceId: getDeviceId(), deviceLabel },
+    fetchFn,
+  })
+  return joined(baseUrl, result)
 }
 
 function authed(method, path, body, fetchFn) {

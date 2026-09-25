@@ -1,8 +1,8 @@
-# Brain Sync — Phase 0 Persistence Audit (and Phase 1–4 record)
+# Brain Sync — Phase 0 Persistence Audit (and Phase 1–5 record)
 
 Audit of Brain's local persistence as of **1.1.1** (`45a9015`), per
 [`BRAIN-SYNC-SPEC.md`](./BRAIN-SYNC-SPEC.md) §55/§65. The last section records what Phase 1
-(§56) through Phase 4 (§59) changed. Pairing/recovery, the sync UI and hardening are Phases 5–7.
+(§56) through Phase 5 (§60) changed. The sync UI and hardening are Phases 6–7.
 
 ## 1. Baseline
 
@@ -191,8 +191,8 @@ PWAs (standalone display mode). Firefox shows a permission prompt, so gate it.
 | 2 | Pure merge engine: sessions ∪, bests via each game's own order with eligibility, level union + derived progression, counters MAX. Blue/Green/Red tests, commutativity/associativity/idempotence properties | ✅ (§10) |
 | 3 | Durable outbox (write-through, per-op keys), sync client + auto-sync triggers, Flags learning events, mock transport/server | ✅ (§11) |
 | 4 | Backend: zero-dependency Node + SQLite API — identity, device credentials, sync endpoint, cursors/revisions, idempotency, device list/rename/revoke, cloud delete; browser HTTP client | ✅ (§12) |
-| 5 | QR pairing tokens, recovery code + rotation (revocation already done in Phase 4) | next |
-| 6 | Status UI, Sync Now, auto-sync triggers, device management, cloud delete/disconnect | |
+| 5 | QR pairing (short-lived single-use tokens), recovery code + rotation, re-joining after revoke/disconnect/lost credential | ✅ (§13) |
+| 6 | Status UI, Sync Now, auto-sync start-up, device management, cloud delete/disconnect, QR render/scan, recovery-code display and entry | next |
 | 7 | Hardening, including the physical Airplane-Mode acceptance test (§52); best provenance (`sessionId`), `levelVersion` stamping, session-derived counters | |
 
 Pre-existing issue found, not fixed (out of scope):
@@ -482,3 +482,92 @@ The app bundle is unchanged: nothing in the app imports `syncApi.js` until Phase
 Best provenance, `levelVersion` stamping and session-derived counters moved to Phase 7. Nothing
 consumes them yet, and each needs care of its own (the counters need a per-game mapping from
 stats scope to session history).
+
+## 13. Phase 5 — what was implemented
+
+### Pairing (§10, §11)
+
+- A trusted device requests a **pairing token** (`POST /v1/pairing-tokens`): 256 random bits,
+  valid for **5 minutes**, **single-use**, stored only as a SHA-256 hash. Each identity keeps at
+  most 5 open tokens (the oldest is dropped), and `DELETE /v1/pairing-tokens` cancels them all.
+- The QR payload is `BRAINPAIR1.<token>.<base64url(server URL)>`.
+  - It is deliberately **not a URL**, so a phone camera won't open it in a browser and leave the
+    secret in browser history.
+  - Decoding rejects anything malformed, and any non-HTTPS server other than localhost.
+- The new device claims the token (`POST /v1/pairing/claim`, no auth) with its own Device ID.
+  - Unknown, expired and already-used tokens all give the same `401 invalid_pairing_token` (§53).
+  - A device can't claim a token it created itself (409).
+  - The token is marked used in the same transaction that issues the new device's credential.
+
+### Recovery code (§12)
+
+- Format (`src/composables/sync/recoveryCode.js`, shared by server and browser): 27 CSPRNG
+  Crockford-base32 symbols (**135 bits**) plus a check symbol, shown as `XXXX-XXXX-…` (7 × 4).
+- Reading is forgiving: case, spaces and dashes are ignored, I/L read as 1, O as 0.
+- The check symbol (weighted sum mod 31) catches every single-symbol typo and every swap of two
+  neighbouring symbols, except those between `0` and `Z`. This is verified exhaustively in tests.
+  A typo is therefore caught on the device and never uses up a rate-limited server attempt.
+- **Generated server-side, returned exactly once, stored only as a SHA-256 hash.** It isn't
+  kept on the device either. `createIdentity` issues the first code. "Show / Rotate" is
+  implemented as **rotate and show**, because the server can't show a code it doesn't store.
+  - Rotating makes the old code stop working immediately; paired devices are unaffected.
+  - `GET /v1/recovery-code` returns only `{ configured, rotatedAt }`.
+- `POST /v1/recover` (no auth) adds the device to the identity with no trusted device needed.
+- **The consequence the UI must explain (§12):** with no email or password, losing every trusted
+  device *and* the recovery code makes cloud recovery impossible.
+- Identities created on a Phase 4 server have no recovery code (`configured: false`). The
+  Phase 6 UI should prompt for one.
+
+### Rejoining, and the Device ID rule
+
+Pairing and recovery both call `registerDevice()`. Re-registering a known Device ID replaces that
+device's credential, and the old one stops working immediately. That one rule covers three cases:
+
+- a revoked device coming back;
+- a device that disconnected itself;
+- a device that lost its local credential but kept its Device ID.
+
+Both flows already prove full authority over the identity, so allowing this adds no power.
+Joining keeps any progress already on the joining device: sync starts with a full resync, and
+local and cloud data are merged, never "keep local" vs "keep cloud" (§31/§32).
+
+### Abuse limits and logging (§38, §53)
+
+- Failed claims (20 per 10 min) and failed recoveries (10 per hour) are rate-limited per client
+  IP, in memory only. Once the limit is hit, even a correct code is refused until the window
+  passes.
+- Tokens, recovery codes and credentials travel only in request bodies or the `Authorization`
+  header, never in URLs, and never appear in logs.
+- Expired tokens, and tokens used more than a day ago, are pruned hourly.
+
+### Server schema
+
+Migration 2 adds `pairing_tokens`, `identities.recovery_hash` (with a unique index) and
+`recovery_rotated_at`. A test builds a database exactly as the Phase 4 server left it and checks
+it upgrades with every row intact and existing credentials still working.
+
+### Tests
+
+**`server/pairing.test.js`** (20 tests):
+
+- the full QR flow between two devices, where the joining device's earlier offline play is
+  merged in both directions;
+- single use, expiry, indistinguishable token failures, cancel, the open-token cap, and no
+  self-claim;
+- a Sync ID or a credential never works as a pairing token; malformed payloads are rejected;
+  only hashes are stored;
+- recovery issued once and kept on neither the server nor the device;
+- recovery on a new device with its own progress;
+- a typo caught locally with no request sent, and a well-formed but unknown code rejected;
+- rotation invalidates the old code while paired devices keep syncing;
+- rejoining after revoke, after disconnect, and after a lost credential, with the old credential
+  staying dead;
+- cloud delete removes the recovery code and open tokens;
+- rate limits, and secret-free logs.
+
+**`recoveryCode.test.js`** (6 tests): format, uniform symbol use, forgiving reads, the exhaustive
+typo and swap detection above.
+
+**Also:** the server schema upgrade test, and a manual `node server/index.js` smoke test
+(create → token → claim 201 → reclaim 401 → recover 201 → 3 devices) with a log containing
+route templates only.

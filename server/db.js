@@ -6,7 +6,7 @@
 
 import { DatabaseSync } from 'node:sqlite'
 
-const MIGRATIONS = [
+export const MIGRATIONS = [
   // 1 — anonymous identities, devices + credentials, idempotency log,
   // durable records, sessions, learning events, per-identity revisions.
   `
@@ -62,6 +62,22 @@ const MIGRATIONS = [
     received_at  TEXT NOT NULL,
     PRIMARY KEY (sync_id, event_id)
   );
+  `,
+  // 2 — pairing tokens (short-lived, single-use; hash only) and the
+  // recovery-code hash (rotatable; plaintext never stored) (§11, §12).
+  `
+  CREATE TABLE pairing_tokens (
+    token_hash   TEXT PRIMARY KEY,
+    sync_id      TEXT NOT NULL REFERENCES identities(sync_id) ON DELETE CASCADE,
+    created_by   TEXT NOT NULL,
+    created_at   TEXT NOT NULL,
+    expires_at   TEXT NOT NULL,
+    used_at      TEXT
+  );
+  CREATE INDEX pairing_tokens_identity ON pairing_tokens(sync_id);
+  ALTER TABLE identities ADD COLUMN recovery_hash TEXT;
+  ALTER TABLE identities ADD COLUMN recovery_rotated_at TEXT;
+  CREATE UNIQUE INDEX identities_recovery_hash ON identities(recovery_hash) WHERE recovery_hash IS NOT NULL;
   `,
 ]
 

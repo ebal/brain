@@ -8,9 +8,13 @@
 //   GET    /v1/devices             │
 //   PATCH  /v1/devices/:deviceId   │
 //   DELETE /v1/devices/:deviceId   │ revoke
-//   DELETE /v1/identity            ┘ delete all cloud data (§39)
-//
-// Pairing and recovery endpoints are Phase 5.
+//   DELETE /v1/identity            │ delete all cloud data (§39)
+//   POST   /v1/pairing-tokens      │ new short-lived single-use QR token
+//   DELETE /v1/pairing-tokens      │ cancel outstanding tokens
+//   GET    /v1/recovery-code       │ { configured, rotatedAt } — never the code
+//   POST   /v1/recovery-code       ┘ rotate; the new code is returned once
+//   POST   /v1/pairing/claim       new device joins with a pairing token (no auth)
+//   POST   /v1/recover             new device joins with the recovery code (no auth)
 //
 // Privacy/security (§14, §37, §38): credentials only ever travel in the
 // Authorization header (never URLs), are stored only as SHA-256 hashes, and
@@ -24,6 +28,8 @@ import { SERVER_SCHEMA_VERSION } from './db.js'
 import {
   ApiError, authenticate, createIdentity, getProfile, renameProfile, sync,
   listDevices, renameDevice, revokeDevice, deleteIdentity,
+  createPairingToken, cancelPairingTokens, claimPairingToken,
+  rotateRecoveryCode, recoveryStatus, recoverWithCode,
 } from './sync.js'
 
 const DEFAULTS = {
@@ -34,6 +40,8 @@ const DEFAULTS = {
   rateLimits: {
     createIdentity: { limit: 20, windowMs: 60 * 60 * 1000 },
     authFailure: { limit: 30, windowMs: 10 * 60 * 1000 },
+    pairingFailure: { limit: 20, windowMs: 10 * 60 * 1000 },
+    recoveryFailure: { limit: 10, windowMs: 60 * 60 * 1000 }, // §53: reasonable pairing/recovery limits
   },
   log: (line) => console.log(line),
 }
@@ -70,6 +78,12 @@ const ROUTES = [
   ['PATCH', /^\/v1\/devices\/([0-9a-fA-F-]{36})$/, 'renameDevice'],
   ['DELETE', /^\/v1\/devices\/([0-9a-fA-F-]{36})$/, 'revokeDevice'],
   ['DELETE', /^\/v1\/identity$/, 'deleteIdentity'],
+  ['POST', /^\/v1\/pairing-tokens$/, 'createPairingToken'],
+  ['DELETE', /^\/v1\/pairing-tokens$/, 'cancelPairingTokens'],
+  ['POST', /^\/v1\/pairing\/claim$/, 'claimPairingToken'],
+  ['GET', /^\/v1\/recovery-code$/, 'recoveryStatus'],
+  ['POST', /^\/v1\/recovery-code$/, 'rotateRecoveryCode'],
+  ['POST', /^\/v1\/recover$/, 'recoverWithCode'],
 ]
 
 const ROUTE_TEMPLATES = {
@@ -114,16 +128,20 @@ export function createApp(db, options = {}) {
     return typeof header === 'string' && header.startsWith('Bearer ') ? header.slice(7).trim() : null
   }
 
-  function auth(req) {
+  // Runs fn unless this client already used up its failure budget for
+  // `bucket`; a 401 from fn counts against it.
+  function limitFailures(req, bucket, fn) {
     const key = clientKey(req)
-    if (limiter.exceeded('authFailure', key, config.rateLimits.authFailure)) throw new ApiError(429, 'rate_limited')
+    if (limiter.exceeded(bucket, key, config.rateLimits[bucket])) throw new ApiError(429, 'rate_limited')
     try {
-      return authenticate(db, bearer(req))
+      return fn()
     } catch (error) {
-      limiter.hit('authFailure', key, config.rateLimits.authFailure)
+      if (error instanceof ApiError && error.status === 401) limiter.hit(bucket, key, config.rateLimits[bucket])
       throw error
     }
   }
+
+  const auth = (req) => limitFailures(req, 'authFailure', () => authenticate(db, bearer(req)))
 
   const handlers = {
     health: () => [200, { ok: true, schemaVersion: CURRENT_SCHEMA_VERSION, serverSchemaVersion: SERVER_SCHEMA_VERSION }],
@@ -147,6 +165,18 @@ export function createApp(db, options = {}) {
     },
     revokeDevice: (req, [deviceId]) => [200, revokeDevice(db, auth(req), deviceId.toLowerCase())],
     deleteIdentity: (req) => [200, deleteIdentity(db, auth(req))],
+    createPairingToken: (req) => [201, createPairingToken(db, auth(req))],
+    cancelPairingTokens: (req) => [200, cancelPairingTokens(db, auth(req))],
+    async claimPairingToken(req) {
+      const body = await readBody(req, config.maxBodyBytes)
+      return [201, limitFailures(req, 'pairingFailure', () => claimPairingToken(db, body))]
+    },
+    recoveryStatus: (req) => [200, recoveryStatus(db, auth(req))],
+    rotateRecoveryCode: (req) => [200, rotateRecoveryCode(db, auth(req))],
+    async recoverWithCode(req) {
+      const body = await readBody(req, config.maxBodyBytes)
+      return [201, limitFailures(req, 'recoveryFailure', () => recoverWithCode(db, body))]
+    },
   }
 
   function corsHeaders(req) {

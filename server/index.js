@@ -14,7 +14,7 @@
 import { createServer } from 'node:http'
 import { openDatabase } from './db.js'
 import { createApp } from './app.js'
-import { pruneOperations } from './sync.js'
+import { pruneOperations, prunePairingTokens } from './sync.js'
 
 const env = process.env
 const port = Number(env.BRAIN_SYNC_PORT ?? 8787)
@@ -31,9 +31,10 @@ const app = createApp(db, {
 const prune = () => {
   const removed = pruneOperations(db, retentionDays)
   if (removed) console.log(`pruned ${removed} expired operation ids`)
+  prunePairingTokens(db)
 }
 prune()
-setInterval(prune, 24 * 60 * 60 * 1000).unref()
+setInterval(prune, 60 * 60 * 1000).unref()
 
 const server = createServer(app)
 server.listen(port, host, () => console.log(`brain-sync listening on ${host}:${port}`))

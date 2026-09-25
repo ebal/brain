@@ -14,10 +14,13 @@ import { LEVEL_GAMES } from '../src/composables/sync/mergeRules.js'
 import { isGameKey, isHistoryKey, isDeviceLocalKey } from '../src/constants/storageKeys.js'
 import { stableStringify } from '../src/composables/persistence/ids.js'
 import { CURRENT_SCHEMA_VERSION } from '../src/composables/persistence/migrations.js'
+import { generateRecoveryCode, normalizeRecoveryCode, isValidRecoveryCode } from '../src/composables/sync/recoveryCode.js'
 
 export const LIMITS = {
   maxOperations: 5000,
   maxLabelLength: 64,
+  pairingTtlMs: 5 * 60 * 1000, // §11: short-lived
+  maxOpenPairingTokens: 5, // per identity; the oldest is dropped beyond this
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -59,21 +62,28 @@ export function createIdentity(db, { deviceId, deviceLabel, displayName } = {}) 
   if (typeof deviceId !== 'string' || !UUID.test(deviceId)) throw new ApiError(400, 'invalid_device_id')
   const syncId = randomUUID()
   const credential = newCredential()
+  const id = deviceId.toLowerCase()
   const at = now()
-  transaction(db, () => {
+  // Every identity starts with a recovery code (§12), returned only here.
+  const recovery = transaction(db, () => {
     db.prepare('INSERT INTO identities (sync_id, display_name, created_at) VALUES (?, ?, ?)').run(syncId, cleanLabel(displayName), at)
     db.prepare('INSERT INTO devices (sync_id, device_id, label, credential_hash, created_at, last_seen_at) VALUES (?, ?, ?, ?, ?, ?)')
-      .run(syncId, deviceId, cleanLabel(deviceLabel), hashCredential(credential), at, at)
+      .run(syncId, id, cleanLabel(deviceLabel), hashCredential(credential), at, at)
+    return rotateRecoveryCode(db, { syncId, deviceId: id })
   })
-  return { syncId, deviceId, credential }
+  return { syncId, deviceId: id, credential, recoveryCode: recovery.recoveryCode }
 }
 
-// Adds another installation to an existing identity and issues its
-// credential. Deliberately not reachable over HTTP on its own: Phase 5's
-// pairing-token and recovery-code endpoints are the only callers (§10-§12).
-// Re-registering a revoked device ID issues a fresh credential.
+// Adds an installation to an existing identity and issues its credential.
+// Not reachable over HTTP on its own: claiming a pairing token and
+// recovering with the recovery code are the only callers (§10-§12), and
+// both are proof of full authority over the identity. Re-registering a
+// known device ID (a revoked or disconnected installation, or one that
+// lost its local credential) replaces that device's credential; the old one
+// stops working immediately.
 export function registerDevice(db, syncId, { deviceId, label } = {}) {
   if (typeof deviceId !== 'string' || !UUID.test(deviceId)) throw new ApiError(400, 'invalid_device_id')
+  deviceId = deviceId.toLowerCase()
   const credential = newCredential()
   const at = now()
   db.prepare(`INSERT INTO devices (sync_id, device_id, label, credential_hash, created_at, last_seen_at) VALUES (?, ?, ?, ?, ?, ?)
@@ -132,6 +142,91 @@ export function revokeDevice(db, auth, deviceId) {
 export function deleteIdentity(db, auth) {
   transaction(db, () => db.prepare('DELETE FROM identities WHERE sync_id = ?').run(auth.syncId))
   return { deleted: true }
+}
+
+// ---- pairing (§10, §11) ---------------------------------------------------
+//
+// A trusted device asks for a short-lived, single-use token and shows it as
+// a QR code; the new device claims it. Only the token's SHA-256 is stored.
+
+function newPairingToken() {
+  return `bpt_${randomBytes(32).toString('base64url')}`
+}
+
+export function createPairingToken(db, auth, { at = Date.now() } = {}) {
+  const token = newPairingToken()
+  const expiresAt = new Date(at + LIMITS.pairingTtlMs).toISOString()
+  transaction(db, () => {
+    db.prepare('INSERT INTO pairing_tokens (token_hash, sync_id, created_by, created_at, expires_at) VALUES (?, ?, ?, ?, ?)')
+      .run(hashCredential(token), auth.syncId, auth.deviceId, new Date(at).toISOString(), expiresAt)
+    db.prepare(`DELETE FROM pairing_tokens WHERE sync_id = ? AND token_hash NOT IN (
+                  SELECT token_hash FROM pairing_tokens WHERE sync_id = ? AND used_at IS NULL ORDER BY created_at DESC LIMIT ?)`)
+      .run(auth.syncId, auth.syncId, LIMITS.maxOpenPairingTokens)
+  })
+  return { token, expiresAt }
+}
+
+// Cancels every outstanding token for this identity (e.g. the QR screen was
+// closed, or a code was shown somewhere it shouldn't have been).
+export function cancelPairingTokens(db, auth) {
+  const cancelled = db.prepare('DELETE FROM pairing_tokens WHERE sync_id = ? AND used_at IS NULL').run(auth.syncId).changes
+  return { cancelled }
+}
+
+export function claimPairingToken(db, { token, deviceId, deviceLabel } = {}, { at = Date.now() } = {}) {
+  if (typeof token !== 'string' || !token.startsWith('bpt_') || token.length > 128) throw new ApiError(401, 'invalid_pairing_token')
+  if (typeof deviceId !== 'string' || !UUID.test(deviceId)) throw new ApiError(400, 'invalid_device_id')
+  return transaction(db, () => {
+    const row = db.prepare('SELECT sync_id AS syncId, created_by AS createdBy, expires_at AS expiresAt, used_at AS usedAt FROM pairing_tokens WHERE token_hash = ?')
+      .get(hashCredential(token))
+    // Unknown, expired and already-used tokens are indistinguishable (§53).
+    if (!row || row.usedAt || Date.parse(row.expiresAt) <= at) throw new ApiError(401, 'invalid_pairing_token')
+    if (row.createdBy === deviceId.toLowerCase()) throw new ApiError(409, 'cannot_pair_with_self')
+    db.prepare('UPDATE pairing_tokens SET used_at = ? WHERE token_hash = ?').run(new Date(at).toISOString(), hashCredential(token))
+    const device = registerDevice(db, row.syncId, { deviceId: deviceId.toLowerCase(), label: deviceLabel })
+    return { ...device, displayName: identityDisplayName(db, row.syncId) }
+  })
+}
+
+export function prunePairingTokens(db, { at = Date.now() } = {}) {
+  const cutoff = new Date(at - 24 * 60 * 60 * 1000).toISOString()
+  return db.prepare('DELETE FROM pairing_tokens WHERE expires_at < ? OR used_at < ?').run(new Date(at).toISOString(), cutoff).changes
+}
+
+function identityDisplayName(db, syncId) {
+  return db.prepare('SELECT display_name AS displayName FROM identities WHERE sync_id = ?').get(syncId)?.displayName ?? null
+}
+
+// ---- recovery code (§12) --------------------------------------------------
+//
+// Generated here from the CSPRNG, returned exactly once, stored only as a
+// SHA-256 of its canonical form (135 bits of entropy make a slow hash
+// pointless and allow an indexed lookup — recovery can't know the Sync ID
+// in advance). Rotating replaces the hash, so the old code stops working
+// at once; paired devices are unaffected.
+
+export function rotateRecoveryCode(db, auth) {
+  const code = generateRecoveryCode((n) => randomBytes(n))
+  const rotatedAt = now()
+  db.prepare('UPDATE identities SET recovery_hash = ?, recovery_rotated_at = ? WHERE sync_id = ?')
+    .run(hashCredential(normalizeRecoveryCode(code)), rotatedAt, auth.syncId)
+  return { recoveryCode: code, rotatedAt }
+}
+
+export function recoveryStatus(db, auth) {
+  const row = db.prepare('SELECT recovery_hash IS NOT NULL AS configured, recovery_rotated_at AS rotatedAt FROM identities WHERE sync_id = ?').get(auth.syncId)
+  return { configured: row.configured === 1, rotatedAt: row.rotatedAt }
+}
+
+export function recoverWithCode(db, { recoveryCode, deviceId, deviceLabel } = {}) {
+  if (!isValidRecoveryCode(recoveryCode)) throw new ApiError(401, 'invalid_recovery_code')
+  if (typeof deviceId !== 'string' || !UUID.test(deviceId)) throw new ApiError(400, 'invalid_device_id')
+  return transaction(db, () => {
+    const row = db.prepare('SELECT sync_id AS syncId FROM identities WHERE recovery_hash = ?').get(hashCredential(normalizeRecoveryCode(recoveryCode)))
+    if (!row) throw new ApiError(401, 'invalid_recovery_code')
+    const device = registerDevice(db, row.syncId, { deviceId: deviceId.toLowerCase(), label: deviceLabel })
+    return { ...device, displayName: identityDisplayName(db, row.syncId) }
+  })
 }
 
 // ---- sync exchange ------------------------------------------------------

@@ -578,8 +578,10 @@ Compose picks up `.env` automatically from then on, no need to pass anything on 
 `server/` holds the optional cross-device sync API described in
 [`BRAIN-SYNC-SPEC.md`](./specs/BRAIN-SYNC-SPEC.md). It has zero dependencies (`node:http` +
 `node:sqlite`, Node 22.13+) and reuses the app's own merge engine, so the server and every device
-always agree on which progress is "better". The app doesn't talk to it yet: pairing and the Sync
-settings UI come in later phases, and Brain stays fully usable without it.
+always agree on which progress is "better". It covers anonymous identities, QR pairing with
+short-lived single-use tokens, and a rotatable recovery code. No username, password or email is
+involved. The app doesn't talk to it yet, because the Sync settings UI is a later phase. Brain
+stays fully usable without it.
 
 ```bash
 BRAIN_SYNC_REQUIRE_HTTPS=0 npm run sync-server   # local only; listens on 127.0.0.1:8787

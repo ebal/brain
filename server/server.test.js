@@ -3,9 +3,10 @@ import { createServer } from 'node:http'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { openDatabase } from './db.js'
+import { openDatabase, SERVER_SCHEMA_VERSION, MIGRATIONS } from './db.js'
+import { DatabaseSync } from 'node:sqlite'
 import { createApp } from './app.js'
-import { registerDevice, pruneOperations, hashCredential } from './sync.js'
+import { registerDevice, pruneOperations, hashCredential, recoveryStatus, authenticate } from './sync.js'
 import { makeDevice } from '../src/composables/sync/testDevices.js'
 import { installOutbox, enableSync, listOutbox } from '../src/composables/sync/outbox.js'
 import { runSync, getSyncStatus } from '../src/composables/sync/syncClient.js'
@@ -71,7 +72,7 @@ describe('Brain Sync API', () => {
 
   it('reports health and schema versions', async () => {
     const res = await call(ctx.baseUrl, 'GET', '/v1/health')
-    expect(res).toMatchObject({ status: 200, body: { ok: true, schemaVersion: CURRENT_SCHEMA_VERSION, serverSchemaVersion: 1 } })
+    expect(res).toMatchObject({ status: 200, body: { ok: true, schemaVersion: CURRENT_SCHEMA_VERSION, serverSchemaVersion: SERVER_SCHEMA_VERSION } })
   })
 
   describe('identity and authentication (§5, §14, §53)', () => {
@@ -401,7 +402,33 @@ describe('datastore', () => {
       const path = join(dir, 'db.sqlite')
       openDatabase(path).close()
       const db = openDatabase(path)
-      expect(db.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get().n).toBe(1)
+      expect(db.prepare('SELECT COUNT(*) AS n FROM schema_migrations').get().n).toBe(SERVER_SCHEMA_VERSION)
+      db.close()
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('upgrades a database written by an older server without losing anything (§17)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'brain-sync-'))
+    try {
+      const path = join(dir, 'v1.sqlite')
+      // Exactly what the Phase 4 server (schema 1) left on disk.
+      const old = new DatabaseSync(path)
+      old.exec('CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)')
+      old.exec(MIGRATIONS[0])
+      old.prepare("INSERT INTO schema_migrations VALUES (1, 'then')").run()
+      old.prepare("INSERT INTO identities (sync_id, display_name, revision, created_at) VALUES ('s1', 'Mine', 3, 'then')").run()
+      old.prepare("INSERT INTO devices (sync_id, device_id, credential_hash, created_at) VALUES ('s1', 'd1', ?, 'then')").run(hashCredential('bsc_old'))
+      old.prepare("INSERT INTO records VALUES ('s1', 'hanoi:progress', '{\"completedLevels\":[1]}', 3, 'then')").run()
+      old.close()
+
+      const db = openDatabase(path)
+      expect(db.prepare('SELECT MAX(version) AS v FROM schema_migrations').get().v).toBe(SERVER_SCHEMA_VERSION)
+      expect(db.prepare('SELECT display_name AS n, revision AS r FROM identities').get()).toEqual({ n: 'Mine', r: 3 })
+      expect(JSON.parse(db.prepare('SELECT value FROM records').get().value)).toEqual({ completedLevels: [1] })
+      const auth = authenticate(db, 'bsc_old') // existing credentials keep working
+      expect(recoveryStatus(db, auth)).toEqual({ configured: false, rotatedAt: null })
       db.close()
     } finally {
       rmSync(dir, { recursive: true, force: true })
