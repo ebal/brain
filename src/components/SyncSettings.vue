@@ -82,16 +82,20 @@
 
     <!-- ── Join: paste ──────────────────────────────────────────────── -->
     <section v-else-if="view === 'join-paste'" class="card">
-      <h2>Paste pairing code</h2>
+      <h2>Paste a code</h2>
+      <p class="card-desc">
+        Either the pairing code from your other device (Add Device → Can't scan?, starts with
+        <code>BRAINPAIR1</code>) or your recovery code (<code>XXXX-XXXX-…</code>).
+      </p>
       <label class="field">
-        Pairing code (from Add Device → Can't scan?)
+        Pairing code or recovery code
         <textarea v-model="pastedPayload" rows="3" autocomplete="off" spellcheck="false"></textarea>
       </label>
       <label class="field">
         This device's name <span class="optional">(optional)</span>
         <input v-model="newDeviceLabel" type="text" maxlength="64" placeholder="e.g. Blue, My iPhone" />
       </label>
-      <button class="primary-btn" :disabled="busy || !pastedPayload.trim()" @click="joinWithPayload(pastedPayload)">Connect</button>
+      <button class="primary-btn" :disabled="busy || !pastedPayload.trim()" @click="joinWithPasted">Connect</button>
       <button class="secondary-btn" @click="view = 'home'">Cancel</button>
     </section>
 
@@ -343,10 +347,10 @@ const confirmLabel = computed(() => {
 // ---- helpers --------------------------------------------------------------
 
 const FRIENDLY_ERRORS = {
-  invalid_pairing_token: 'That pairing code has expired or was already used. Ask the other device for a new one.',
-  invalid_pairing_payload: 'That isn\'t a Brain pairing code.',
+  invalid_pairing_token: 'That pairing code has expired (they last 5 minutes) or was already used. Ask the other device for a new one.',
+  invalid_pairing_payload: 'That isn\'t a pairing code or a recovery code. A pairing code starts with BRAINPAIR1; a recovery code looks like XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX.',
   cannot_pair_with_self: 'That code came from this device. Scan it on the new device instead.',
-  invalid_recovery_code: 'That recovery code isn\'t right.',
+  invalid_recovery_code: 'That recovery code isn\'t right. If you created a new one, only the newest code works.',
   invalid_recovery_code_format: 'That recovery code has a typo. Check it and try again.',
   rate_limited: 'Too many attempts. Please wait a while and try again.',
   label_too_long: 'That name is too long.',
@@ -442,6 +446,14 @@ async function joinWithPayload(text) {
     if (view.value === 'join-scan') view.value = 'join-paste'
     return
   }
+  pastedPayload.value = ''
+  view.value = 'home'
+  await afterConnect('Connected. Progress from your other devices is here now too.')
+}
+
+async function joinWithPasted() {
+  const joined = await run(() => api.joinWithCode(pastedPayload.value, { baseUrl: SYNC_SERVER_URL, deviceLabel: newDeviceLabel.value || undefined }))
+  if (!joined) return
   pastedPayload.value = ''
   view.value = 'home'
   await afterConnect('Connected. Progress from your other devices is here now too.')
@@ -638,6 +650,11 @@ h1 {
   font-size: 0.88rem;
   line-height: 1.5;
   margin: 0 0 1rem;
+}
+
+.card-desc code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85em;
 }
 
 .warning {

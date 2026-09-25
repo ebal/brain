@@ -9,7 +9,7 @@ import { runSync, getSyncStatus } from '../src/composables/sync/syncClient.js'
 import {
   createHttpTransport, createIdentity, createPairingPayload, cancelPairing, pairWithPayload, decodePairingPayload,
   encodePairingPayload, rotateRecoveryCode, getRecoveryStatus, recoverWithCode, listDevices, revokeDevice,
-  disconnectThisDevice, deleteCloudData, getStoredCredential, SyncHttpError,
+  disconnectThisDevice, deleteCloudData, getStoredCredential, SyncHttpError, joinWithCode,
 } from '../src/composables/sync/syncApi.js'
 import { getDeviceId } from '../src/composables/persistence/device.js'
 import { stableStringify } from '../src/composables/persistence/ids.js'
@@ -129,6 +129,13 @@ describe('QR pairing (BRAIN-SYNC-SPEC §10/§11)', () => {
     for (const token of [body.syncId, `bpt_${body.syncId}`, body.credential]) {
       expect((await post(ctx.baseUrl, '/v1/pairing/claim', { token, deviceId: crypto.randomUUID() })).status).toBe(401)
     }
+  })
+
+  it('accepts a plain-http server only when it is exactly the one this build is configured for', () => {
+    const lan = encodePairingPayload('http://192.168.1.3:8787', 'bpt_' + 'a'.repeat(43))
+    expect(decodePairingPayload(lan)).toBeNull()
+    expect(decodePairingPayload(lan, { trustedServer: 'http://192.168.1.3:8787' })).toMatchObject({ baseUrl: 'http://192.168.1.3:8787' })
+    expect(decodePairingPayload(lan, { trustedServer: 'http://192.168.1.4:8787' })).toBeNull()
   })
 
   it('rejects malformed payloads locally', () => {
@@ -290,5 +297,35 @@ describe('pairing/recovery abuse limits and logging (§38/§53)', () => {
     const ctx = await startServer()
     await expect(makeDevice().use(() => pairWithPayload('garbage'))).rejects.toBeInstanceOf(SyncHttpError)
     await ctx.close()
+  })
+})
+
+describe('the "paste a code" box accepts either kind of code', () => {
+  let ctx
+  beforeEach(async () => { ctx = await startServer() })
+  afterEach(() => ctx.close())
+
+  it('a recovery code pasted where a pairing code was expected just works (the reported mix-up)', async () => {
+    const blue = makeDevice()
+    const { recoveryCode } = await blue.use(() => createIdentity({ baseUrl: ctx.baseUrl }))
+    const joined = await makeDevice().use(() => joinWithCode(recoveryCode, { baseUrl: ctx.baseUrl }))
+    expect(joined.syncId).toBe((await blue.use(() => getStoredCredential())).syncId)
+    expect(ctx.logs.join('\n')).toContain('POST /v1/recover 201')
+  })
+
+  it('a pairing code pasted there still pairs', async () => {
+    const blue = makeDevice()
+    await blue.use(() => createIdentity({ baseUrl: ctx.baseUrl }))
+    const { payload } = await blue.use(() => createPairingPayload())
+    await makeDevice().use(() => joinWithCode(payload, { baseUrl: ctx.baseUrl }))
+    expect(ctx.logs.join('\n')).toContain('POST /v1/pairing/claim 201')
+  })
+
+  it('a mistyped recovery code is caught locally; anything else gets a message naming both formats', async () => {
+    const fetchFn = vi.fn(globalThis.fetch)
+    const typo = 'PZDV-4G6N-64E9-C0S2-80PF-DYXC-EDKA'
+    await expect(makeDevice().use(() => joinWithCode(typo, { baseUrl: ctx.baseUrl, fetchFn }))).rejects.toMatchObject({ code: 'invalid_recovery_code_format' })
+    await expect(makeDevice().use(() => joinWithCode('hello', { baseUrl: ctx.baseUrl, fetchFn }))).rejects.toMatchObject({ code: 'invalid_pairing_payload' })
+    expect(fetchFn).not.toHaveBeenCalled()
   })
 })

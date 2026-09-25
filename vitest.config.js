@@ -4,6 +4,8 @@ import { defineConfig } from 'vitest/config'
 // pure game-logic (no component mounting), so there's no need to load the
 // Vue or PWA plugins for the test run.
 export default defineConfig({
+  // Tests must not depend on a developer's .env (see vite.config.js).
+  envDir: false,
   define: {
     // Matches vite.config.js's define — dataPortability.js references this.
     __APP_VERSION__: JSON.stringify('test'),

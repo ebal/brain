@@ -11,6 +11,7 @@ import { SYNC_CREDENTIAL_KEY } from '../../constants/storageKeys.js'
 import { getDeviceId } from '../persistence/device.js'
 import { enableSync, disableSync } from './outbox.js'
 import { isValidRecoveryCode, normalizeRecoveryCode } from './recoveryCode.js'
+import { SYNC_SERVER_URL } from './config.js'
 
 export class SyncHttpError extends Error {
   constructor(status, code) {
@@ -113,13 +114,17 @@ export function encodePairingPayload(baseUrl, token) {
   return `${PAIR_PREFIX}.${token}.${base64UrlEncode(baseUrl)}`
 }
 
-export function decodePairingPayload(text) {
+// A pairing payload may only point at an HTTPS server, a local one, or the
+// exact server this build was configured with (VITE_BRAIN_SYNC_URL, fixed at
+// build time — e.g. a plain-http server on the LAN during development).
+export function decodePairingPayload(text, { trustedServer = SYNC_SERVER_URL } = {}) {
   const parts = typeof text === 'string' ? text.trim().split('.') : []
   if (parts.length !== 3 || parts[0] !== PAIR_PREFIX || !/^bpt_[A-Za-z0-9_-]{20,}$/.test(parts[1])) return null
   try {
     const baseUrl = base64UrlDecode(parts[2])
     const url = new URL(baseUrl)
-    if (url.protocol !== 'https:' && url.hostname !== 'localhost' && url.hostname !== '127.0.0.1') return null
+    const configured = trustedServer !== '' && baseUrl.replace(/\/+$/, '') === trustedServer
+    if (url.protocol !== 'https:' && url.hostname !== 'localhost' && url.hostname !== '127.0.0.1' && !configured) return null
     return { token: parts[1], baseUrl }
   } catch {
     return null
@@ -153,6 +158,16 @@ export async function pairWithPayload(payloadText, { deviceLabel, fetchFn } = {}
     fetchFn,
   })
   return joined(decoded.baseUrl, result)
+}
+
+// The "paste a code" box accepts either kind of code, because the two are
+// easy to mix up: a pairing code (BRAINPAIR1.…, from Add Device) or the
+// recovery code (XXXX-XXXX-…). A recovery code pasted here is simply used as
+// one, instead of being rejected as "not a pairing code".
+export async function joinWithCode(text, { baseUrl, deviceLabel, fetchFn } = {}) {
+  if (decodePairingPayload(text)) return pairWithPayload(text, { deviceLabel, fetchFn })
+  if (normalizeRecoveryCode(text) !== null) return recoverWithCode(baseUrl, text, { deviceLabel, fetchFn })
+  throw new SyncHttpError(400, 'invalid_pairing_payload')
 }
 
 // ---- recovery code (§12) -------------------------------------------------

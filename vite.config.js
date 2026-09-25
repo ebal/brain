@@ -7,6 +7,12 @@ import { VitePWA } from 'vite-plugin-pwa'
 const pkg = JSON.parse(readFileSync(fileURLToPath(new URL('./package.json', import.meta.url)), 'utf-8'))
 
 export default defineConfig({
+  // Never read .env files: the project's .env is docker-compose's (UID/GID,
+  // and optionally VITE_BRAIN_SYNC_URL for the dev container, which compose
+  // passes in as a real environment variable). Reading it here would bake a
+  // developer's LAN sync server into any `npm run build`. VITE_* variables
+  // from the actual environment still work.
+  envDir: false,
   define: {
     // Stamped into data exports (dataPortability.js) so an old export file
     // can be told apart from a newer one at a glance.

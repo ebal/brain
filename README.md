@@ -602,6 +602,19 @@ VITE_BRAIN_SYNC_URL=http://localhost:8787 npm run dev
 
 Open two different browsers (or a normal and a private window) to act as two devices.
 
+With Docker, to test from other devices on your network (e.g. a phone), add this to `.env` (with
+your machine's LAN address) and run `docker compose --profile sync up -d`. `.env` is read by Docker
+Compose only. Vite ignores `.env` files, so these values never leak into an `npm run build`:
+
+```bash
+VITE_BRAIN_SYNC_URL=http://192.168.1.3:8787
+BRAIN_SYNC_ALLOWED_ORIGINS=http://192.168.1.3:5173
+```
+
+Plain `http://` on a LAN address isn't a browser "secure context". Enabling sync, the recovery
+code, joining by recovery code or pasted pairing code, devices, Sync Now, disconnect and delete
+all work. The camera QR scanner, the Copy buttons and offline/PWA mode need HTTPS (or `localhost`).
+
 Two end-to-end suites run in headless Firefox and need no extra dependencies:
 
 - `npm run test:e2e-sync` runs these sync flows automatically.
