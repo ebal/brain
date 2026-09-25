@@ -7,6 +7,7 @@
 
 import { avg, median } from '../mathStats.js'
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
+import { newSessionStamp } from '../persistence/device.js'
 
 const STATS_PREFIX = 'targettap:stats:'
 const HISTORY_PREFIX = 'targettap:history:'
@@ -172,6 +173,7 @@ export function useTargetTapStats() {
       fastestHitRT: result.fastestHitRT,
       duration: result.duration,
       completedAt: date,
+      ...newSessionStamp(),
       metricVersion: METRIC_VERSIONS.targettap,
       appVersion: __APP_VERSION__,
     })

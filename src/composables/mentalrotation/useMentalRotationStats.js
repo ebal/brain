@@ -1,5 +1,6 @@
 import { avg, median } from '../mathStats.js'
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
+import { newSessionStamp } from '../persistence/device.js'
 
 const STATS_PREFIX = 'mentalrotation:stats:'
 const HISTORY_PREFIX = 'mentalrotation:history'
@@ -132,6 +133,7 @@ export function useMentalRotationStats() {
       medianRT: result.medianRT,
       duration: result.duration,
       completedAt: new Date().toISOString(),
+      ...newSessionStamp(),
       metricVersion: METRIC_VERSIONS.mentalrotation,
       appVersion: __APP_VERSION__,
     })

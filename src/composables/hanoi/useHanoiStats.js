@@ -6,6 +6,7 @@
 
 import { HANOI_LEVELS } from '../../constants/hanoi/levels.js'
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
+import { newSessionStamp } from '../persistence/device.js'
 
 const STATS_PREFIX = 'hanoi:stats:'
 const HISTORY_PREFIX = 'hanoi:history:'
@@ -136,6 +137,7 @@ export function useHanoiStats() {
       hints: result.hints,
       duration: result.duration,
       completedAt: date,
+      ...newSessionStamp(),
       metricVersion: METRIC_VERSIONS.hanoi,
       appVersion: __APP_VERSION__,
     })

@@ -3,19 +3,13 @@
 // game's localStorage keys at once.
 
 import { getAllSessions } from './sessionModel.js'
+import { GAME_PREFIXES, DEPRECATED_PREFIXES } from '../constants/storageKeys.js'
+import { CURRENT_SCHEMA_VERSION, migrateData, assertNoLoss } from './persistence/migrations.js'
 
-const GAME_PREFIXES = ['stroop:', 'schulte:', 'nback:', 'sudoku:', 'set:', 'sequence-memory:', 'switchtrail:', 'memorypairs:', 'marblejump:', 'mentalrotation:', 'emojimahjong:', 'numbermatch:', 'oddoneout:', 'targettap:', 'hanoi:', 'lightsout:', 'whackamole:', 'flagsoftheworld:']
-
-// Prefixes belonging to a feature that has since been removed from the app
-// entirely (Benchmark Mode, removed in 6373d5f) — never added to
-// GAME_PREFIXES, so Export/Import/describeExport still only ever see
-// current games' data. Kept here purely so Delete All Data and the storage-
-// footprint estimate can still find and clean up old keys a returning user's
-// browser may still be holding, instead of leaving them permanently
-// invisible and undeletable. Add a removed feature's old prefix here at
-// removal time, so this doesn't need rediscovering by hand again later.
-const DEPRECATED_PREFIXES = ['benchmark:']
-export const SCHEMA_VERSION = 1
+// Export files carry the same schemaVersion as on-device storage (one
+// canonical data model, BRAIN-SYNC-SPEC §15) — an old backup is upgraded
+// through exactly the same migration steps as old on-device data.
+export const SCHEMA_VERSION = CURRENT_SCHEMA_VERSION
 
 function safeGet(key) {
   try {
@@ -107,6 +101,9 @@ export function validateImportFile(parsed) {
   if (typeof parsed.schemaVersion !== 'number') {
     throw new Error('This file has no schemaVersion — it may not be an export from this app.')
   }
+  if (!Number.isInteger(parsed.schemaVersion) || parsed.schemaVersion < 1) {
+    throw new Error(`This file has an invalid schemaVersion (${parsed.schemaVersion}).`)
+  }
   if (parsed.schemaVersion > SCHEMA_VERSION) {
     throw new Error(
       `This file was exported by a newer version of the app (schema ${parsed.schemaVersion}; ` +
@@ -124,7 +121,8 @@ export function validateImportFile(parsed) {
 }
 
 // Merge policy: history (array-valued keys) are concatenated, de-duplicated
-// by exact content match, and re-sorted chronologically — safe, since two
+// by sessionId (or by exact content match for anything without one), and
+// re-sorted chronologically — safe, since two
 // history lists can only ever grow the combined record. Non-array keys
 // (stats/best/active — single objects whose fields need per-game tie-break
 // rules, e.g. "is this completion time actually better") keep the LOCAL
@@ -138,7 +136,7 @@ export function mergeValue(existing, incoming) {
     const seen = new Set()
     const combined = []
     for (const entry of [...existing, ...incoming]) {
-      const fingerprint = JSON.stringify(entry)
+      const fingerprint = typeof entry?.sessionId === 'string' ? `session:${entry.sessionId}` : JSON.stringify(entry)
       if (seen.has(fingerprint)) continue
       seen.add(fingerprint)
       combined.push(entry)
@@ -149,8 +147,21 @@ export function mergeValue(existing, incoming) {
   return existing
 }
 
+// Upgrades an older export's data to the current schema before it touches
+// local storage, so imported legacy sessions get the same deterministic
+// sessionIds the originating device's own migration gave them (and dedupe
+// against them on merge). Throws, writing nothing, if that isn't lossless.
+function migrateImportData(parsed, keys) {
+  const picked = {}
+  for (const key of keys) picked[key] = parsed.data[key]
+  const migrated = migrateData(picked, parsed.schemaVersion)
+  assertNoLoss(picked, migrated)
+  return migrated
+}
+
 export function applyImport(parsed, mode) {
   const incomingKeys = validateImportFile(parsed)
+  const incoming = migrateImportData(parsed, incomingKeys)
 
   if (mode === 'replace') {
     // Wipes deprecated-feature keys too — "Replace" means local state
@@ -158,7 +169,7 @@ export function applyImport(parsed, mode) {
     for (const key of ownKeysIncludingDeprecated()) safeRemove(key)
     let written = 0
     for (const key of incomingKeys) {
-      if (safeSet(key, parsed.data[key])) written += 1
+      if (safeSet(key, incoming[key])) written += 1
     }
     return { mode, keysWritten: written, keysAttempted: incomingKeys.length }
   }
@@ -167,7 +178,7 @@ export function applyImport(parsed, mode) {
     let written = 0
     for (const key of incomingKeys) {
       const existing = safeParse(safeGet(key))
-      const merged = mergeValue(existing, parsed.data[key])
+      const merged = mergeValue(existing, incoming[key])
       if (safeSet(key, merged)) written += 1
     }
     return { mode, keysWritten: written, keysAttempted: incomingKeys.length }

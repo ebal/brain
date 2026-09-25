@@ -7,6 +7,7 @@
 
 import { avg, median } from '../mathStats.js'
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
+import { newSessionStamp } from '../persistence/device.js'
 
 const STATS_PREFIX = 'oddoneout:stats:'
 const HISTORY_PREFIX = 'oddoneout:history:'
@@ -159,6 +160,7 @@ export function useOddOneOutStats() {
       slowestCorrectRT: result.slowestCorrectRT,
       duration: result.duration,
       completedAt: date,
+      ...newSessionStamp(),
       metricVersion: METRIC_VERSIONS.oddoneout,
       appVersion: __APP_VERSION__,
     })

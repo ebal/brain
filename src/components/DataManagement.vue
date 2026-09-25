@@ -186,8 +186,12 @@ function resetFileInput() {
 }
 
 function confirmImport(mode) {
-  const result = applyImport(pendingImport.value.parsed, mode)
-  importResult.value = result
+  try {
+    importResult.value = applyImport(pendingImport.value.parsed, mode)
+  } catch (err) {
+    // applyImport writes nothing before its validation/migration succeeds.
+    importError.value = err.message
+  }
   pendingImport.value = null
   resetFileInput()
 }

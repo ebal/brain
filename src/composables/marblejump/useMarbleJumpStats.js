@@ -1,5 +1,6 @@
 import { avg, median } from '../mathStats.js'
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
+import { newSessionStamp } from '../persistence/device.js'
 
 const STATS_PREFIX = 'marblejump:stats:'
 const HISTORY_KEY = 'marblejump:history'
@@ -127,6 +128,7 @@ export function useMarbleJumpStats() {
       clean: result.clean,
       optimalReached: result.optimalReached,
       completedAt: new Date().toISOString(),
+      ...newSessionStamp(),
       metricVersion: METRIC_VERSIONS.marblejump,
       appVersion: __APP_VERSION__,
     })

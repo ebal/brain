@@ -1,5 +1,6 @@
 import { avg, median } from '../mathStats.js'
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
+import { newSessionStamp } from '../persistence/device.js'
 
 const STATS_PREFIX = 'sequence-memory:stats:'
 const HISTORY_KEY = 'sequence-memory:history'
@@ -116,6 +117,7 @@ export function useMemoryStats() {
       medianTapTime: result.medianTapTime,
       duration: result.duration,
       completedAt: new Date().toISOString(),
+      ...newSessionStamp(),
       metricVersion: METRIC_VERSIONS['sequence-memory'],
       appVersion: __APP_VERSION__,
     })

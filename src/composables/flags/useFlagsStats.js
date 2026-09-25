@@ -8,6 +8,7 @@ import { FLAGS_LEVELS } from '../../constants/flags/levels.js'
 import { DATASET_VERSION } from '../../constants/flags/countries.js'
 import { updateCountryLearning } from './learning.js'
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
+import { newSessionStamp } from '../persistence/device.js'
 
 const STATS_PREFIX = 'flagsoftheworld:stats:'
 const HISTORY_PREFIX = 'flagsoftheworld:history:'
@@ -149,6 +150,7 @@ export function useFlagsStats() {
       stars: result.stars,
       duration: result.duration,
       completedAt: date,
+      ...newSessionStamp(),
       metricVersion: METRIC_VERSIONS.flagsoftheworld,
       appVersion: __APP_VERSION__,
     })

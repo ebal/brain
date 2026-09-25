@@ -1,4 +1,5 @@
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
+import { newSessionStamp } from '../persistence/device.js'
 
 const PREFIX = 'schulte:history:'
 const MAX_ENTRIES = 20
@@ -45,6 +46,7 @@ export function useScoreHistory() {
       avgSearchTime: result.avgSearchTime,
       medianSearchTime: result.medianSearchTime,
       date: new Date().toISOString(),
+      ...newSessionStamp(),
       metricVersion: METRIC_VERSIONS.schulte,
       appVersion: __APP_VERSION__,
     })

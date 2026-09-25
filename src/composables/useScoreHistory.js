@@ -1,4 +1,5 @@
 import { METRIC_VERSIONS } from '../constants/metricVersions.js'
+import { newSessionStamp } from './persistence/device.js'
 
 const PREFIX = 'stroop:history:'
 const MAX_ENTRIES = 20
@@ -36,6 +37,7 @@ export function useScoreHistory() {
       accuracy: result.accuracy,
       avgResponseTime: result.avgResponseTime,
       date: new Date().toISOString(),
+      ...newSessionStamp(),
       metricVersion: METRIC_VERSIONS.stroop,
       appVersion: __APP_VERSION__,
     })

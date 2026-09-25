@@ -2,6 +2,16 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import './style.css'
 import { updateAvailable, setUpdateHandler } from './composables/pwaUpdate.js'
+import { runStorageMigrations } from './composables/persistence/migrations.js'
+import { getDeviceId } from './composables/persistence/device.js'
+
+// Synchronous and before mount, so every screen reads already-upgraded data
+// and no gameplay write can interleave with a migration. It never throws
+// and never blocks launch: on any failure the existing data is left as-is
+// (see persistence/migrations.js).
+const migration = runStorageMigrations({ appVersion: __APP_VERSION__ })
+if (migration.status === 'migrated') console.log('[storage] migrated to schema', migration.toVersion, migration)
+getDeviceId()
 
 createApp(App).mount('#app')
 

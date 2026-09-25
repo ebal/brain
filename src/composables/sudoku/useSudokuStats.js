@@ -1,5 +1,6 @@
 import { avg, median } from '../mathStats.js'
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
+import { newSessionStamp } from '../persistence/device.js'
 
 const STATS_PREFIX = 'sudoku:stats:'
 const HISTORY_KEY = 'sudoku:history'
@@ -99,6 +100,7 @@ export function useSudokuStats() {
       hints: result.hints,
       cleanSolve,
       completedAt: new Date().toISOString(),
+      ...newSessionStamp(),
       metricVersion: METRIC_VERSIONS.sudoku,
       appVersion: __APP_VERSION__,
     })

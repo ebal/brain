@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { validateImportFile, mergeValue, csvEscape, buildHistoryCSV, buildExport, deleteAllData, storageFootprintChars, SCHEMA_VERSION } from './dataPortability.js'
+import { validateImportFile, mergeValue, csvEscape, buildHistoryCSV, buildExport, deleteAllData, storageFootprintChars, applyImport, SCHEMA_VERSION } from './dataPortability.js'
+import { CURRENT_SCHEMA_VERSION, runStorageMigrations } from './persistence/migrations.js'
+import { installFakeLocalStorage as installStorage } from './persistence/testStorage.js'
 
 describe('validateImportFile', () => {
   it('accepts a well-formed export', () => {
@@ -20,6 +22,11 @@ describe('validateImportFile', () => {
   it('rejects a file from a newer schema version than this app supports', () => {
     expect(() => validateImportFile({ schemaVersion: SCHEMA_VERSION + 1, data: { 'sudoku:history': [] } }))
       .toThrow(/newer version of the app/)
+  })
+
+  it('rejects a non-integer or non-positive schemaVersion', () => {
+    expect(() => validateImportFile({ schemaVersion: 0, data: { 'sudoku:history': [] } })).toThrow(/invalid schemaVersion/)
+    expect(() => validateImportFile({ schemaVersion: 1.5, data: { 'sudoku:history': [] } })).toThrow(/invalid schemaVersion/)
   })
 
   it('rejects a file with no data section', () => {
@@ -49,6 +56,12 @@ describe('mergeValue', () => {
     const merged = mergeValue(existing, incoming)
     expect(merged).toHaveLength(3) // the duplicate 2026-01-01 entry counted once
     expect(merged.map((e) => e.completedAt)).toEqual(['2026-01-01', '2026-01-02', '2026-01-03']) // sorted
+  })
+
+  it('de-duplicates history entries by sessionId, keeping the local copy', () => {
+    const local = [{ sessionId: 's1', completedAt: '2026-01-01', score: 1, appVersion: '1.2.0' }]
+    const incoming = [{ sessionId: 's1', completedAt: '2026-01-01', score: 1, appVersion: '1.2.1' }, { sessionId: 's2', completedAt: '2026-01-02', score: 2 }]
+    expect(mergeValue(local, incoming)).toEqual([local[0], incoming[1]])
   })
 
   it('keeps the local value for non-array conflicts (stats/best objects)', () => {
@@ -146,5 +159,37 @@ describe('deprecated-feature key cleanup (orphaned benchmark: keys)', () => {
     const total = storageFootprintChars()
     const gameOnly = 'sudoku:history'.length + '[]'.length
     expect(total).toBeGreaterThan(gameOnly) // includes the benchmark: key's bytes too
+  })
+})
+
+describe('schema-versioned import/export (BRAIN-SYNC-SPEC §15/§40)', () => {
+  let env
+  afterEach(() => env.restore())
+
+  const legacyEntry = { score: 7, accuracy: 90, date: '2026-03-01T08:00:00.000Z' }
+
+  it('exports with the current storage schemaVersion', () => {
+    env = installStorage({})
+    expect(SCHEMA_VERSION).toBe(CURRENT_SCHEMA_VERSION)
+    expect(buildExport().schemaVersion).toBe(CURRENT_SCHEMA_VERSION)
+  })
+
+  it('upgrades an old (schema 1) backup on import and dedupes it against the same, already-migrated local sessions', () => {
+    // This device held the entry before upgrading, and exported it back then.
+    env = installStorage({ 'stroop:history:color:easy': JSON.stringify([legacyEntry]) })
+    runStorageMigrations()
+    const [local] = JSON.parse(localStorage.getItem('stroop:history:color:easy'))
+    const oldBackup = { schemaVersion: 1, data: { 'stroop:history:color:easy': [legacyEntry, { ...legacyEntry, score: 8, date: '2026-03-02T08:00:00.000Z' }] } }
+    applyImport(oldBackup, 'merge')
+    const merged = JSON.parse(localStorage.getItem('stroop:history:color:easy'))
+    expect(merged).toHaveLength(2) // the shared legacy session counted once
+    expect(merged[0]).toEqual(local)
+    expect(merged[1].sessionId).toBeTypeOf('string')
+  })
+
+  it('Replace-mode import of an old backup also writes upgraded (identified) sessions', () => {
+    env = installStorage({})
+    applyImport({ schemaVersion: 1, data: { 'sudoku:history': [{ completionTime: 1, completedAt: 'x' }] } }, 'replace')
+    expect(JSON.parse(localStorage.getItem('sudoku:history'))[0].sessionId).toBeTypeOf('string')
   })
 })

@@ -1,4 +1,5 @@
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
+import { newSessionStamp } from '../persistence/device.js'
 
 const PREFIX = 'nback:history:'
 const MAX_ENTRIES = 20
@@ -41,6 +42,7 @@ export function useScoreHistory() {
       avgRT: result.avgRT,
       medianRT: result.medianRT,
       date: new Date().toISOString(),
+      ...newSessionStamp(),
       metricVersion: METRIC_VERSIONS.nback,
       appVersion: __APP_VERSION__,
     })

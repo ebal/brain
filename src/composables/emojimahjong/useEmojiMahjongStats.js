@@ -6,6 +6,7 @@
 
 import { avg, median } from '../mathStats.js'
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
+import { newSessionStamp } from '../persistence/device.js'
 import { EMOJIMAHJONG_LEVELS } from '../../constants/emojimahjong/levels.js'
 
 const STATS_PREFIX = 'emojimahjong:stats:'
@@ -151,6 +152,7 @@ export function useEmojiMahjongStats() {
       undos: result.undos,
       clean: result.clean,
       completedAt: date,
+      ...newSessionStamp(),
       metricVersion: METRIC_VERSIONS.emojimahjong,
       appVersion: __APP_VERSION__,
     })

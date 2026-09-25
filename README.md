@@ -474,6 +474,13 @@ back up or move your data.
 - **Delete All Data**: permanently erases everything stored on this device. Gated behind typing
   `DELETE`, since it can't be undone.
 
+Stored data carries a `schemaVersion`. When a new release changes the storage shape, the data
+already on the device is upgraded in place on first launch, one version step at a time, and never
+cleared. A copy is taken first, and if anything fails the original data stays exactly as it was.
+Older export files go through the same upgrade when imported. Every session also gets a unique
+`sessionId` and an anonymous random per-installation `deviceId`, which lay the groundwork for
+optional cross-device sync. See [`BRAIN-SYNC-AUDIT.md`](./specs/BRAIN-SYNC-AUDIT.md).
+
 ## Offline / installable (PWA)
 
 The whole suite installs as a Home Screen app on iOS, Android and desktop, and works fully offline

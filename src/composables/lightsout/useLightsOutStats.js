@@ -7,6 +7,7 @@
 
 import { LIGHTSOUT_LEVELS } from '../../constants/lightsout/levels.js'
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
+import { newSessionStamp } from '../persistence/device.js'
 
 const STATS_PREFIX = 'lightsout:stats:'
 const HISTORY_PREFIX = 'lightsout:history:'
@@ -133,6 +134,7 @@ export function useLightsOutStats() {
       hints: result.hints,
       duration: result.duration,
       completedAt: date,
+      ...newSessionStamp(),
       metricVersion: METRIC_VERSIONS.lightsout,
       appVersion: __APP_VERSION__,
     })

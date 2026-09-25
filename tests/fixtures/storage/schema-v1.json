@@ -1,0 +1,1215 @@
+{
+  "schemaVersion": 1,
+  "appVersion": "1.1.1",
+  "description": "Representative localStorage snapshot as written by Brain <= 1.1.1 (storage schema v1, no brain:meta key). Generated from the real v1 stats/history writers for all 18 games, plus hand-added legacy shapes: pre-metricVersion entries, retired N-Back 1-back and difficulty-based Emoji Mahjong keys, a deprecated benchmark: key, an in-progress autosave, UI flags, and an exact-duplicate history entry pair. Values are the parsed JSON of each localStorage item.",
+  "localStorage": {
+    "benchmark:history:stroop": [
+      {
+        "score": 40,
+        "date": "2026-02-01T08:00:00.000Z"
+      }
+    ],
+    "emojimahjong:history": [
+      {
+        "difficulty": "easy",
+        "completionTime": 90000,
+        "moves": 36,
+        "mistakes": 1,
+        "hints": 0,
+        "undos": 0,
+        "score": 800,
+        "boardCleared": true,
+        "completedAt": "2026-04-01T08:00:00.000Z",
+        "metricVersion": 1,
+        "appVersion": "1.0.5"
+      },
+      {
+        "difficulty": "easy",
+        "completionTime": 90000,
+        "moves": 36,
+        "mistakes": 1,
+        "hints": 0,
+        "undos": 0,
+        "score": 800,
+        "boardCleared": true,
+        "completedAt": "2026-04-01T08:00:00.000Z",
+        "metricVersion": 1,
+        "appVersion": "1.0.5"
+      }
+    ],
+    "emojimahjong:history:1": [
+      {
+        "level": 1,
+        "layoutId": "L",
+        "seed": 7,
+        "stars": 3,
+        "score": 42,
+        "completionTime": 61000,
+        "moves": 20,
+        "mistakes": 2,
+        "hints": 0,
+        "undos": 0,
+        "clean": true,
+        "completedAt": "2026-06-02T05:00:00.000Z",
+        "metricVersion": 2,
+        "appVersion": "1.1.1"
+      }
+    ],
+    "emojimahjong:history:2": [
+      {
+        "level": 2,
+        "layoutId": "L",
+        "seed": 7,
+        "stars": 2,
+        "score": 42,
+        "completionTime": 61000,
+        "moves": 20,
+        "mistakes": 2,
+        "hints": 1,
+        "undos": 0,
+        "clean": false,
+        "completedAt": "2026-06-02T06:00:00.000Z",
+        "metricVersion": 2,
+        "appVersion": "1.1.1"
+      }
+    ],
+    "emojimahjong:progress": {
+      "highestUnlocked": 3,
+      "completedLevels": [
+        1,
+        2
+      ],
+      "totalStars": 5,
+      "threeStarLevels": 1,
+      "cleanCompletions": 1,
+      "totalPlayTime": 122000
+    },
+    "emojimahjong:stats:1": {
+      "started": 1,
+      "completed": 1,
+      "cleanCompletions": 1,
+      "best": {
+        "stars": 3,
+        "score": 42,
+        "time": 61000,
+        "moves": 20,
+        "mistakes": 2,
+        "hints": 0,
+        "undos": 0,
+        "date": "2026-06-02T05:00:00.000Z"
+      },
+      "bestClean": {
+        "stars": 3,
+        "score": 42,
+        "time": 61000,
+        "moves": 20,
+        "mistakes": 2,
+        "hints": 0,
+        "undos": 0,
+        "date": "2026-06-02T05:00:00.000Z"
+      },
+      "completions": [
+        {
+          "stars": 3,
+          "score": 42,
+          "moves": 20,
+          "mistakes": 2,
+          "hints": 0,
+          "undos": 0,
+          "time": 61000,
+          "clean": true
+        }
+      ]
+    },
+    "emojimahjong:stats:2": {
+      "started": 1,
+      "completed": 1,
+      "cleanCompletions": 0,
+      "best": {
+        "stars": 2,
+        "score": 42,
+        "time": 61000,
+        "moves": 20,
+        "mistakes": 2,
+        "hints": 1,
+        "undos": 0,
+        "date": "2026-06-02T06:00:00.000Z"
+      },
+      "bestClean": null,
+      "completions": [
+        {
+          "stars": 2,
+          "score": 42,
+          "moves": 20,
+          "mistakes": 2,
+          "hints": 1,
+          "undos": 0,
+          "time": 61000,
+          "clean": false
+        }
+      ]
+    },
+    "emojimahjong:stats:easy": {
+      "started": 3,
+      "completed": 2,
+      "best": {
+        "score": 800,
+        "time": 90000,
+        "date": "2026-04-01T08:00:00.000Z"
+      },
+      "completions": []
+    },
+    "emojimahjong:tutorialSeen": [
+      1,
+      2
+    ],
+    "flagsoftheworld:history:1": [
+      {
+        "level": 1,
+        "correctCount": 9,
+        "totalCount": 10,
+        "accuracy": 90,
+        "bestStreak": 6,
+        "score": 42,
+        "stars": 3,
+        "duration": 60000,
+        "completedAt": "2026-06-02T08:00:00.000Z",
+        "metricVersion": 1,
+        "appVersion": "1.1.1"
+      }
+    ],
+    "flagsoftheworld:learning": {
+      "gr": {
+        "attempts": 1,
+        "correct": 1,
+        "wrong": 0,
+        "currentCorrectStreak": 1,
+        "lastSeenAt": 1,
+        "lastWrongAt": null,
+        "confusions": {},
+        "mastery": "learning"
+      },
+      "cy": {
+        "attempts": 1,
+        "correct": 0,
+        "wrong": 1,
+        "currentCorrectStreak": 0,
+        "lastSeenAt": 2,
+        "lastWrongAt": 2,
+        "confusions": {
+          "gr": 1
+        },
+        "mastery": "needs-practice"
+      }
+    },
+    "flagsoftheworld:progress": {
+      "highestUnlocked": 2,
+      "completedLevels": [
+        1
+      ],
+      "totalStars": 3,
+      "datasetVersion": 1
+    },
+    "flagsoftheworld:stats:1": {
+      "started": 1,
+      "completed": 1,
+      "best": {
+        "stars": 3,
+        "correctCount": 9,
+        "score": 42,
+        "duration": 60000,
+        "date": "2026-06-02T08:00:00.000Z"
+      },
+      "completions": [
+        {
+          "stars": 3,
+          "correctCount": 9,
+          "score": 42,
+          "duration": 60000,
+          "date": "2026-06-02T08:00:00.000Z"
+        }
+      ]
+    },
+    "hanoi:history:1": [
+      {
+        "level": 1,
+        "disks": 3,
+        "moves": 20,
+        "optimalMoves": 7,
+        "efficiency": 80,
+        "stars": 3,
+        "mistakes": 2,
+        "undos": 0,
+        "hints": 0,
+        "duration": 60000,
+        "completedAt": "2026-06-02T02:00:00.000Z",
+        "metricVersion": 1,
+        "appVersion": "1.1.1"
+      }
+    ],
+    "hanoi:history:2": [
+      {
+        "level": 2,
+        "disks": 3,
+        "moves": 20,
+        "optimalMoves": 7,
+        "efficiency": 80,
+        "stars": 2,
+        "mistakes": 2,
+        "undos": 0,
+        "hints": 0,
+        "duration": 60000,
+        "completedAt": "2026-06-02T03:00:00.000Z",
+        "metricVersion": 1,
+        "appVersion": "1.1.1"
+      }
+    ],
+    "hanoi:progress": {
+      "highestUnlocked": 3,
+      "completedLevels": [
+        1,
+        2
+      ],
+      "totalStars": 5,
+      "optimalCompletions": 0,
+      "totalMoves": 40,
+      "totalHints": 0,
+      "totalPlayTime": 120000
+    },
+    "hanoi:stats:1": {
+      "started": 1,
+      "completed": 1,
+      "best": {
+        "moves": 20,
+        "efficiency": 80,
+        "stars": 3,
+        "mistakes": 2,
+        "undos": 0,
+        "hints": 0,
+        "duration": 60000,
+        "date": "2026-06-02T02:00:00.000Z"
+      },
+      "bestClean": {
+        "moves": 20,
+        "efficiency": 80,
+        "stars": 3,
+        "mistakes": 2,
+        "undos": 0,
+        "hints": 0,
+        "duration": 60000,
+        "date": "2026-06-02T02:00:00.000Z"
+      },
+      "completions": [
+        {
+          "moves": 20,
+          "efficiency": 80,
+          "stars": 3,
+          "mistakes": 2,
+          "undos": 0,
+          "hints": 0,
+          "duration": 60000,
+          "date": "2026-06-02T02:00:00.000Z"
+        }
+      ]
+    },
+    "hanoi:stats:2": {
+      "started": 1,
+      "completed": 1,
+      "best": {
+        "moves": 20,
+        "efficiency": 80,
+        "stars": 2,
+        "mistakes": 2,
+        "undos": 0,
+        "hints": 0,
+        "duration": 60000,
+        "date": "2026-06-02T03:00:00.000Z"
+      },
+      "bestClean": {
+        "moves": 20,
+        "efficiency": 80,
+        "stars": 2,
+        "mistakes": 2,
+        "undos": 0,
+        "hints": 0,
+        "duration": 60000,
+        "date": "2026-06-02T03:00:00.000Z"
+      },
+      "completions": [
+        {
+          "moves": 20,
+          "efficiency": 80,
+          "stars": 2,
+          "mistakes": 2,
+          "undos": 0,
+          "hints": 0,
+          "duration": 60000,
+          "date": "2026-06-02T03:00:00.000Z"
+        }
+      ]
+    },
+    "lightsout:history:1": [
+      {
+        "level": 1,
+        "size": 5,
+        "moves": 20,
+        "optimalMoves": 7,
+        "efficiency": 80,
+        "stars": 3,
+        "undos": 0,
+        "hints": 0,
+        "duration": 60000,
+        "completedAt": "2026-06-02T04:00:00.000Z",
+        "metricVersion": 1,
+        "appVersion": "1.1.1"
+      }
+    ],
+    "lightsout:progress": {
+      "highestUnlocked": 2,
+      "completedLevels": [
+        1
+      ],
+      "totalStars": 3,
+      "optimalCompletions": 0,
+      "totalMoves": 20,
+      "totalHints": 0,
+      "totalPlayTime": 60000
+    },
+    "lightsout:stats:1": {
+      "started": 1,
+      "completed": 1,
+      "best": {
+        "moves": 20,
+        "efficiency": 80,
+        "stars": 3,
+        "undos": 0,
+        "hints": 0,
+        "duration": 60000,
+        "date": "2026-06-02T04:00:00.000Z"
+      },
+      "bestClean": {
+        "moves": 20,
+        "efficiency": 80,
+        "stars": 3,
+        "undos": 0,
+        "hints": 0,
+        "duration": 60000,
+        "date": "2026-06-02T04:00:00.000Z"
+      },
+      "completions": [
+        {
+          "moves": 20,
+          "efficiency": 80,
+          "stars": 3,
+          "undos": 0,
+          "hints": 0,
+          "duration": 60000,
+          "date": "2026-06-02T04:00:00.000Z"
+        }
+      ]
+    },
+    "marblejump:history": [
+      {
+        "puzzleId": "p-1",
+        "difficulty": "english",
+        "startingMarbles": 32,
+        "remainingMarbles": 1,
+        "moves": 20,
+        "completionTime": 61000,
+        "undos": 0,
+        "hints": 0,
+        "clean": true,
+        "optimalReached": true,
+        "completedAt": "2026-06-01T20:00:00.000Z",
+        "metricVersion": 1,
+        "appVersion": "1.1.1"
+      }
+    ],
+    "marblejump:stats:english": {
+      "started": 1,
+      "completed": 1,
+      "cleanGames": 1,
+      "optimalCompletions": 1,
+      "currentStreak": 1,
+      "bestStreak": 1,
+      "bestResult": {
+        "remaining": 1,
+        "hints": 0,
+        "undos": 0,
+        "time": 61000,
+        "date": "2026-06-01T20:00:00.000Z"
+      },
+      "bestCleanResult": {
+        "remaining": 1,
+        "hints": 0,
+        "undos": 0,
+        "time": 61000,
+        "date": "2026-06-01T20:00:00.000Z"
+      },
+      "completions": [
+        {
+          "remaining": 1,
+          "moves": 20,
+          "undos": 0,
+          "hints": 0,
+          "time": 61000,
+          "clean": true,
+          "optimal": true
+        }
+      ]
+    },
+    "memorypairs:history:easy": [
+      {
+        "difficulty": "easy",
+        "score": 42,
+        "completionTime": 61000,
+        "moves": 20,
+        "mistakes": 2,
+        "moveEfficiency": 80,
+        "pairs": 8,
+        "completedAt": "2026-06-01T19:00:00.000Z",
+        "metricVersion": 1,
+        "appVersion": "1.1.1"
+      }
+    ],
+    "memorypairs:stats:easy": {
+      "started": 1,
+      "completed": 1,
+      "totalPairsFound": 8,
+      "bestScore": {
+        "score": 42,
+        "moves": 20,
+        "mistakes": 2,
+        "completionTime": 61000,
+        "moveEfficiency": 80,
+        "date": "2026-06-01T19:00:00.000Z"
+      },
+      "bestCompletionTime": {
+        "completionTime": 61000,
+        "score": 42,
+        "moves": 20,
+        "mistakes": 2,
+        "date": "2026-06-01T19:00:00.000Z"
+      },
+      "bestMoveEfficiency": {
+        "moveEfficiency": 80,
+        "score": 42,
+        "completionTime": 61000,
+        "date": "2026-06-01T19:00:00.000Z"
+      },
+      "completions": [
+        {
+          "score": 42,
+          "completionTime": 61000,
+          "moves": 20,
+          "mistakes": 2,
+          "moveEfficiency": 80
+        }
+      ]
+    },
+    "mentalrotation:history": [
+      {
+        "difficulty": "easy",
+        "mode": "timed",
+        "score": 42,
+        "accuracy": 90,
+        "correct": 18,
+        "wrong": 2,
+        "trialsCompleted": 20,
+        "avgRT": 700,
+        "medianRT": 650,
+        "duration": 60000,
+        "completedAt": "2026-06-01T21:00:00.000Z",
+        "metricVersion": 1,
+        "appVersion": "1.1.1"
+      }
+    ],
+    "mentalrotation:history:untimed": [
+      {
+        "difficulty": "easy",
+        "mode": "untimed",
+        "score": 42,
+        "accuracy": 90,
+        "correct": 18,
+        "wrong": 2,
+        "trialsCompleted": 20,
+        "avgRT": 700,
+        "medianRT": 650,
+        "duration": 60000,
+        "completedAt": "2026-06-01T22:00:00.000Z",
+        "metricVersion": 1,
+        "appVersion": "1.1.1"
+      }
+    ],
+    "mentalrotation:stats:easy": {
+      "started": 1,
+      "completed": 1,
+      "totalTrials": 20,
+      "totalCorrect": 18,
+      "totalWrong": 2,
+      "bestScore": {
+        "score": 42,
+        "accuracy": 90,
+        "medianRT": 650,
+        "correct": 18,
+        "date": "2026-06-01T21:00:00.000Z"
+      },
+      "bestAccuracy": {
+        "accuracy": 90,
+        "score": 42,
+        "date": "2026-06-01T21:00:00.000Z"
+      },
+      "bestMedianRT": {
+        "medianRT": 650,
+        "accuracy": 90,
+        "date": "2026-06-01T21:00:00.000Z"
+      },
+      "completions": [
+        {
+          "score": 42,
+          "accuracy": 90,
+          "medianRT": 650,
+          "avgRT": 700
+        }
+      ]
+    },
+    "mentalrotation:stats:untimed:easy": {
+      "started": 1,
+      "completed": 1,
+      "totalTrials": 20,
+      "totalCorrect": 18,
+      "totalWrong": 2,
+      "bestScore": {
+        "score": 42,
+        "accuracy": 90,
+        "medianRT": 650,
+        "correct": 18,
+        "date": "2026-06-01T22:00:00.000Z"
+      },
+      "bestAccuracy": {
+        "accuracy": 90,
+        "score": 42,
+        "date": "2026-06-01T22:00:00.000Z"
+      },
+      "bestMedianRT": {
+        "medianRT": 650,
+        "accuracy": 90,
+        "date": "2026-06-01T22:00:00.000Z"
+      },
+      "completions": [
+        {
+          "score": 42,
+          "accuracy": 90,
+          "medianRT": 650,
+          "avgRT": 700
+        }
+      ]
+    },
+    "nback:best:1": {
+      "score": 55,
+      "accuracy": 92,
+      "date": "2026-03-02T08:00:00.000Z"
+    },
+    "nback:best:2": {
+      "score": 42,
+      "accuracy": 90,
+      "hits": 8,
+      "misses": 1,
+      "falseAlarms": 1,
+      "correctRejections": 20,
+      "avgRT": 700,
+      "medianRT": 650,
+      "date": "2026-06-01T14:00:00.000Z"
+    },
+    "nback:history:1": [
+      {
+        "score": 55,
+        "accuracy": 92,
+        "medianRT": 610,
+        "hits": 6,
+        "misses": 0,
+        "falseAlarms": 1,
+        "correctRejections": 13,
+        "date": "2026-03-02T08:00:00.000Z"
+      }
+    ],
+    "nback:history:2": [
+      {
+        "score": 42,
+        "accuracy": 90,
+        "hits": 8,
+        "misses": 1,
+        "falseAlarms": 1,
+        "correctRejections": 20,
+        "avgRT": 700,
+        "medianRT": 650,
+        "date": "2026-06-01T14:00:00.000Z",
+        "metricVersion": 1,
+        "appVersion": "1.1.1"
+      }
+    ],
+    "numbermatch:history": [
+      {
+        "difficulty": "easy",
+        "seed": 7,
+        "boardCleared": true,
+        "startingCells": 27,
+        "numbersRemaining": 0,
+        "pairsRemoved": 10,
+        "score": 42,
+        "completionTime": 61000,
+        "moves": 20,
+        "mistakes": 2,
+        "addNumbersUsed": 1,
+        "hints": 0,
+        "undos": 0,
+        "clean": true,
+        "completedAt": "2026-06-01T23:00:00.000Z",
+        "metricVersion": 1,
+        "appVersion": "1.1.1"
+      }
+    ],
+    "numbermatch:stats:easy": {
+      "started": 1,
+      "completed": 1,
+      "cleanCompletions": 1,
+      "totalPairsRemoved": 10,
+      "bestScore": {
+        "score": 42,
+        "cleared": true,
+        "undos": 0,
+        "completionTime": 61000,
+        "date": "2026-06-01T23:00:00.000Z"
+      },
+      "bestCleanScore": {
+        "score": 42,
+        "date": "2026-06-01T23:00:00.000Z"
+      },
+      "bestClearTime": {
+        "completionTime": 61000,
+        "score": 42,
+        "date": "2026-06-01T23:00:00.000Z"
+      },
+      "completions": [
+        {
+          "score": 42,
+          "cleared": true,
+          "numbersRemaining": 0,
+          "moves": 20,
+          "mistakes": 2,
+          "addNumbersUsed": 1,
+          "hints": 0,
+          "undos": 0,
+          "completionTime": 61000
+        }
+      ]
+    },
+    "oddoneout:history:easy": [
+      {
+        "difficulty": "easy",
+        "score": 42,
+        "trials": 20,
+        "correct": 18,
+        "wrong": 2,
+        "accuracy": 90,
+        "avgCorrectRT": 1300,
+        "medianCorrectRT": 1200,
+        "fastestCorrectRT": 700,
+        "slowestCorrectRT": 2500,
+        "duration": 60000,
+        "completedAt": "2026-06-02T00:00:00.000Z",
+        "metricVersion": 1,
+        "appVersion": "1.1.1"
+      }
+    ],
+    "oddoneout:stats:easy": {
+      "started": 1,
+      "completed": 1,
+      "bestScore": {
+        "score": 42,
+        "accuracy": 90,
+        "trials": 20,
+        "correct": 18,
+        "wrong": 2,
+        "medianCorrectRT": 1200,
+        "date": "2026-06-02T00:00:00.000Z"
+      },
+      "bestAccuracy": {
+        "accuracy": 90,
+        "date": "2026-06-02T00:00:00.000Z"
+      },
+      "bestTrialCount": {
+        "trials": 20,
+        "date": "2026-06-02T00:00:00.000Z"
+      },
+      "bestMedianCorrectRT": {
+        "medianCorrectRT": 1200,
+        "accuracy": 90,
+        "date": "2026-06-02T00:00:00.000Z"
+      },
+      "completions": [
+        {
+          "score": 42,
+          "trials": 20,
+          "correct": 18,
+          "wrong": 2,
+          "accuracy": 90,
+          "avgCorrectRT": 1300,
+          "medianCorrectRT": 1200
+        }
+      ]
+    },
+    "schulte:best:5": {
+      "completionTime": 61000,
+      "avgSearchTime": 950,
+      "medianSearchTime": 900,
+      "accuracy": 90,
+      "date": "2026-06-01T12:00:00.000Z"
+    },
+    "schulte:history:5": [
+      {
+        "completionTime": 61000,
+        "errors": 1,
+        "accuracy": 90,
+        "avgSearchTime": 950,
+        "medianSearchTime": 900,
+        "date": "2026-06-01T12:00:00.000Z",
+        "metricVersion": 1,
+        "appVersion": "1.1.1"
+      }
+    ],
+    "schulte:history:color-dynamic:5": [
+      {
+        "completionTime": 61000,
+        "errors": 1,
+        "accuracy": 90,
+        "avgSearchTime": 950,
+        "medianSearchTime": 900,
+        "date": "2026-06-01T13:00:00.000Z",
+        "metricVersion": 1,
+        "appVersion": "1.1.1"
+      }
+    ],
+    "sequence-memory:history": [
+      {
+        "difficulty": "normal",
+        "highestLevel": 9,
+        "longestSequence": 9,
+        "correctTaps": 9,
+        "mistakes": 2,
+        "accuracy": 90,
+        "avgTapTime": 420,
+        "medianTapTime": 400,
+        "duration": 60000,
+        "completedAt": "2026-06-01T17:00:00.000Z",
+        "metricVersion": 1,
+        "appVersion": "1.1.1"
+      }
+    ],
+    "sequence-memory:stats:normal": {
+      "started": 1,
+      "completed": 1,
+      "currentStreak": 1,
+      "bestStreak": 1,
+      "bestResult": {
+        "longestSequence": 9,
+        "mistakes": 2,
+        "accuracy": 90,
+        "medianTapTime": 400,
+        "date": "2026-06-01T17:00:00.000Z"
+      },
+      "totalCorrectTaps": 9,
+      "totalMistakes": 2,
+      "completions": [
+        {
+          "longestSequence": 9,
+          "highestLevel": 9,
+          "accuracy": 90,
+          "avgTapTime": 420,
+          "medianTapTime": 400
+        }
+      ]
+    },
+    "set:history": [
+      {
+        "gameId": "g-1",
+        "difficulty": "medium",
+        "completionTime": 61000,
+        "setsFound": 6,
+        "mistakes": 2,
+        "hints": 0,
+        "avgFindTime": 5200,
+        "medianFindTime": 5000,
+        "cleanGame": true,
+        "completedAt": "2026-06-01T16:00:00.000Z",
+        "metricVersion": 1,
+        "appVersion": "1.1.1"
+      }
+    ],
+    "set:stats:medium": {
+      "started": 1,
+      "completed": 1,
+      "cleanGames": 1,
+      "totalSetsFound": 6,
+      "currentStreak": 1,
+      "bestStreak": 1,
+      "bestCleanTime": {
+        "time": 61000,
+        "mistakes": 2,
+        "date": "2026-06-01T16:00:00.000Z"
+      },
+      "completions": [
+        {
+          "time": 61000,
+          "mistakes": 2,
+          "avgFindTime": 5200,
+          "medianFindTime": 5000
+        }
+      ]
+    },
+    "stroop:best:color:medium": {
+      "score": 50,
+      "accuracy": 90,
+      "avgResponseTime": 700,
+      "correct": 18,
+      "wrong": 2,
+      "date": "2026-06-01T11:00:00.000Z"
+    },
+    "stroop:history:color:medium": [
+      {
+        "score": 30,
+        "accuracy": 80,
+        "avgResponseTime": 900,
+        "date": "2026-03-01T08:00:00.000Z"
+      },
+      {
+        "score": 42,
+        "accuracy": 90,
+        "avgResponseTime": 700,
+        "date": "2026-06-01T10:00:00.000Z",
+        "metricVersion": 1,
+        "appVersion": "1.1.1"
+      },
+      {
+        "score": 50,
+        "accuracy": 90,
+        "avgResponseTime": 700,
+        "date": "2026-06-01T11:00:00.000Z",
+        "metricVersion": 1,
+        "appVersion": "1.1.1"
+      }
+    ],
+    "sudoku:active": {
+      "difficulty": "medium",
+      "elapsed": 12345,
+      "board": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "notes": {},
+      "mistakes": 0,
+      "hints": 0
+    },
+    "sudoku:history": [
+      {
+        "puzzleId": "p-1",
+        "difficulty": "easy",
+        "completionTime": 61000,
+        "mistakes": 2,
+        "hints": 0,
+        "cleanSolve": true,
+        "completedAt": "2026-06-01T15:00:00.000Z",
+        "metricVersion": 1,
+        "appVersion": "1.1.1"
+      }
+    ],
+    "sudoku:stats:easy": {
+      "started": 1,
+      "completed": 1,
+      "cleanSolves": 1,
+      "currentStreak": 1,
+      "bestStreak": 1,
+      "bestCleanTime": {
+        "time": 61000,
+        "mistakes": 2,
+        "date": "2026-06-01T15:00:00.000Z"
+      },
+      "completions": [
+        {
+          "time": 61000,
+          "mistakes": 2,
+          "hints": 0
+        }
+      ]
+    },
+    "switchtrail:history:classic": [
+      {
+        "difficulty": "classic",
+        "score": 42,
+        "completed": true,
+        "targetsCompleted": 25,
+        "totalTargets": 10,
+        "completionTime": 61000,
+        "timeLimit": 60,
+        "errors": 1,
+        "accuracy": 90,
+        "avgTransitionTime": 820,
+        "medianTransitionTime": 800,
+        "fastestTransition": 300,
+        "slowestTransition": 2000,
+        "completedAt": "2026-06-01T18:00:00.000Z",
+        "metricVersion": 1,
+        "appVersion": "1.1.1"
+      }
+    ],
+    "switchtrail:stats:classic": {
+      "started": 1,
+      "completed": 1,
+      "cleanCompletions": 0,
+      "totalTargetsCompleted": 25,
+      "bestScore": {
+        "score": 42,
+        "completed": true,
+        "errors": 1,
+        "completionTime": 61000,
+        "accuracy": 90,
+        "date": "2026-06-01T18:00:00.000Z"
+      },
+      "bestCompletionTime": {
+        "completionTime": 61000,
+        "score": 42,
+        "errors": 1,
+        "accuracy": 90,
+        "date": "2026-06-01T18:00:00.000Z"
+      },
+      "completions": [
+        {
+          "score": 42,
+          "completed": true,
+          "errors": 1,
+          "accuracy": 90,
+          "completionTime": 61000,
+          "avgTransitionTime": 820,
+          "medianTransitionTime": 800
+        }
+      ]
+    },
+    "targettap:history:easy": [
+      {
+        "difficulty": "easy",
+        "targetLetter": "X",
+        "score": 42,
+        "totalStimuli": 60,
+        "targets": 10,
+        "hits": 8,
+        "misses": 1,
+        "falseAlarms": 1,
+        "correctRejections": 20,
+        "accuracy": 90,
+        "hitRate": 90,
+        "falseAlarmRate": 5,
+        "avgHitRT": 430,
+        "medianHitRT": 420,
+        "fastestHitRT": 300,
+        "duration": 60000,
+        "completedAt": "2026-06-02T01:00:00.000Z",
+        "metricVersion": 1,
+        "appVersion": "1.1.1"
+      }
+    ],
+    "targettap:last-target": "X",
+    "targettap:stats:easy": {
+      "started": 1,
+      "completed": 1,
+      "bestScore": {
+        "score": 42,
+        "hitRate": 90,
+        "falseAlarmRate": 5,
+        "medianHitRT": 420,
+        "date": "2026-06-02T01:00:00.000Z"
+      },
+      "bestHitRate": {
+        "hitRate": 90,
+        "date": "2026-06-02T01:00:00.000Z"
+      },
+      "bestFalseAlarmRate": {
+        "falseAlarmRate": 5,
+        "date": "2026-06-02T01:00:00.000Z"
+      },
+      "bestMedianHitRT": {
+        "medianHitRT": 420,
+        "hitRate": 90,
+        "falseAlarmRate": 5,
+        "date": "2026-06-02T01:00:00.000Z"
+      },
+      "completions": [
+        {
+          "score": 42,
+          "hitRate": 90,
+          "falseAlarmRate": 5,
+          "accuracy": 90,
+          "avgHitRT": 430,
+          "medianHitRT": 420,
+          "hits": 8,
+          "misses": 1,
+          "falseAlarms": 1,
+          "correctRejections": 20
+        }
+      ]
+    },
+    "whackamole:history:1": [
+      {
+        "level": 1,
+        "gridSize": 5,
+        "score": 42,
+        "hits": 8,
+        "misses": 1,
+        "falseAlarms": 1,
+        "correctRejections": 20,
+        "emptyTaps": 1,
+        "hitRate": 90,
+        "falseAlarmRate": 5,
+        "medianHitRT": 420,
+        "stars": 3,
+        "duration": 60000,
+        "completedAt": "2026-06-02T07:00:00.000Z",
+        "metricVersion": 1,
+        "appVersion": "1.1.1"
+      }
+    ],
+    "whackamole:progress": {
+      "highestUnlocked": 2,
+      "completedLevels": [
+        1
+      ],
+      "totalStars": 3,
+      "totalHits": 8,
+      "totalMisses": 1,
+      "totalFalseAlarms": 1,
+      "totalCorrectRejections": 20,
+      "totalEmptyTaps": 1,
+      "totalPlayTime": 60000
+    },
+    "whackamole:stats:1": {
+      "started": 1,
+      "completed": 1,
+      "best": {
+        "stars": 3,
+        "score": 42,
+        "hitRate": 90,
+        "falseAlarmRate": 5,
+        "emptyTaps": 1,
+        "medianHitRT": 420,
+        "date": "2026-06-02T07:00:00.000Z"
+      },
+      "completions": [
+        {
+          "stars": 3,
+          "score": 42,
+          "hitRate": 90,
+          "falseAlarmRate": 5,
+          "emptyTaps": 1,
+          "medianHitRT": 420,
+          "date": "2026-06-02T07:00:00.000Z"
+        }
+      ]
+    }
+  }
+}
