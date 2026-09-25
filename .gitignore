@@ -3,3 +3,4 @@ dist/
 .npm-cache/
 .env
 brain-sync.sqlite*
+.env.local

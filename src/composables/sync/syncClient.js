@@ -175,14 +175,5 @@ async function doSync({ transport, online = true, timeoutMs = SYNC_TIMEOUT_MS, n
   return { status: 'synced', pushed: outgoing.length, pulled: pulled.length, pending: listOutbox().length }
 }
 
-// §41's states, for the status line Phase 6 adds.
-export function getSyncStatus({ online = true } = {}) {
-  const state = getSyncState()
-  const pending = listOutbox().length
-  if (!state.enabled) return { state: 'local-only', pending }
-  if (state.lastError === 'unauthorized') return { state: 'needs-pairing', pending }
-  if (!online) return { state: 'offline', pending }
-  if (state.consecutiveFailures > 0) return { state: 'unavailable', pending }
-  if (pending > 0 || state.needsFullResync) return { state: 'pending', pending }
-  return { state: 'synced', pending, lastSyncAt: state.lastSyncAt }
-}
+// Lives in outbox.js so the status line doesn't pull in the merge engine.
+export { getSyncStatus } from './outbox.js'

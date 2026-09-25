@@ -44,15 +44,18 @@
           <button class="primary-btn" @click="confirmImport('merge')">
             Merge with existing data
           </button>
-          <button class="danger-btn" @click="confirmImport('replace')">
+          <button v-if="!syncEnabled" class="danger-btn" @click="confirmImport('replace')">
             Replace all existing data
           </button>
           <button class="secondary-btn" @click="cancelImport">Cancel</button>
         </div>
         <p class="hint-text">
-          Merge keeps everything from both — history from each game is combined, and your current
-          personal bests are kept over the imported ones on conflict. Replace wipes your current
-          data first.
+          Merge keeps everything from both. History from each game is combined, the better personal
+          best wins whichever side it's on, and completed levels are never lost.
+          <template v-if="syncEnabled">
+            Replace isn't offered while Brain Sync is on: your synced progress would come straight back.
+          </template>
+          <template v-else>Replace wipes your current data first.</template>
         </p>
       </div>
 
@@ -66,6 +69,10 @@
       <p class="card-desc">
         Permanently erases every game's history, stats, personal bests, and any in-progress game
         from this device. This cannot be undone — export a backup first if you're not sure.
+      </p>
+      <p v-if="syncEnabled" class="card-desc">
+        Brain Sync is on. This deletes only what's on this device, and your synced progress downloads
+        again on the next sync. To remove it everywhere, use Delete Cloud Data in Brain Sync.
       </p>
       <label class="confirm-label">
         Type <strong>DELETE</strong> to confirm:
@@ -94,6 +101,7 @@ import {
   deleteAllData,
   storageFootprintChars,
 } from '../composables/dataPortability.js'
+import { isSyncEnabled } from '../composables/sync/outbox.js'
 
 defineEmits(['menu'])
 
@@ -103,6 +111,7 @@ const pendingImport = ref(null) // { parsed, summary } | null
 const importResult = ref(null)
 const deleteConfirmText = ref('')
 const deleteResult = ref(null)
+const syncEnabled = isSyncEnabled()
 
 const footprintLabel = computed(() => {
   const chars = storageFootprintChars()

@@ -78,11 +78,14 @@
       </button>
     </div>
 
+    <SyncStatusLine v-if="syncAvailable" @open="$emit('choose', 'sync')" />
+
     <div class="footer-links">
       <button class="data-link" @click="$emit('choose', 'activity')">Activity</button>
     </div>
     <div class="footer-links footer-links--tertiary">
       <button class="data-link" @click="$emit('choose', 'data')">Manage Your Data</button>
+      <button v-if="syncAvailable" class="data-link" @click="$emit('choose', 'sync')">Brain Sync</button>
       <button class="data-link" @click="$emit('choose', 'about')">About</button>
       <a
         class="data-link github-link"
@@ -103,7 +106,13 @@
 </template>
 
 <script setup>
+import SyncStatusLine from './SyncStatusLine.vue'
+import { isSyncAvailable } from '../composables/sync/config.js'
+
 defineEmits(['choose'])
+
+// Builds without a sync server show nothing sync-related at all.
+const syncAvailable = isSyncAvailable()
 </script>
 
 <style scoped>

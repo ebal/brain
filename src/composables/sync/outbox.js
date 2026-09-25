@@ -217,3 +217,15 @@ export function installOutbox() {
     uninstall = null
   }
 }
+
+// §41's states (see syncStatus.js for the wording shown to the player).
+export function getSyncStatus({ online = true } = {}) {
+  const state = getSyncState()
+  const pending = listOutbox().length
+  if (!state.enabled) return { state: 'local-only', pending }
+  if (state.lastError === 'unauthorized') return { state: 'needs-pairing', pending }
+  if (!online) return { state: 'offline', pending }
+  if (state.consecutiveFailures > 0) return { state: 'unavailable', pending }
+  if (pending > 0 || state.needsFullResync) return { state: 'pending', pending }
+  return { state: 'synced', pending, lastSyncAt: state.lastSyncAt }
+}

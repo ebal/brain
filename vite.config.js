@@ -48,6 +48,11 @@ export default defineConfig({
         // exists for gameplay (verified: no fetch/XHR/CDN anywhere in src/),
         // so nothing beyond the build output needs a runtime caching strategy.
         globPatterns: ['**/*.{js,css,html,png,svg,ico,webmanifest}'],
+        // The QR decoder (~47 kB gzipped) is only needed to pair a device,
+        // which needs the network anyway — so it isn't precached for every
+        // player. It's fetched (and HTTP-cached) the first time the camera
+        // scanner is opened on a browser without a native BarcodeDetector.
+        globIgnores: ['**/jsQR-*.js'],
       },
     }),
   ],

@@ -1,8 +1,8 @@
-# Brain Sync — Phase 0 Persistence Audit (and Phase 1–5 record)
+# Brain Sync — Phase 0 Persistence Audit (and Phase 1–6 record)
 
 Audit of Brain's local persistence as of **1.1.1** (`45a9015`), per
 [`BRAIN-SYNC-SPEC.md`](./BRAIN-SYNC-SPEC.md) §55/§65. The last section records what Phase 1
-(§56) through Phase 5 (§60) changed. The sync UI and hardening are Phases 6–7.
+(§56) through Phase 6 (§61) changed. Production hardening is Phase 7.
 
 ## 1. Baseline
 
@@ -192,8 +192,8 @@ PWAs (standalone display mode). Firefox shows a permission prompt, so gate it.
 | 3 | Durable outbox (write-through, per-op keys), sync client + auto-sync triggers, Flags learning events, mock transport/server | ✅ (§11) |
 | 4 | Backend: zero-dependency Node + SQLite API — identity, device credentials, sync endpoint, cursors/revisions, idempotency, device list/rename/revoke, cloud delete; browser HTTP client | ✅ (§12) |
 | 5 | QR pairing (short-lived single-use tokens), recovery code + rotation, re-joining after revoke/disconnect/lost credential | ✅ (§13) |
-| 6 | Status UI, Sync Now, auto-sync start-up, device management, cloud delete/disconnect, QR render/scan, recovery-code display and entry | next |
-| 7 | Hardening, including the physical Airplane-Mode acceptance test (§52); best provenance (`sessionId`), `levelVersion` stamping, session-derived counters | |
+| 6 | Status line, Brain Sync screen (enable, join by QR/pairing code/recovery code, Sync Now, devices, recovery code, disconnect, cloud delete), auto-sync start-up, semantic import merge, real-browser e2e | ✅ (§14) |
+| 7 | Hardening, including the physical Airplane-Mode acceptance test (§52); best provenance (`sessionId`), `levelVersion` stamping, session-derived counters | next |
 
 Pre-existing issue found, not fixed (out of scope):
 `whackamole/useWhackAMoleGame.test.js › "a distractor tapped is a False Alarm…"` is **flaky on
@@ -571,3 +571,107 @@ typo and swap detection above.
 **Also:** the server schema upgrade test, and a manual `node server/index.js` smoke test
 (create → token → claim 201 → reclaim 401 → recover 201 → 3 devices) with a log containing
 route templates only.
+
+## 14. Phase 6 — what was implemented
+
+### Switched on per build
+
+`VITE_BRAIN_SYNC_URL` (build time, `sync/config.js`) names the sync server. **Without it, which is
+the default, a build has no status line, no Brain Sync link and no network calls:** it's exactly
+the app as before. The production site doesn't change until someone builds it with a URL.
+
+### What the player sees (§41, §42)
+
+- **Status line** on the landing screen (`SyncStatusLine.vue`, reactive `sync/syncStatus.js`), in
+  §41's wording:
+  - "Progress stored on this device · Enable Sync"
+  - "☁ Synced"
+  - "☁ 12 changes waiting to sync"
+  - "✈ Offline · Progress saved locally"
+  - "Sync unavailable · Progress is safe on this device"
+  - "Sync paused · …reconnect in Brain Sync"
+
+  A test checks that no state's wording implies progress was lost. The line is informational
+  only and never blocks.
+- **Brain Sync screen** (`SyncSettings.vue`, its own lazy chunk):
+  - **Local-only:** Enable Brain Sync (optional profile and device names). The **recovery code is
+    shown exactly once**, groups never break across lines, and there is a §12 warning. **Done**
+    stays disabled until "I've saved my recovery code" is ticked.
+  - **Join:** Scan QR code, Paste pairing code, or Use recovery code (a typo is flagged as you
+    type), each with an optional device name. Joining merges the progress already on the device.
+  - **Connected:**
+    - status with Sync Now;
+    - profile with Rename;
+    - devices (name, "This device", last seen) with Rename and Remove;
+    - **Add Device** (QR with a 5:00 countdown, "Can't scan? Copy pairing code", live "✓ Green
+      is now connected", and leaving cancels the open token);
+    - recovery code (created/rotated date, create a new one, a prompt if none exists yet, which
+      covers identities from the Phase 4 server);
+    - Disconnect This Device;
+    - Delete Cloud Data (type DELETE);
+    - Advanced, which shows the raw IDs only there (§42).
+  - **Needs pairing** (revoked or credential lost): reconnect by QR, pairing code or recovery
+    code, or stop syncing. Local progress is always kept.
+- **Automatic sync** starts after mount, only on a build with a server and a device that enabled
+  it (`sync/syncRuntime.js`, loaded lazily and never awaited). Launch and play never wait for it.
+
+### QR codes: two small dependencies (§64)
+
+| Package | Why | Cost |
+|---|---|---|
+| `uqr` 0.1 (MIT, no dependencies) | encodes the pairing payload; rendered as our own SVG, always dark-on-white | inside the Brain Sync chunk |
+| `jsqr` 1.4 (Apache-2.0, no dependencies) | decodes camera frames where there's no native `BarcodeDetector` (iOS Safari, Firefox); the native one is used when present | its own chunk, **47 kB gzipped, excluded from the service-worker precache** (pairing needs the network anyway) |
+
+QR encoding and decoding are the kind of code not to hand-roll, and iOS Safari, the main PWA
+target, has no built-in decoder. The scanner runs *inside the app*, not the phone's camera app,
+because an iOS Home Screen app and Safari don't share storage. The camera stops as soon as a code
+is read or the screen is left.
+
+Main bundle: +4.9 kB (+1.75 kB gzipped) for the status line. The merge engine, the API client and
+the QR code load only with the Brain Sync screen, or at startup on devices that enabled sync.
+
+### Manage Your Data changes (§39, §40)
+
+- **Import → Merge now uses the sync merge engine:** the better personal best wins whichever side
+  it's on, history is combined by session, and campaign progress is re-derived from the whole
+  local state. Before, the local best always won. In-progress autosaves still only fill gaps.
+- **On a synced device:**
+  - Import → Replace is hidden, with an explanation (synced progress would come straight back).
+  - Delete All Data explains that it deletes only this device's copy, and resets the sync cursor
+    so the cloud copy downloads again. Removing it everywhere is Delete Cloud Data.
+
+### Tests
+
+- **Unit tests (14 new):**
+  - §41 status wording;
+  - the status store following real writes and connectivity;
+  - the default build has no server;
+  - runtime start conditions and Sync Now;
+  - a real round trip: pairing payload → QR matrix → pixels → jsQR;
+  - native `BarcodeDetector` preferred, jsQR fallback on a canvas;
+  - semantic import merge (a better imported best wins, a better local best is kept, progress
+    re-derived, autosaves fill gaps only);
+  - Delete All Data resets the cursor only on synced devices.
+- **Real-browser end to end (`npm run test:e2e-sync`, `tests/e2e/sync-ui.mjs`).** Headless
+  Firefox over WebDriver BiDi, with no test dependencies. It builds the app against a throwaway
+  local server, and each device is an isolated browser profile. It checks:
+  - Blue enables sync; the recovery code is shown once, must be acknowledged, and isn't stored;
+  - Red, with its own progress, joins by recovery code after a caught typo, and both devices end
+    up with both sets of progress;
+  - Blue's **QR as rendered on screen decodes to the exact pairing payload**;
+  - Green joins with the pairing code, Blue sees it arrive and lists Blue, Red, Green;
+  - the landing screen shows "☁ Synced";
+  - with the sync server killed, Sync Now and the landing screen show "Sync unavailable ·
+    Progress is safe on this device" and nothing blocks.
+
+  The server's log from that run contained no credentials, tokens or IDs. Mobile-sized
+  screenshots were reviewed; that review led to recovery-code groups never splitting across lines
+  and a device-name field on every join screen.
+
+### Not covered yet (Phase 7)
+
+- A real camera scan on a phone. The scanner code path is tested with synthetic frames and the
+  rendered QR, not a physical camera.
+- The §52 physical Airplane Mode acceptance test.
+- Best provenance, `levelVersion`, session-derived counters.
+- Server-side mastery recomputation from Flags learning events.

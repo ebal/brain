@@ -580,8 +580,28 @@ Compose picks up `.env` automatically from then on, no need to pass anything on 
 `node:sqlite`, Node 22.13+) and reuses the app's own merge engine, so the server and every device
 always agree on which progress is "better". It covers anonymous identities, QR pairing with
 short-lived single-use tokens, and a rotatable recovery code. No username, password or email is
-involved. The app doesn't talk to it yet, because the Sync settings UI is a later phase. Brain
-stays fully usable without it.
+involved. Brain stays fully usable without it.
+
+Sync is switched on per build by pointing the app at a server. Without
+`VITE_BRAIN_SYNC_URL` the build has no sync UI at all and never touches the network:
+
+```bash
+VITE_BRAIN_SYNC_URL=https://sync.example.org npm run build
+```
+
+With it, the landing screen shows a small sync status line, and a **Brain Sync** screen offers:
+Enable Sync, joining by QR code, pairing code or recovery code, Sync Now, device management, a new
+recovery code, Disconnect This Device and Delete Cloud Data.
+
+To try it locally, run the server and the dev app side by side:
+
+```bash
+BRAIN_SYNC_REQUIRE_HTTPS=0 BRAIN_SYNC_ALLOWED_ORIGINS=http://localhost:5173 npm run sync-server
+VITE_BRAIN_SYNC_URL=http://localhost:8787 npm run dev
+```
+
+Open two different browsers (or a normal and a private window) to act as two devices.
+`npm run test:e2e-sync` runs the same flows automatically in headless Firefox.
 
 ```bash
 BRAIN_SYNC_REQUIRE_HTTPS=0 npm run sync-server   # local only; listens on 127.0.0.1:8787

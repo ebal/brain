@@ -193,3 +193,44 @@ describe('schema-versioned import/export (BRAIN-SYNC-SPEC §15/§40)', () => {
     expect(JSON.parse(localStorage.getItem('sudoku:history'))[0].sessionId).toBeTypeOf('string')
   })
 })
+
+describe('semantic import merge and synced-device deletion (BRAIN-SYNC-SPEC §39/§40)', () => {
+  let env
+  afterEach(() => env.restore())
+
+  it('a better imported best wins, a better local best is kept, completions are unioned and progress re-derived', () => {
+    env = installStorage({
+      'hanoi:stats:1': JSON.stringify({ started: 2, completed: 2, best: { moves: 9, hints: 0, stars: 2 }, completions: [] }),
+      'hanoi:stats:2': JSON.stringify({ started: 1, completed: 1, best: { moves: 15, hints: 0, stars: 3 }, completions: [] }),
+      'hanoi:progress': JSON.stringify({ highestUnlocked: 3, completedLevels: [1, 2], totalStars: 5 }),
+    })
+    applyImport({ schemaVersion: CURRENT_SCHEMA_VERSION, data: {
+      'hanoi:stats:1': { started: 1, completed: 1, best: { moves: 7, hints: 0, stars: 3 }, completions: [] }, // better
+      'hanoi:stats:2': { started: 1, completed: 1, best: { moves: 30, hints: 1, stars: 1 }, completions: [] }, // worse
+      'hanoi:stats:4': { started: 1, completed: 1, best: { moves: 40, hints: 0, stars: 3 }, completions: [] },
+      'hanoi:progress': { highestUnlocked: 2, completedLevels: [1, 4], totalStars: 0 },
+    } }, 'merge')
+    expect(JSON.parse(localStorage.getItem('hanoi:stats:1')).best.moves).toBe(7)
+    expect(JSON.parse(localStorage.getItem('hanoi:stats:2')).best.moves).toBe(15)
+    expect(JSON.parse(localStorage.getItem('hanoi:progress'))).toMatchObject({ completedLevels: [1, 2, 4], highestUnlocked: 5, totalStars: 9 })
+  })
+
+  it('device-local keys (autosaves) only fill gaps, never replace what is on this device', () => {
+    env = installStorage({ 'sudoku:active': JSON.stringify({ mine: true }) })
+    applyImport({ schemaVersion: CURRENT_SCHEMA_VERSION, data: { 'sudoku:active': { theirs: true }, 'set:active': { theirs: true } } }, 'merge')
+    expect(JSON.parse(localStorage.getItem('sudoku:active'))).toEqual({ mine: true })
+    expect(JSON.parse(localStorage.getItem('set:active'))).toEqual({ theirs: true })
+  })
+
+  it('on a synced device, Delete All Data resets the cursor so the cloud copy downloads again', () => {
+    env = installStorage({ 'sudoku:history': '[]', 'brain:sync:state': JSON.stringify({ enabled: true, cursor: 42 }) })
+    deleteAllData()
+    expect(JSON.parse(localStorage.getItem('brain:sync:state'))).toMatchObject({ enabled: true, cursor: null })
+  })
+
+  it('on a local-only device, Delete All Data leaves sync state alone', () => {
+    env = installStorage({ 'sudoku:history': '[]' })
+    deleteAllData()
+    expect(localStorage.getItem('brain:sync:state')).toBeNull()
+  })
+})

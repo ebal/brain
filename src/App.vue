@@ -169,6 +169,8 @@
 
     <DataManagement v-else-if="activeGame === 'data'" @menu="activeGame = null" />
 
+    <SyncSettings v-else-if="activeGame === 'sync'" @menu="activeGame = null" />
+
     <template v-else-if="activeGame === 'sequence-memory'">
       <SequenceMainMenu
         v-if="sequenceScreen === 'menu'"
@@ -597,6 +599,7 @@ function lazy(loader) {
 }
 
 const DataManagement = lazy(() => import('./components/DataManagement.vue'))
+const SyncSettings = lazy(() => import('./components/SyncSettings.vue'))
 const ActivityDashboard = lazy(() => import('./components/ActivityDashboard.vue'))
 const AboutBrain = lazy(() => import('./components/AboutBrain.vue'))
 
@@ -708,7 +711,7 @@ const FlagsHistoryPage = lazy(() => import('./components/flags/HistoryPage.vue')
 const FlagsGameScreen = lazy(() => import('./components/flags/GameScreen.vue'))
 const FlagsResultsScreen = lazy(() => import('./components/flags/ResultsScreen.vue'))
 
-const activeGame = ref(null) // null | 'stroop' | 'schulte' | 'nback' | 'sudoku' | 'set' | 'sequence-memory' | 'switchtrail' | 'memorypairs' | 'whackamole' | 'flagsoftheworld' | 'data' | 'activity' | 'about'
+const activeGame = ref(null) // null | 'stroop' | 'schulte' | 'nback' | 'sudoku' | 'set' | 'sequence-memory' | 'switchtrail' | 'memorypairs' | 'whackamole' | 'flagsoftheworld' | 'data' | 'sync' | 'activity' | 'about'
 
 // --- Stroop Effect Test ---
 const stroopScreen = ref('menu')

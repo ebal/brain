@@ -5,7 +5,10 @@
 import { getAllSessions } from './sessionModel.js'
 import { GAME_PREFIXES, DEPRECATED_PREFIXES } from '../constants/storageKeys.js'
 import { CURRENT_SCHEMA_VERSION, migrateData, assertNoLoss } from './persistence/migrations.js'
-import { clearOutbox } from './sync/outbox.js'
+import { clearOutbox, isSyncEnabled, updateSyncState } from './sync/outbox.js'
+import { mergeData, syncableData } from './sync/mergeEngine.js'
+import { isDeviceLocalKey } from '../constants/storageKeys.js'
+import { stableStringify } from './persistence/ids.js'
 import { persistJSON } from './persistence/durableWrite.js'
 
 // Export files carry the same schemaVersion as on-device storage (one
@@ -122,6 +125,10 @@ export function validateImportFile(parsed) {
   return keys
 }
 
+// mergeValue is the legacy, domain-unaware merge — still used for
+// device-local keys during import; durable progress now merges through
+// sync/mergeEngine.js (see applyImport).
+//
 // Merge policy: history (array-valued keys) are concatenated, de-duplicated
 // by sessionId (or by exact content match for anything without one), and
 // re-sorted chronologically — safe, since two
@@ -177,11 +184,27 @@ export function applyImport(parsed, mode) {
   }
 
   if (mode === 'merge') {
+    // Durable progress goes through the same semantic merge as sync
+    // (BRAIN-SYNC-SPEC §40): better bests win whichever side they're on,
+    // history is unioned by session, campaign progress is re-derived.
+    // The whole local state is the base, so derived values (e.g. total
+    // stars) see every level, not just the imported ones.
+    const local = {}
+    for (const key of ownKeys()) {
+      const value = safeParse(safeGet(key))
+      if (value !== null) local[key] = value
+    }
+    const merged = mergeData(syncableData(local), syncableData(incoming))
     let written = 0
-    for (const key of incomingKeys) {
-      const existing = safeParse(safeGet(key))
-      const merged = mergeValue(existing, incoming[key])
-      if (safeSet(key, merged)) written += 1
+    for (const [key, value] of Object.entries(merged)) {
+      if (stableStringify(value) === stableStringify(local[key])) continue
+      if (safeSet(key, value)) written += 1
+    }
+    // Device-local keys (in-progress autosaves, UI flags): an incoming value
+    // only fills a gap, never replaces what's on this device.
+    for (const key of incomingKeys.filter(isDeviceLocalKey)) {
+      if (local[key] !== undefined) continue
+      if (safeSet(key, mergeValue(null, incoming[key]))) written += 1
     }
     return { mode, keysWritten: written, keysAttempted: incomingKeys.length }
   }
@@ -193,8 +216,10 @@ export function deleteAllData() {
   const keys = ownKeysIncludingDeprecated()
   for (const key of keys) safeRemove(key)
   // Not-yet-uploaded progress is local data too — drop its queued copies.
-  // Cloud data is never touched from here (BRAIN-SYNC-SPEC §39).
+  // Cloud data is never touched from here (BRAIN-SYNC-SPEC §39): on a synced
+  // device, the next sync downloads the cloud copy again from scratch.
   clearOutbox()
+  if (isSyncEnabled()) updateSyncState({ cursor: null })
   return { keysDeleted: keys.length }
 }
 
