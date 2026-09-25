@@ -26,6 +26,9 @@ import { EMOJIMAHJONG_LEVELS } from '../../constants/emojimahjong/levels.js'
 import { WHACKAMOLE_LEVELS } from '../../constants/whackamole/levels.js'
 import { FLAGS_LEVELS } from '../../constants/flags/levels.js'
 
+// Re-exported for callers that already import the rest of the rules from here.
+export { isDeviceLocalKey } from '../../constants/storageKeys.js'
+
 const clean = (record) => record.hints === 0
 
 const CLEAN_TIME = { order: [['time', 'min'], ['mistakes', 'min']] }
@@ -114,9 +117,4 @@ export const LEVEL_GAMES = {
   emojimahjong: { levelCount: EMOJIMAHJONG_LEVELS.length },
   whackamole: { levelCount: WHACKAMOLE_LEVELS.length },
   flagsoftheworld: { levelCount: FLAGS_LEVELS.length },
-}
-
-// Keys that are never synced (§35): in-progress autosaves and UI flags.
-export function isDeviceLocalKey(key) {
-  return /:active$/.test(key) || key === 'emojimahjong:tutorialSeen' || key === 'targettap:last-target'
 }

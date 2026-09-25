@@ -1,5 +1,6 @@
 import { METRIC_VERSIONS } from '../constants/metricVersions.js'
 import { newSessionStamp } from './persistence/device.js'
+import { persistJSON } from './persistence/durableWrite.js'
 
 const PREFIX = 'stroop:history:'
 const MAX_ENTRIES = 20
@@ -19,7 +20,7 @@ function read(mode, difficultyKey) {
 
 function write(mode, difficultyKey, entries) {
   try {
-    localStorage.setItem(keyFor(mode, difficultyKey), JSON.stringify(entries))
+    persistJSON(keyFor(mode, difficultyKey), entries)
   } catch {
     // localStorage unavailable (private mode, quota, etc.) — silently skip persistence
   }

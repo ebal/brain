@@ -1,5 +1,6 @@
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
 import { newSessionStamp } from '../persistence/device.js'
+import { persistJSON } from '../persistence/durableWrite.js'
 
 const PREFIX = 'schulte:history:'
 const MAX_ENTRIES = 20
@@ -23,7 +24,7 @@ function read(difficultyKey, variantKey) {
 
 function write(difficultyKey, variantKey, entries) {
   try {
-    localStorage.setItem(keyFor(difficultyKey, variantKey), JSON.stringify(entries))
+    persistJSON(keyFor(difficultyKey, variantKey), entries)
   } catch {
     // localStorage unavailable (private mode, quota, etc.) — silently skip persistence
   }

@@ -9,6 +9,8 @@ import { DATASET_VERSION } from '../../constants/flags/countries.js'
 import { updateCountryLearning } from './learning.js'
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
 import { newSessionStamp } from '../persistence/device.js'
+import { persistJSON } from '../persistence/durableWrite.js'
+import { enqueueLearningEvents } from '../sync/outbox.js'
 
 const STATS_PREFIX = 'flagsoftheworld:stats:'
 const HISTORY_PREFIX = 'flagsoftheworld:history:'
@@ -39,7 +41,7 @@ function readJSON(key, fallback) {
 
 function writeJSON(key, value) {
   try {
-    localStorage.setItem(key, JSON.stringify(value))
+    persistJSON(key, value)
   } catch {
     // localStorage unavailable (private mode, quota, etc.) — silently skip persistence
   }
@@ -120,6 +122,9 @@ export function useFlagsStats() {
     for (const entry of result.perQuestionLog ?? []) {
       updateLearning(entry.countryCode, { correct: entry.correct, wrongCode: entry.wrongCode, timestamp: entry.timestamp })
     }
+    // Per-answer learning events with unique IDs (BRAIN-SYNC-SPEC §20) —
+    // queued for sync only (a no-op while sync is off), never kept locally.
+    enqueueLearningEvents('flagsoftheworld', level, result.perQuestionLog ?? [])
 
     if (level == null) return { isNewBest: false }
 

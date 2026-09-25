@@ -34,3 +34,13 @@ export function isGameKey(key) {
 export function isHistoryKey(key) {
   return isGameKey(key) && /^[a-z-]+:history(:|$)/.test(key)
 }
+
+// Keys that are never synced (BRAIN-SYNC-SPEC §35): in-progress autosaves
+// and UI flags. They stay on the device that wrote them.
+export function isDeviceLocalKey(key) {
+  return /:active$/.test(key) || key === 'emojimahjong:tutorialSeen' || key === 'targettap:last-target'
+}
+
+// Sync bookkeeping (Phase 3). Under brain:, so never exported/imported.
+export const SYNC_STATE_KEY = 'brain:sync:state'
+export const OUTBOX_PREFIX = 'brain:sync:op:'

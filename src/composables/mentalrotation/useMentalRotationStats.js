@@ -1,6 +1,7 @@
 import { avg, median } from '../mathStats.js'
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
 import { newSessionStamp } from '../persistence/device.js'
+import { persistJSON } from '../persistence/durableWrite.js'
 
 const STATS_PREFIX = 'mentalrotation:stats:'
 const HISTORY_PREFIX = 'mentalrotation:history'
@@ -31,7 +32,7 @@ function readJSON(key, fallback) {
 
 function writeJSON(key, value) {
   try {
-    localStorage.setItem(key, JSON.stringify(value))
+    persistJSON(key, value)
   } catch {
     // localStorage unavailable (private mode, quota, etc.) — silently skip persistence
   }

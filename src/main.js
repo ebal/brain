@@ -4,6 +4,7 @@ import './style.css'
 import { updateAvailable, setUpdateHandler } from './composables/pwaUpdate.js'
 import { runStorageMigrations } from './composables/persistence/migrations.js'
 import { getDeviceId } from './composables/persistence/device.js'
+import { installOutbox } from './composables/sync/outbox.js'
 
 // Synchronous and before mount, so every screen reads already-upgraded data
 // and no gameplay write can interleave with a migration. It never throws
@@ -12,6 +13,9 @@ import { getDeviceId } from './composables/persistence/device.js'
 const migration = runStorageMigrations({ appVersion: __APP_VERSION__ })
 if (migration.status === 'migrated') console.log('[storage] migrated to schema', migration.toVersion, migration)
 getDeviceId()
+// Queues durable writes for sync — inert unless sync has been enabled, and
+// auto-sync itself isn't started until a sync transport exists (Phase 4+).
+installOutbox()
 
 createApp(App).mount('#app')
 

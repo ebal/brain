@@ -7,6 +7,7 @@
 import { HANOI_LEVELS } from '../../constants/hanoi/levels.js'
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
 import { newSessionStamp } from '../persistence/device.js'
+import { persistJSON } from '../persistence/durableWrite.js'
 
 const STATS_PREFIX = 'hanoi:stats:'
 const HISTORY_PREFIX = 'hanoi:history:'
@@ -32,7 +33,7 @@ function readJSON(key, fallback) {
 
 function writeJSON(key, value) {
   try {
-    localStorage.setItem(key, JSON.stringify(value))
+    persistJSON(key, value)
   } catch {
     // localStorage unavailable (private mode, quota, etc.) — silently skip persistence
   }

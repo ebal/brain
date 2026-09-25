@@ -1,3 +1,5 @@
+import { persistJSON } from '../persistence/durableWrite.js'
+
 const PREFIX = 'nback:best:'
 
 function keyFor(difficultyKey) {
@@ -15,7 +17,7 @@ function read(difficultyKey) {
 
 function write(difficultyKey, data) {
   try {
-    localStorage.setItem(keyFor(difficultyKey), JSON.stringify(data))
+    persistJSON(keyFor(difficultyKey), data)
   } catch {
     // localStorage unavailable (private mode, quota, etc.) — silently skip persistence
   }

@@ -1,3 +1,5 @@
+import { persistJSON } from '../persistence/durableWrite.js'
+
 const PREFIX = 'schulte:best:'
 
 // 'classic' keeps the original, pre-existing key shape (`schulte:best:<difficultyKey>`)
@@ -21,7 +23,7 @@ function read(difficultyKey, variantKey) {
 
 function write(difficultyKey, variantKey, data) {
   try {
-    localStorage.setItem(keyFor(difficultyKey, variantKey), JSON.stringify(data))
+    persistJSON(keyFor(difficultyKey, variantKey), data)
   } catch {
     // localStorage unavailable (private mode, quota, etc.) — silently skip persistence
   }

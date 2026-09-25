@@ -1,5 +1,6 @@
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
 import { newSessionStamp } from '../persistence/device.js'
+import { persistJSON } from '../persistence/durableWrite.js'
 
 const PREFIX = 'nback:history:'
 const MAX_ENTRIES = 20
@@ -19,7 +20,7 @@ function read(difficultyKey) {
 
 function write(difficultyKey, entries) {
   try {
-    localStorage.setItem(keyFor(difficultyKey), JSON.stringify(entries))
+    persistJSON(keyFor(difficultyKey), entries)
   } catch {
     // localStorage unavailable (private mode, quota, etc.) — silently skip persistence
   }

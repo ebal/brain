@@ -5,6 +5,8 @@
 import { getAllSessions } from './sessionModel.js'
 import { GAME_PREFIXES, DEPRECATED_PREFIXES } from '../constants/storageKeys.js'
 import { CURRENT_SCHEMA_VERSION, migrateData, assertNoLoss } from './persistence/migrations.js'
+import { clearOutbox } from './sync/outbox.js'
+import { persistJSON } from './persistence/durableWrite.js'
 
 // Export files carry the same schemaVersion as on-device storage (one
 // canonical data model, BRAIN-SYNC-SPEC §15) — an old backup is upgraded
@@ -21,7 +23,7 @@ function safeGet(key) {
 
 function safeSet(key, value) {
   try {
-    localStorage.setItem(key, JSON.stringify(value))
+    persistJSON(key, value)
     return true
   } catch {
     // localStorage unavailable or quota exceeded — caller sees this in the
@@ -190,6 +192,9 @@ export function applyImport(parsed, mode) {
 export function deleteAllData() {
   const keys = ownKeysIncludingDeprecated()
   for (const key of keys) safeRemove(key)
+  // Not-yet-uploaded progress is local data too — drop its queued copies.
+  // Cloud data is never touched from here (BRAIN-SYNC-SPEC §39).
+  clearOutbox()
   return { keysDeleted: keys.length }
 }
 

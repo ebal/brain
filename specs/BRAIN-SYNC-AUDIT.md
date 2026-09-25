@@ -1,8 +1,8 @@
-# Brain Sync — Phase 0 Persistence Audit (and Phase 1–2 record)
+# Brain Sync — Phase 0 Persistence Audit (and Phase 1–3 record)
 
 Audit of Brain's local persistence as of **1.1.1** (`45a9015`), per
 [`BRAIN-SYNC-SPEC.md`](./BRAIN-SYNC-SPEC.md) §55/§65. The last section records what Phase 1
-(§56) and Phase 2 (§57) changed. No outbox, backend or sync UI exists yet. Those are Phases 3–7.
+(§56), Phase 2 (§57) and Phase 3 (§58) changed. No backend, pairing or sync UI exists yet. Those are Phases 4–7.
 
 ## 1. Baseline
 
@@ -156,11 +156,11 @@ Versions stay independent: `schemaVersion` (storage shape), `appVersion` (releas
 
 ## 6. Storage technology decision (spec §16)
 
-**Stay on localStorage for Phase 1.** The data is small (JSON, capped) and access is synchronous,
-and moving it now would itself be a release risk. Move to IndexedDB, non-destructively, **when
-Phase 3 introduces the outbox and Flags learning events.** Those need append-heavy, uncapped,
-transactional writes (a local save and its outbox enqueue should be atomic, §21), which
-localStorage can't do. Sessions should move then too, which would allow lifting the history caps.
+**Stay on localStorage.** The data is small (JSON, capped) and access is synchronous, and moving it
+would itself be a release risk. The original plan was to move to IndexedDB when Phase 3 added the
+outbox. Phase 3 then showed that a coalesced, write-through outbox in localStorage keeps a local
+save and its enqueue in one synchronous step, which is *more* atomic than an async IndexedDB
+outbox. See §11 for the decision and when to revisit it.
 
 Also recommended (not done, so no UX change): call `navigator.storage.persist()` for installed
 PWAs (standalone display mode). Firefox shows a permission prompt, so gate it.
@@ -189,8 +189,8 @@ PWAs (standalone display mode). Firefox shows a permission prompt, so gate it.
 | 0 | This audit | ✅ |
 | 1 | schemaVersion, sequential migrations, fixtures, Device ID, session IDs, release-safety guard | ✅ (below) |
 | 2 | Pure merge engine: sessions ∪, bests via each game's own order with eligibility, level union + derived progression, counters MAX. Blue/Green/Red tests, commutativity/associativity/idempotence properties | ✅ (§10) |
-| 3 | IndexedDB migration (non-destructive), durable outbox, Flags learning events, uncapped sessions, session-derived counters, best provenance (`sessionId`) and `levelVersion` stamping, mock transport | next |
-| 4 | Backend (small HTTPS API + SQLite/Postgres): identity, devices, sync endpoint, cursors, idempotency | |
+| 3 | Durable outbox (write-through, per-op keys), sync client + auto-sync triggers, Flags learning events, mock transport/server | ✅ (§11) |
+| 4 | Backend (small HTTPS API + SQLite/Postgres): identity, devices, sync endpoint, cursors, idempotency. Also: best provenance (`sessionId`) and `levelVersion` stamping, session-derived counters | next |
 | 5 | QR pairing tokens, recovery code + rotation, revocation | |
 | 6 | Status UI, Sync Now, auto-sync triggers, device management, cloud delete/disconnect | |
 | 7 | Hardening, including the physical Airplane-Mode acceptance test (§52) | |
@@ -284,8 +284,106 @@ Known limits, taken on deliberately:
 
 - **Counters (MAX) are a lower bound.** Two devices that each completed a level 3 times show 3
   after merging, not 6. Nothing is double-counted and nothing regresses. Exact totals need
-  counters derived from uncapped sessions (Phase 3).
-- **Flags learning is not fully mergeable** until per-attempt events exist (Phase 3).
-- **Best provenance (`sessionId` on best records) and `levelVersion` are deferred to Phase 3.**
-  Phase 3 changes every save function for the outbox anyway, and every level is currently at
-  version 1, so a missing value will read as 1.
+  counters derived from full session history. Only the server will hold that (Phase 4).
+- **Flags learning is not fully mergeable yet.** Phase 3 queues per-answer events; recomputing
+  mastery from the merged event set needs the server (Phase 4).
+- **Best provenance (`sessionId` on best records) and `levelVersion` are deferred to Phase 4.**
+  Nothing consumes them yet (eligibility is validated from each record's own fields), and every
+  level is currently at version 1, so a missing value reads as 1.
+
+## 11. Phase 3 — what was implemented
+
+### Decision: no IndexedDB migration (yet)
+
+§6 expected the outbox to be what justifies moving to IndexedDB. The design below makes that
+unnecessary, and §16 says not to migrate merely because sync exists:
+
+- **Atomicity.** A local save and its outbox entry happen in the *same synchronous step*.
+  IndexedDB is asynchronous, so moving only the outbox there would *weaken* "local save + enqueue
+  as atomic as practical" (§21). Moving everything there would make every save path async across
+  18 games.
+- **Size is bounded.** Record ops are *coalesced per storage key*, and their payload is read at
+  send time (records merge as joins), so repeated play doesn't grow the queue. Only new-session
+  ops (~300 bytes each) and Flags learning events grow with offline play, and they're removed
+  once acknowledged. Weeks offline is roughly 100s of KB.
+- **Cap-safety without uncapping.** A session op carries its entry, so the local 20/30-entry
+  history cap can evict a session before the device is back online without it being lost for
+  sync.
+
+Reconsider IndexedDB if the local history caps are ever lifted (full on-device history) or if
+learning events must be kept on the device.
+
+### What changed
+
+- **`persistence/durableWrite.js`: `persistJSON()`**, the single durable write path. All 22
+  durable writers (18 stats/history modules, the three standalone best modules, import) now use
+  it instead of `localStorage.setItem(key, JSON.stringify(value))`. It behaves identically,
+  including throwing into each caller's existing try/catch. After a *successful* write it
+  notifies listeners, and a failing listener can't affect the save. Autosaves (`storage.js`) and
+  UI flags deliberately bypass it.
+- **`sync/outbox.js`**
+  - Operations carry the spec's fields: `operationId`, `deviceId`, `entityType`, `entityId`,
+    payload/version, `createdAt`, `attemptCount`, `lastAttemptAt`.
+  - Each operation is stored under its own `brain:sync:op:<type>:<id>` key, so two open tabs
+    can't lose each other's entries. Operations are never exported.
+  - The queue is inert unless `enableSync()` was called; sync is off by default.
+  - `enableSync()` triggers a one-time full-state push, so existing local progress is merged,
+    never discarded (§9).
+  - `disableSync()` drops the queue and keeps all local data.
+  - If the queue runs out of room, it falls back to a full resync instead of losing the change.
+- **`sync/syncClient.js`: `runSync()`**
+  - It is single-flight (overlapping triggers share one exchange) and has a 15 s timeout.
+  - It pushes the queue, validates the response and rejects a malformed one wholesale (§45),
+    merges remote changes through the merge engine, and writes only keys that actually changed.
+    Remote data is written raw, not re-queued.
+  - It acknowledges only the exact operation version that was sent, so a write made during an
+    in-flight sync stays queued.
+  - Bootstrap operation IDs are derived from content, so retries are idempotent.
+  - Backoff is bounded exponential with jitter (5 s → 15 min).
+  - On 401/403 it reports `needs-pairing` and stops automatic retries (§44).
+  - `getSyncStatus()` returns §41's states: `local-only`, `synced`, `pending`, `offline`,
+    `unavailable`, plus `needs-pairing`.
+- **`sync/autoSync.js`**: sync on launch while online, on the `online` event, when the app comes
+  back to the foreground, 2 s after any durable write (i.e. a completion), on a retry timer
+  after a failure, and on `syncNow()`. It uses no Background Sync API (§22). It isn't started
+  yet, because there is no real transport until Phase 4.
+- **Flags**: every answer is queued as a learning event with a unique `learningEventId` (§20).
+  Events are only queued for the server, never kept locally, and nothing is queued while sync
+  is off.
+- **Delete All Data** also drops queued operations (they're copies of local data). It never
+  touches cloud data (§39), the device ID, or sync settings.
+- **`sync/mockServer.js`**: an in-memory stand-in for the Phase 4 API. It skips operations it
+  has already applied (by `operationId`), merges on accept, keeps per-key revisions and cursors,
+  and can be switched to offline, hang (timeout), lost-response, unauthorized, or garbage
+  responses. Tests only; it is not in the app bundle.
+
+### Tests (`sync/outbox.test.js`, 24 tests)
+
+- **Everything §49 lists:**
+  - saving and unlocking with the network down;
+  - an API timeout after the local save has already succeeded;
+  - recording that returns synchronously with no network work inside it;
+  - the queue surviving a reload;
+  - reconnecting draining the whole queue.
+- **Also covered:**
+  - 35 offline Sudoku completions against the 30-entry cap all reach the server;
+  - a lost response is retried with no duplicates;
+  - a write during an in-flight sync is not wrongly acknowledged;
+  - garbage responses are rejected with local data untouched;
+  - a revoked credential leaves local play working;
+  - enabling sync on a device with existing progress pushes it all once, then goes incremental;
+  - all auto-sync triggers, retry backoff, and no attempt while offline.
+- **End to end:** Blue, Green and Red each play offline, then sync through the mock server in
+  different orders. All three end up with **identical** local data (L30 ★★★, L28 ★★★, L37 ★★,
+  unlock level 39, every session present) and empty queues.
+
+Main bundle: +2.1 kB (+0.7 kB gzipped). The merge engine and sync client aren't loaded until a
+transport exists.
+
+### Known limits
+
+- The acknowledgement check-then-remove is not atomic across tabs. If another tab rewrites the
+  same record key in the microseconds between the check and the removal, that newer version
+  isn't pushed until the key is written again. The data stays on the device in either case.
+- Remote history is written uncapped. The game's own cap trims it again on that game's next
+  save, and the trimmed sessions are already on the server.
