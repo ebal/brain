@@ -11,11 +11,12 @@
 // failure only leaves ops queued and returns a status (§2, §43, §46).
 //
 // A transport is `{ sync(request) => Promise<response> }`:
+// transport.sync(request, { signal }) — signal aborts on timeout
 //   request  { schemaVersion, deviceId, cursor, operations: [{ operationId,
 //              deviceId, entityType, entityId, payload, version }] }
 //   response { acknowledged: [operationId], changes: { storageKey: value },
 //              cursor }
-// Phase 4's HTTPS client and mockServer.js both implement it.
+// syncApi.js's createHttpTransport and mockServer.js both implement it.
 
 import { CURRENT_SCHEMA_VERSION } from '../persistence/migrations.js'
 import { getDeviceId } from '../persistence/device.js'
@@ -94,12 +95,19 @@ export function validateResponse(response) {
   return response
 }
 
-function withTimeout(promise, ms) {
+// Races the transport against a timeout, and aborts the underlying request
+// (via the AbortSignal handed to transport.sync) when the timeout wins.
+function callWithTimeout(transport, request, ms) {
+  const controller = new AbortController()
   let timer
   const timeout = new Promise((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`sync timed out after ${ms}ms`)), ms)
+    timer = setTimeout(() => {
+      controller.abort()
+      reject(new Error(`sync timed out after ${ms}ms`))
+    }, ms)
   })
-  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer))
+  const call = Promise.resolve().then(() => transport.sync(request, { signal: controller.signal }))
+  return Promise.race([call, timeout]).finally(() => clearTimeout(timer))
 }
 
 // Writes merged remote changes. Raw setItem, NOT persistJSON: data that
@@ -145,7 +153,7 @@ async function doSync({ transport, online = true, timeoutMs = SYNC_TIMEOUT_MS, n
 
   let response
   try {
-    response = validateResponse(await withTimeout(Promise.resolve().then(() => transport.sync(request)), timeoutMs))
+    response = validateResponse(await callWithTimeout(transport, request, timeoutMs))
   } catch (error) {
     const unauthorized = error?.status === 401 || error?.status === 403
     const next = updateSyncState({

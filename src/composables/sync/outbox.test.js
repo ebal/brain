@@ -3,49 +3,16 @@ import { installOutbox, enableSync, disableSync, isSyncEnabled, listOutbox, getS
 import { runSync, getSyncStatus, backoffDelay, validateResponse } from './syncClient.js'
 import { startAutoSync, WRITE_DEBOUNCE_MS } from './autoSync.js'
 import { createMockSyncServer } from './mockServer.js'
-import { syncableData } from './mergeEngine.js'
 import { stableStringify } from '../persistence/ids.js'
 import { persistJSON, onDurableWrite } from '../persistence/durableWrite.js'
-import { installFakeLocalStorage } from '../persistence/testStorage.js'
-import { _resetDeviceIdCache, getDeviceId } from '../persistence/device.js'
+import { makeDevice } from './testDevices.js'
+import { getDeviceId } from '../persistence/device.js'
 import { DEVICE_KEY, SYNC_STATE_KEY, OUTBOX_PREFIX, isHistoryKey } from '../../constants/storageKeys.js'
 import { deleteAllData } from '../dataPortability.js'
 import { useHanoiStats } from '../hanoi/useHanoiStats.js'
 import { useSudokuStats } from '../sudoku/useSudokuStats.js'
 import { useEmojiMahjongStats } from '../emojimahjong/useEmojiMahjongStats.js'
 import { useFlagsStats } from '../flags/useFlagsStats.js'
-
-// ---- simulated installations --------------------------------------------
-// A device is a persistent in-memory localStorage; `use` makes it the
-// global one for the duration of fn (sync or async). "Reloading" a device
-// is a fresh storage object built from the same raw entries.
-
-function makeDevice(entries = {}) {
-  const { storage, restore } = installFakeLocalStorage(entries)
-  restore()
-  return {
-    storage,
-    async use(fn) {
-      const original = globalThis.localStorage
-      Object.defineProperty(globalThis, 'localStorage', { value: storage, configurable: true, writable: true })
-      _resetDeviceIdCache()
-      try {
-        return await fn()
-      } finally {
-        Object.defineProperty(globalThis, 'localStorage', { value: original, configurable: true, writable: true })
-        _resetDeviceIdCache()
-      }
-    },
-    reload() {
-      return makeDevice(Object.fromEntries(Object.keys(storage).map((k) => [k, storage[k]])))
-    },
-    data() {
-      const out = {}
-      for (const key of Object.keys(storage)) out[key] = JSON.parse(storage[key])
-      return syncableData(out)
-    },
-  }
-}
 
 const hanoiResult = (moves = 7) => ({ disks: 3, moves, optimalMoves: 7, efficiency: 100, stars: moves === 7 ? 3 : 2, mistakes: 0, undos: 0, hints: 0, duration: 30000, optimalReached: moves === 7 })
 const sudokuResult = () => ({ completionTime: 300000, mistakes: 0, hints: 0, puzzleId: 'p' })

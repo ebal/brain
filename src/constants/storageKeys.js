@@ -44,3 +44,4 @@ export function isDeviceLocalKey(key) {
 // Sync bookkeeping (Phase 3). Under brain:, so never exported/imported.
 export const SYNC_STATE_KEY = 'brain:sync:state'
 export const OUTBOX_PREFIX = 'brain:sync:op:'
+export const SYNC_CREDENTIAL_KEY = 'brain:sync:credential' // { baseUrl, syncId, credential } — secret, never exported

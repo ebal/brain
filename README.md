@@ -573,6 +573,23 @@ printf "DOCKER_UID=%s\nDOCKER_GID=%s\n" "$(id -u)" "$(id -g)" > .env
 
 Compose picks up `.env` automatically from then on, no need to pass anything on the command line.
 
+### Brain Sync server (optional, work in progress)
+
+`server/` holds the optional cross-device sync API described in
+[`BRAIN-SYNC-SPEC.md`](./specs/BRAIN-SYNC-SPEC.md). It has zero dependencies (`node:http` +
+`node:sqlite`, Node 22.13+) and reuses the app's own merge engine, so the server and every device
+always agree on which progress is "better". The app doesn't talk to it yet: pairing and the Sync
+settings UI come in later phases, and Brain stays fully usable without it.
+
+```bash
+BRAIN_SYNC_REQUIRE_HTTPS=0 npm run sync-server   # local only; listens on 127.0.0.1:8787
+docker compose --profile sync up                 # or alongside the dev server
+```
+
+Configuration is by environment variable (see `server/index.js`). In production it must run
+behind a TLS-terminating reverse proxy with `BRAIN_SYNC_TRUST_PROXY=1`. It refuses plain-HTTP
+requests otherwise. See `deploy/nginx.conf.example`.
+
 ## Project structure
 
 All eighteen games live in one Vue app, chosen from a landing screen (`GameChooser.vue`) in

@@ -13,3 +13,25 @@ services:
     environment:
       - npm_config_cache=/app/.npm-cache
     command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+
+  # Brain Sync API (server/), for local development only. Opt-in:
+  #   docker compose --profile sync up
+  # Plain http on localhost, so HTTPS enforcement is off here. In production
+  # it must sit behind a TLS-terminating reverse proxy (see
+  # deploy/nginx.conf.example).
+  brain-sync:
+    profiles: ["sync"]
+    image: node:26-trixie-slim
+    container_name: brain-sync-dev
+    working_dir: /app
+    volumes:
+      - .:/app
+    ports:
+      - "8787:8787"
+    user: "${DOCKER_UID:-1000}:${DOCKER_GID:-1000}"
+    environment:
+      - BRAIN_SYNC_HOST=0.0.0.0
+      - BRAIN_SYNC_DB=/app/brain-sync.sqlite
+      - BRAIN_SYNC_REQUIRE_HTTPS=0
+      - BRAIN_SYNC_ALLOWED_ORIGINS=http://localhost:5173
+    command: node server/index.js

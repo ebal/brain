@@ -1,8 +1,8 @@
-# Brain Sync — Phase 0 Persistence Audit (and Phase 1–3 record)
+# Brain Sync — Phase 0 Persistence Audit (and Phase 1–4 record)
 
 Audit of Brain's local persistence as of **1.1.1** (`45a9015`), per
 [`BRAIN-SYNC-SPEC.md`](./BRAIN-SYNC-SPEC.md) §55/§65. The last section records what Phase 1
-(§56), Phase 2 (§57) and Phase 3 (§58) changed. No backend, pairing or sync UI exists yet. Those are Phases 4–7.
+(§56) through Phase 4 (§59) changed. Pairing/recovery, the sync UI and hardening are Phases 5–7.
 
 ## 1. Baseline
 
@@ -190,10 +190,10 @@ PWAs (standalone display mode). Firefox shows a permission prompt, so gate it.
 | 1 | schemaVersion, sequential migrations, fixtures, Device ID, session IDs, release-safety guard | ✅ (below) |
 | 2 | Pure merge engine: sessions ∪, bests via each game's own order with eligibility, level union + derived progression, counters MAX. Blue/Green/Red tests, commutativity/associativity/idempotence properties | ✅ (§10) |
 | 3 | Durable outbox (write-through, per-op keys), sync client + auto-sync triggers, Flags learning events, mock transport/server | ✅ (§11) |
-| 4 | Backend (small HTTPS API + SQLite/Postgres): identity, devices, sync endpoint, cursors, idempotency. Also: best provenance (`sessionId`) and `levelVersion` stamping, session-derived counters | next |
-| 5 | QR pairing tokens, recovery code + rotation, revocation | |
+| 4 | Backend: zero-dependency Node + SQLite API — identity, device credentials, sync endpoint, cursors/revisions, idempotency, device list/rename/revoke, cloud delete; browser HTTP client | ✅ (§12) |
+| 5 | QR pairing tokens, recovery code + rotation (revocation already done in Phase 4) | next |
 | 6 | Status UI, Sync Now, auto-sync triggers, device management, cloud delete/disconnect | |
-| 7 | Hardening, including the physical Airplane-Mode acceptance test (§52) | |
+| 7 | Hardening, including the physical Airplane-Mode acceptance test (§52); best provenance (`sessionId`), `levelVersion` stamping, session-derived counters | |
 
 Pre-existing issue found, not fixed (out of scope):
 `whackamole/useWhackAMoleGame.test.js › "a distractor tapped is a False Alarm…"` is **flaky on
@@ -284,10 +284,11 @@ Known limits, taken on deliberately:
 
 - **Counters (MAX) are a lower bound.** Two devices that each completed a level 3 times show 3
   after merging, not 6. Nothing is double-counted and nothing regresses. Exact totals need
-  counters derived from full session history. Only the server will hold that (Phase 4).
+  counters derived from full session history, which only the server holds (Phase 4). The derivation
+  itself is Phase 7.
 - **Flags learning is not fully mergeable yet.** Phase 3 queues per-answer events; recomputing
-  mastery from the merged event set needs the server (Phase 4).
-- **Best provenance (`sessionId` on best records) and `levelVersion` are deferred to Phase 4.**
+  mastery from the merged event set is Phase 7 (the server has stored the events since Phase 4).
+- **Best provenance (`sessionId` on best records) and `levelVersion` are deferred to Phase 7.**
   Nothing consumes them yet (eligibility is validated from each record's own fields), and every
   level is currently at version 1, so a missing value reads as 1.
 
@@ -387,3 +388,97 @@ transport exists.
   isn't pushed until the key is written again. The data stays on the device in either case.
 - Remote history is written uncapped. The game's own cap trims it again on that game's next
   save, and the trimmed sessions are already on the server.
+
+## 12. Phase 4 — what was implemented
+
+### Stack decisions (§36, §64)
+
+- **Node + built-in `node:sqlite` + `node:http`, zero dependencies.** The alternatives (a web
+  framework, an ORM, Postgres) add dependency and operational weight a single-user-scale API
+  doesn't need. SQLite in WAL mode is one file to back up.
+- **The server imports the client's merge engine** (`src/composables/sync/mergeEngine.js`) rather
+  than re-implementing the rules. Server and devices therefore can't disagree on which progress
+  is better, and the Phase 2 property tests cover the server too.
+- **Credentials are 256-bit random bearer tokens (`bsc_…`), stored only as SHA-256 hashes.** A
+  slow password hash buys nothing for high-entropy tokens and would prevent an indexed lookup.
+  Only `node:crypto` is used, with no custom crypto (§14).
+- **Requests are serialized:** `node:sqlite` is synchronous, so every sync runs as one
+  `BEGIN IMMEDIATE` transaction. Concurrent devices (§48) can't interleave half-applied changes.
+
+### What changed
+
+- **`server/db.js`**: sequential, append-only server schema migrations (`schema_migrations`), WAL,
+  foreign keys. Tables: `identities` (holds the per-identity revision counter), `devices`,
+  `operations` (idempotency log), `records`, `sessions` (one row per session, uncapped),
+  `learning_events`.
+- **`server/sync.js`**
+  - Identities, devices and credentials: create, authenticate, profile rename, device
+    list/rename/revoke, delete identity with a cascade over every table.
+  - The sync exchange:
+    - validates the request (schema version → 409, sizes → 413, shapes → 400);
+    - applies each `operationId` at most once per identity;
+    - merges records with the shared engine;
+    - stores whole history lists (from bootstrap) as individual session rows;
+    - re-derives campaign progression server-side;
+    - returns changes since the cursor, with history in the engine's canonical order;
+    - acknowledges invalid operations but never merges them (listed as `rejected`), so a bad
+      operation can't block a device's queue.
+  - Operation IDs expire after 90 days. Pruning can't cause duplicates, because the data itself
+    is idempotent.
+  - `registerDevice()` exists for Phase 5 pairing and isn't reachable over HTTP.
+- **`server/app.js`** (routes listed in its header)
+  - Credentials are accepted only in the `Authorization` header.
+  - HTTPS is enforced, and `X-Forwarded-Proto` is trusted only when configured.
+  - CORS answers only listed origins.
+  - Rate limits: identity creation and repeated authentication failures, per client IP, held in
+    memory only.
+  - The access log is `METHOD /route/template STATUS ms` only.
+  - Every response is `Cache-Control: no-store`.
+- **`server/index.js`**: environment-based config; listens on `127.0.0.1` by default; daily
+  pruning; graceful shutdown.
+- **`src/composables/sync/syncApi.js`** (browser client)
+  - The HTTP transport for `runSync()`, whose timeout now aborts the in-flight request.
+  - `createIdentity()` is "Enable Brain Sync": the anonymous identity, this device as its first
+    device, and sync turned on, with the first exchange uploading all existing local progress.
+  - Profile/device calls, `deleteCloudData()` and `disconnectThisDevice()`; both keep local
+    progress.
+  - The credential lives in `brain:sync:credential`, so it is never exported, imported or shown.
+- `npm run sync-server`; an opt-in `docker compose --profile sync` dev service; a
+  reverse-proxy example in `deploy/nginx.conf.example`. **Nothing has been deployed.**
+
+### Tests (`server/server.test.js`, 27 tests, against a real HTTP server on SQLite)
+
+- **Blue, Green and Red over HTTP.** Blue had local-only progress and enables sync. Green and Red
+  are added and play offline. After syncing, all three devices are identical: L30 ★★★, L28 ★★★,
+  L37 ★★, unlock level 39, every session (102) present, and all queues empty.
+- **Two devices pushing concurrently** both land, and neither erases the other.
+- **The server keeps the full history:** 35 Sudoku sessions against the 30-entry client cap.
+  Replayed requests and re-sent sessions create no duplicates. Cursors return only newer changes.
+  Progression is derived server-side, and a worse best never wins.
+- **§53 security:**
+  - a Sync ID alone, a forged credential or no credential gets 401;
+  - credentials are stored hashed only;
+  - one identity can't read, rename or revoke another identity's devices or data;
+  - malformed, oversized and too-many-operation requests are rejected;
+  - invalid operations never merge;
+  - HTTPS is required, and the forwarded header is only trusted when configured;
+  - identity creation and authentication failures are rate-limited;
+  - CORS answers only listed origins;
+  - logs contain no credential, Sync ID, device ID or `Bearer`.
+- **§13/§39/§44:**
+  - devices can be renamed with duplicate labels, which never change identity;
+  - a revoked device gets `needs-pairing` and keeps all local progress and keeps playing, while
+    the other devices are unaffected;
+  - Delete Cloud Data empties every server table for that identity and keeps local progress.
+- **Datastore:** server migrations run once when reopening a file; pruning removes only expired
+  operation IDs.
+- A manual smoke test of `node server/index.js` with curl (health, identity, devices, sync) also
+  passed, and its log contained only route templates.
+
+The app bundle is unchanged: nothing in the app imports `syncApi.js` until Phase 6.
+
+### Moved out of Phase 4
+
+Best provenance, `levelVersion` stamping and session-derived counters moved to Phase 7. Nothing
+consumes them yet, and each needs care of its own (the counters need a per-game mapping from
+stats scope to session history).
