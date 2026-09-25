@@ -168,10 +168,11 @@ const GAMES = {
 }
 
 // Every best-record value in a snapshot, keyed `storageKey.field`, with the
-// informational `date` stripped (it's never part of a comparison).
+// informational `date` and the per-device `sessionId` stripped (neither is
+// ever part of a comparison).
 function bestsOf(data) {
   const out = {}
-  const strip = (r) => (r && typeof r === 'object' ? Object.fromEntries(Object.entries(r).filter(([k]) => k !== 'date')) : r)
+  const strip = (r) => (r && typeof r === 'object' ? Object.fromEntries(Object.entries(r).filter(([k]) => k !== 'date' && k !== 'sessionId')) : r)
   for (const [key, value] of Object.entries(data)) {
     const game = key.slice(0, key.indexOf(':'))
     if (key.startsWith(`${game}:best:`)) out[key] = strip(value)
@@ -417,3 +418,90 @@ describe('algebraic properties (§50)', () => {
 })
 
 afterEach(() => _resetDeviceIdCache())
+
+describe('hostile payloads (§45/§53)', () => {
+  const deep = (levels) => {
+    const root = {}
+    let cur = root
+    for (let i = 0; i < levels; i++) cur = cur.a = {}
+    return root
+  }
+
+  it('never lets a __proto__ / constructor key reshape merged objects', () => {
+    const evil = JSON.parse('{"__proto__": {"polluted": true}, "completedLevels": [1]}')
+    const out = mergeKey('whackamole:progress', { completedLevels: [2] }, evil)
+    expect(out).toEqual({ completedLevels: [2] }) // the hostile value is rejected outright
+    expect(Object.getPrototypeOf(out)).toBe(Object.prototype)
+    expect(({}).polluted).toBeUndefined()
+    const learning = mergeKey('flagsoftheworld:learning', { gr: { attempts: 1 } }, JSON.parse('{"constructor": {"attempts": 9}}'))
+    expect(learning).toEqual({ gr: { attempts: 1 } })
+  })
+
+  it('rejects absurdly deep or large values instead of overflowing the stack', () => {
+    expect(() => mergeData({ 'sudoku:stats:x': { a: 1 } }, { 'sudoku:stats:x': deep(20000) })).not.toThrow()
+    expect(mergeData({ 'sudoku:stats:x': { a: 1 } }, { 'sudoku:stats:x': deep(20000) })['sudoku:stats:x']).toEqual({ a: 1 })
+    expect(mergeKey('sudoku:history', [], Array.from({ length: 300000 }, () => 1))).toEqual([])
+  })
+
+  it('still accepts real data of realistic depth', () => {
+    const real = { best: { stars: 3, moves: 7 }, completions: [{ moves: 7, detail: { a: { b: [1, 2] } } }] }
+    expect(mergeKey('hanoi:stats:1', undefined, real)).toEqual(real)
+  })
+})
+
+describe('best provenance and definition versions (§24/§26)', () => {
+  it('a new best names the session that set it, its metric version and (campaigns) its level version', () => {
+    const data = runOnDevice(() => {
+      GAMES.emojimahjong({ ...randomResult(mulberry32(1)), stars: 3, hints: 0, clean: true }, 4)
+      GAMES.targettap({ ...randomResult(mulberry32(2)), hitRate: 90, falseAlarmRate: 10, hits: 5 })
+    })
+    const [session] = data['emojimahjong:history:4']
+    expect(data['emojimahjong:stats:4'].best).toMatchObject({ sessionId: session.sessionId, metricVersion: 2, levelVersion: 1 })
+    expect(session).toMatchObject({ levelVersion: 1 })
+    expect(data['emojimahjong:stats:4'].completions[0].sessionId).toBeUndefined() // samples stay lean
+    const tap = data['targettap:stats:easy']
+    expect(tap.bestScore.sessionId).toBe(data['targettap:history:easy'][0].sessionId)
+    expect(tap.bestMedianHitRT).toMatchObject({ metricVersion: 1 })
+    expect(tap.bestMedianHitRT.levelVersion).toBeUndefined()
+  })
+
+  const rule = { order: [['moves', 'min']] }
+
+  it('a best from a newer metric or level definition supersedes an older one, even if its number looks worse', () => {
+    expect(pickBest(rule, { moves: 5, metricVersion: 1 }, { moves: 9, metricVersion: 2 })).toMatchObject({ moves: 9 })
+    expect(pickBest(rule, { moves: 5, metricVersion: 1, levelVersion: 1 }, { moves: 9, metricVersion: 1, levelVersion: 2 })).toMatchObject({ moves: 9 })
+    expect(pickBest(rule, { moves: 9, metricVersion: 2 }, { moves: 5, metricVersion: 1 })).toMatchObject({ moves: 9 }) // commutative
+  })
+
+  it('an unstamped (pre-provenance) best competes as the definition in force when it was set', () => {
+    // Today: unstamped Hanoi bests are metric v1 like every new one, so the better number wins.
+    expect(mergeKey('hanoi:stats:1', { best: { moves: 5 } }, { best: { moves: 9, metricVersion: 1, levelVersion: 1 } }).best.moves).toBe(5)
+    expect(mergeKey('hanoi:stats:1', { best: { moves: 9, metricVersion: 1, levelVersion: 1 } }, { best: { moves: 5 } }).best.moves).toBe(5)
+    // After a future bump to v2, a v2 best supersedes the old unstamped (v1) one.
+    expect(mergeKey('hanoi:stats:1', { best: { moves: 5 } }, { best: { moves: 9, metricVersion: 2, levelVersion: 1 } }).best.moves).toBe(9)
+    // Emoji Mahjong's unstamped level bests were already metric v2 — no false supersession.
+    expect(mergeKey('emojimahjong:stats:3', { best: { stars: 3, score: 9 } }, { best: { stars: 1, score: 1, metricVersion: 2, levelVersion: 1 } }).best.stars).toBe(3)
+  })
+
+  it('stays a strict order when stamped and unstamped bests of different versions mix (no cycles)', () => {
+    const records = [{ moves: 9, metricVersion: 2 }, { moves: 8 }, { moves: 7, metricVersion: 1 }, { moves: 6 }, { moves: 10, metricVersion: 2 }]
+    const key = 'sudoku:stats:easy'
+    const merge = (x, y) => mergeKey(key, { bestCleanTime: x }, { bestCleanTime: y }).bestCleanTime
+    const toRecord = (r) => ({ time: r.moves, mistakes: 0, ...(r.metricVersion ? { metricVersion: r.metricVersion } : {}) })
+    const all = records.map(toRecord)
+    for (const a of all) for (const b of all) for (const c of all) {
+      expect(merge(merge(a, b), c)).toEqual(merge(a, merge(b, c)))
+      expect(merge(a, b)).toEqual(merge(b, a))
+    }
+    expect(all.reduce(merge)).toMatchObject({ time: 9, metricVersion: 2 }) // the best on the newest definition
+  })
+
+  it('never lets a level-version change touch completion or unlocks', () => {
+    const merged = mergeData(
+      { 'hanoi:progress': { highestUnlocked: 3, completedLevels: [1, 2] }, 'hanoi:stats:2': { best: { moves: 15, levelVersion: 1 } } },
+      { 'hanoi:progress': { highestUnlocked: 2, completedLevels: [1] }, 'hanoi:stats:2': { best: { moves: 40, levelVersion: 2 } } },
+    )
+    expect(merged['hanoi:progress']).toMatchObject({ completedLevels: [1, 2], highestUnlocked: 3 })
+    expect(merged['hanoi:stats:2'].best.moves).toBe(40) // the only comparable best on the current definition
+  })
+})

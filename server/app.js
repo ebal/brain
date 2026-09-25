@@ -42,6 +42,9 @@ const DEFAULTS = {
     authFailure: { limit: 30, windowMs: 10 * 60 * 1000 },
     pairingFailure: { limit: 20, windowMs: 10 * 60 * 1000 },
     recoveryFailure: { limit: 10, windowMs: 60 * 60 * 1000 }, // §53: reasonable pairing/recovery limits
+    // Per identity (not IP): automatic sync is debounced and backs off, so
+    // a real device stays far below this; a runaway client can't hog the server.
+    syncPerIdentity: { limit: 120, windowMs: 60 * 1000 },
   },
   log: (line) => console.log(line),
 }
@@ -156,6 +159,7 @@ export function createApp(db, options = {}) {
     },
     async sync(req) {
       const a = auth(req)
+      if (!limiter.hit('syncPerIdentity', a.syncId, config.rateLimits.syncPerIdentity)) throw new ApiError(429, 'rate_limited')
       return [200, sync(db, a, await readBody(req, config.maxBodyBytes))]
     },
     listDevices: (req) => [200, { devices: listDevices(db, auth(req)) }],

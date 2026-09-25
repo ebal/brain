@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "test": "vitest run",
     "sync-server": "node server/index.js",
-    "test:e2e-sync": "node tests/e2e/sync-ui.mjs"
+    "sync-backup": "node server/backup.js",
+    "test:e2e-sync": "node tests/e2e/sync-ui.mjs",
+    "test:e2e-release": "node tests/e2e/release-offline.mjs"
   },
   "dependencies": {
     "jsqr": "^1.4.0",

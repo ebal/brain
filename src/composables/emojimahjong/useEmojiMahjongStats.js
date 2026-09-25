@@ -7,6 +7,7 @@
 import { avg, median } from '../mathStats.js'
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
 import { newSessionStamp } from '../persistence/device.js'
+import { bestProvenance } from '../persistence/provenance.js'
 import { EMOJIMAHJONG_LEVELS } from '../../constants/emojimahjong/levels.js'
 import { persistJSON } from '../persistence/durableWrite.js'
 
@@ -98,6 +99,8 @@ export function useEmojiMahjongStats() {
   // result: game.results value — { level, layoutId, seed, tileCount, moves,
   // mistakes, hints, undos, completionTime, clean, stars, score }
   function recordCompletion(level, result) {
+    const stamp = newSessionStamp()
+    const provenance = bestProvenance('emojimahjong', stamp, level)
     const stats = getStats(level)
     stats.completed += 1
     if (result.clean) stats.cleanCompletions += 1
@@ -116,13 +119,13 @@ export function useEmojiMahjongStats() {
 
     let isNewBest = false
     if (isBetterResult(candidate, stats.best)) {
-      stats.best = candidate
+      stats.best = { ...candidate, ...provenance }
       isNewBest = true
     }
 
     let isNewCleanBest = false
     if (result.clean && isBetterResult(candidate, stats.bestClean)) {
-      stats.bestClean = candidate
+      stats.bestClean = { ...candidate, ...provenance }
       isNewCleanBest = true
     }
 
@@ -153,7 +156,8 @@ export function useEmojiMahjongStats() {
       undos: result.undos,
       clean: result.clean,
       completedAt: date,
-      ...newSessionStamp(),
+      ...stamp,
+      levelVersion: provenance.levelVersion,
       metricVersion: METRIC_VERSIONS.emojimahjong,
       appVersion: __APP_VERSION__,
     })

@@ -1,6 +1,7 @@
 import { avg, median } from '../mathStats.js'
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
 import { newSessionStamp } from '../persistence/device.js'
+import { bestProvenance } from '../persistence/provenance.js'
 import { persistJSON } from '../persistence/durableWrite.js'
 
 const STATS_PREFIX = 'set:stats:'
@@ -71,6 +72,8 @@ export function useSetStats() {
 
   // result: { gameId, completionTime, setsFound, mistakes, hints, avgFindTime, medianFindTime, cleanGame }
   function recordCompletion(difficultyKey, result) {
+    const stamp = newSessionStamp()
+    const provenance = bestProvenance('set', stamp)
     const stats = getStats(difficultyKey)
 
     stats.completed += 1
@@ -91,7 +94,7 @@ export function useSetStats() {
     if (result.cleanGame) {
       const candidate = { time: result.completionTime, mistakes: result.mistakes, date: new Date().toISOString() }
       if (isBetterCleanTime(candidate, stats.bestCleanTime)) {
-        stats.bestCleanTime = candidate
+        stats.bestCleanTime = { ...candidate, ...provenance }
         isNewCleanBest = true
       }
     }
@@ -110,7 +113,7 @@ export function useSetStats() {
       medianFindTime: result.medianFindTime,
       cleanGame: result.cleanGame,
       completedAt: new Date().toISOString(),
-      ...newSessionStamp(),
+      ...stamp,
       metricVersion: METRIC_VERSIONS.set,
       appVersion: __APP_VERSION__,
     })

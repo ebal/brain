@@ -6,6 +6,7 @@ import { avg, median } from '../mathStats.js'
 import { MEMORYPAIRS_DIFFICULTIES } from '../../constants/memorypairs/difficulties.js'
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
 import { newSessionStamp } from '../persistence/device.js'
+import { bestProvenance } from '../persistence/provenance.js'
 import { persistJSON } from '../persistence/durableWrite.js'
 
 const STATS_PREFIX = 'memorypairs:stats:'
@@ -82,6 +83,8 @@ export function useMemoryPairsStats() {
   // result: game.results value — { score, completionTime, moves, mistakes,
   // pairsFound, totalPairs, moveEfficiency }
   function recordCompletion(difficultyKey, result) {
+    const stamp = newSessionStamp()
+    const provenance = bestProvenance('memorypairs', stamp)
     const stats = getStats(difficultyKey)
 
     stats.completed += 1
@@ -99,7 +102,7 @@ export function useMemoryPairsStats() {
       date,
     }
     if (isBetterScore(scoreCandidate, stats.bestScore)) {
-      stats.bestScore = scoreCandidate
+      stats.bestScore = { ...scoreCandidate, ...provenance }
       isNewBestScore = true
     }
 
@@ -112,7 +115,7 @@ export function useMemoryPairsStats() {
       date,
     }
     if (isBetterCompletionTime(timeCandidate, stats.bestCompletionTime)) {
-      stats.bestCompletionTime = timeCandidate
+      stats.bestCompletionTime = { ...timeCandidate, ...provenance }
       isNewBestCompletionTime = true
     }
 
@@ -124,7 +127,7 @@ export function useMemoryPairsStats() {
       date,
     }
     if (isBetterMoveEfficiency(efficiencyCandidate, stats.bestMoveEfficiency)) {
-      stats.bestMoveEfficiency = efficiencyCandidate
+      stats.bestMoveEfficiency = { ...efficiencyCandidate, ...provenance }
       isNewBestMoveEfficiency = true
     }
 
@@ -149,7 +152,7 @@ export function useMemoryPairsStats() {
       moveEfficiency: result.moveEfficiency,
       pairs: result.totalPairs,
       completedAt: date,
-      ...newSessionStamp(),
+      ...stamp,
       metricVersion: METRIC_VERSIONS.memorypairs,
       appVersion: __APP_VERSION__,
     })

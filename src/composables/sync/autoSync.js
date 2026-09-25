@@ -36,6 +36,8 @@ export function startAutoSync({
     onResult(result)
     if (!stopped && result.status === 'failed' && result.retryInMs != null) {
       retryTimer = timers.setTimeout(trigger, result.retryInMs)
+    } else if (!stopped && result.more) {
+      retryTimer = timers.setTimeout(trigger, 0) // follow-up exchange (e.g. re-upload after a server restore)
     }
     return result
   }

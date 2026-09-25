@@ -1,6 +1,7 @@
 import { avg, median } from '../mathStats.js'
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
 import { newSessionStamp } from '../persistence/device.js'
+import { bestProvenance } from '../persistence/provenance.js'
 import { persistJSON } from '../persistence/durableWrite.js'
 
 const STATS_PREFIX = 'marblejump:stats:'
@@ -76,6 +77,8 @@ export function useMarbleJumpStats() {
   // result: { puzzleId, startingMarbles, remainingMarbles, moves,
   //           completionTime, undos, hints, clean, optimalReached, score }
   function recordCompletion(difficultyKey, result) {
+    const stamp = newSessionStamp()
+    const provenance = bestProvenance('marblejump', stamp)
     const stats = getStats(difficultyKey)
 
     stats.completed += 1
@@ -106,11 +109,11 @@ export function useMarbleJumpStats() {
       date: new Date().toISOString(),
     }
     if (isBetterResult(candidate, stats.bestResult)) {
-      stats.bestResult = candidate
+      stats.bestResult = { ...candidate, ...provenance }
       isNewBest = true
     }
     if (result.clean && isBetterResult(candidate, stats.bestCleanResult)) {
-      stats.bestCleanResult = candidate
+      stats.bestCleanResult = { ...candidate, ...provenance }
       isNewCleanBest = true
     }
 
@@ -129,7 +132,7 @@ export function useMarbleJumpStats() {
       clean: result.clean,
       optimalReached: result.optimalReached,
       completedAt: new Date().toISOString(),
-      ...newSessionStamp(),
+      ...stamp,
       metricVersion: METRIC_VERSIONS.marblejump,
       appVersion: __APP_VERSION__,
     })

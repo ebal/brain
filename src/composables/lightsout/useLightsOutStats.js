@@ -8,6 +8,7 @@
 import { LIGHTSOUT_LEVELS } from '../../constants/lightsout/levels.js'
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
 import { newSessionStamp } from '../persistence/device.js'
+import { bestProvenance } from '../persistence/provenance.js'
 import { persistJSON } from '../persistence/durableWrite.js'
 
 const STATS_PREFIX = 'lightsout:stats:'
@@ -93,6 +94,8 @@ export function useLightsOutStats() {
   // result: game.results value — { level, size, moves, optimalMoves,
   // efficiency, stars, undos, hints, duration, clean }
   function recordCompletion(level, result) {
+    const stamp = newSessionStamp()
+    const provenance = bestProvenance('lightsout', stamp, level)
     const stats = getStats(level)
     stats.completed += 1
 
@@ -109,13 +112,13 @@ export function useLightsOutStats() {
 
     let isNewBest = false
     if (isBetter(candidate, stats.best)) {
-      stats.best = candidate
+      stats.best = { ...candidate, ...provenance }
       isNewBest = true
     }
 
     let isNewBestClean = false
     if (result.hints === 0 && isBetter(candidate, stats.bestClean)) {
-      stats.bestClean = candidate
+      stats.bestClean = { ...candidate, ...provenance }
       isNewBestClean = true
     }
 
@@ -135,7 +138,8 @@ export function useLightsOutStats() {
       hints: result.hints,
       duration: result.duration,
       completedAt: date,
-      ...newSessionStamp(),
+      ...stamp,
+      levelVersion: provenance.levelVersion,
       metricVersion: METRIC_VERSIONS.lightsout,
       appVersion: __APP_VERSION__,
     })

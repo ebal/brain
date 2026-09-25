@@ -6,6 +6,7 @@
 import { avg, median } from '../mathStats.js'
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
 import { newSessionStamp } from '../persistence/device.js'
+import { bestProvenance } from '../persistence/provenance.js'
 import { persistJSON } from '../persistence/durableWrite.js'
 
 const STATS_PREFIX = 'switchtrail:stats:'
@@ -88,6 +89,8 @@ export function useSwitchTrailStats() {
   // totalTargets, completionTime, errors, accuracy, avgTransitionTime,
   // medianTransitionTime }
   function recordCompletion(difficultyKey, result, variantKey = 'classic') {
+    const stamp = newSessionStamp()
+    const provenance = bestProvenance('switchtrail', stamp)
     const stats = getStats(difficultyKey, variantKey)
 
     if (result.completed) {
@@ -108,7 +111,7 @@ export function useSwitchTrailStats() {
       date,
     }
     if (isBetterScore(scoreCandidate, stats.bestScore)) {
-      stats.bestScore = scoreCandidate
+      stats.bestScore = { ...scoreCandidate, ...provenance }
       isNewBestScore = true
     }
 
@@ -122,7 +125,7 @@ export function useSwitchTrailStats() {
         date,
       }
       if (isBetterCompletionTime(timeCandidate, stats.bestCompletionTime)) {
-        stats.bestCompletionTime = timeCandidate
+        stats.bestCompletionTime = { ...timeCandidate, ...provenance }
         isNewBestCompletionTime = true
       }
     }
@@ -156,7 +159,7 @@ export function useSwitchTrailStats() {
       fastestTransition: result.fastestTransition,
       slowestTransition: result.slowestTransition,
       completedAt: date,
-      ...newSessionStamp(),
+      ...stamp,
       metricVersion: METRIC_VERSIONS.switchtrail,
       appVersion: __APP_VERSION__,
     })

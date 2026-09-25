@@ -1,12 +1,13 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest'
 import { createServer } from 'node:http'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, rmSync, readdirSync } from 'node:fs'
+import * as syncModule from './sync.js'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { openDatabase, SERVER_SCHEMA_VERSION, MIGRATIONS } from './db.js'
 import { DatabaseSync } from 'node:sqlite'
 import { createApp } from './app.js'
-import { registerDevice, pruneOperations, hashCredential, recoveryStatus, authenticate } from './sync.js'
+import { registerDevice, pruneOperations, hashCredential, recoveryStatus, authenticate, LIMITS } from './sync.js'
 import { makeDevice } from '../src/composables/sync/testDevices.js'
 import { installOutbox, enableSync, listOutbox } from '../src/composables/sync/outbox.js'
 import { runSync, getSyncStatus } from '../src/composables/sync/syncClient.js'
@@ -19,6 +20,7 @@ import { buildExport } from '../src/composables/dataPortability.js'
 import { useEmojiMahjongStats } from '../src/composables/emojimahjong/useEmojiMahjongStats.js'
 import { useSudokuStats } from '../src/composables/sudoku/useSudokuStats.js'
 import { useHanoiStats } from '../src/composables/hanoi/useHanoiStats.js'
+import { useLightsOutStats } from '../src/composables/lightsout/useLightsOutStats.js'
 
 // A real server on an ephemeral port, backed by in-memory SQLite.
 async function startServer(options = {}) {
@@ -42,6 +44,7 @@ async function call(baseUrl, method, path, { credential, body, headers = {} } = 
 
 const mahjong = (stars = 1) => ({ layoutId: 'L', seed: 1, tileCount: 8, moves: 4, mistakes: 0, hints: 3 - stars, undos: 0, completionTime: 60000, clean: stars === 3, stars, score: 100 * stars })
 const sudoku = () => ({ completionTime: 300000, mistakes: 0, hints: 0, puzzleId: 'p' })
+const lightsout = () => ({ moves: 5, efficiency: 100, stars: 3, undos: 0, hints: 0, duration: 20000 })
 const hanoi = () => ({ disks: 3, moves: 7, optimalMoves: 7, efficiency: 100, stars: 3, mistakes: 0, undos: 0, hints: 0, duration: 30000, optimalReached: true })
 const sessionIdsOf = (data) => Object.entries(data).filter(([k]) => isHistoryKey(k)).flatMap(([, v]) => v.map((e) => e.sessionId))
 const transport = createHttpTransport()
@@ -452,3 +455,223 @@ function useFlagsStatsRound() {
     perQuestionLog: [{ countryCode: 'gr', correct: true, timestamp: 1 }],
   })
 }
+
+describe('abuse limits (§53)', () => {
+  let ctx
+  beforeEach(async () => { ctx = await startServer({ rateLimits: { syncPerIdentity: { limit: 3, windowMs: 60000 } } }) })
+  afterEach(() => ctx.close())
+
+  const identity = async () => (await call(ctx.baseUrl, 'POST', '/v1/identities', { body: { deviceId: crypto.randomUUID() } })).body
+  const sync = (credential, operations) => call(ctx.baseUrl, 'POST', '/v1/sync', { credential, body: { schemaVersion: CURRENT_SCHEMA_VERSION, cursor: null, operations } })
+
+  it('acknowledges but never stores deep or prototype-changing payloads', async () => {
+    const { credential } = await identity()
+    let deep = {}
+    for (let i = 0, cur = deep; i < 5000; i++) cur = cur.a = {}
+    const res = await sync(credential, [
+      { operationId: 'deep', entityType: 'record', entityId: 'sudoku:stats:easy', payload: deep },
+      { operationId: 'proto', entityType: 'record', entityId: 'hanoi:progress', payload: JSON.parse('{"__proto__":{"x":1},"completedLevels":[1]}') },
+    ])
+    expect(res.status).toBe(200)
+    expect(res.body.rejected).toEqual(['deep', 'proto'])
+    expect(ctx.db.prepare('SELECT COUNT(*) AS n FROM records').get().n).toBe(0)
+  })
+
+  it('enforces per-identity quotas without touching what is already stored', async () => {
+    const { credential } = await identity()
+    const saved = { ...LIMITS }
+    LIMITS.maxSessionsPerIdentity = 2
+    try {
+      const op = (i) => {
+        const entry = { sessionId: crypto.randomUUID(), completedAt: `2026-09-0${i}T00:00:00.000Z` }
+        return { operationId: `s${i}`, entityType: 'session', entityId: entry.sessionId, payload: { key: 'sudoku:history', entry } }
+      }
+      const res = await sync(credential, [op(1), op(2), op(3)])
+      expect(res.body.rejected).toEqual(['s3'])
+      expect(ctx.db.prepare('SELECT COUNT(*) AS n FROM sessions').get().n).toBe(2)
+    } finally {
+      Object.assign(LIMITS, saved)
+    }
+  })
+
+  it('rate-limits sync per identity', async () => {
+    const { credential } = await identity()
+    for (let i = 0; i < 3; i++) expect((await sync(credential, [])).status).toBe(200)
+    expect((await sync(credential, [])).status).toBe(429)
+    const other = await identity()
+    expect((await sync(other.credential, [])).status).toBe(200) // other identities unaffected
+  })
+})
+
+describe('exact completion counts from the full session history (§27)', () => {
+  let ctx
+  beforeEach(async () => { ctx = await startServer() })
+  afterEach(() => ctx.close())
+
+  it('two devices that each finished a level 3 times both show 6 completions, never a >100% completion rate', async () => {
+    const [blue, green] = [makeDevice(), makeDevice()]
+    const { syncId } = await blue.use(() => createIdentity({ baseUrl: ctx.baseUrl }))
+    await pairDevice(ctx, green, syncId)
+    for (const device of [blue, green]) {
+      await device.use(() => {
+        const stats = useHanoiStats()
+        for (let i = 0; i < 3; i++) { stats.recordStart(1); stats.recordCompletion(1, hanoi()) }
+      })
+    }
+    for (const device of [blue, green, blue]) await device.use(() => runSync({ transport }))
+    for (const device of [blue, green]) {
+      const stats = device.data()['hanoi:stats:1']
+      expect(stats.completed).toBe(6)
+      expect(stats.started).toBeGreaterThanOrEqual(stats.completed)
+    }
+  })
+
+  it('follows each game\'s own definition of a completion', async () => {
+    const { credential } = (await call(ctx.baseUrl, 'POST', '/v1/identities', { body: { deviceId: crypto.randomUUID() } })).body
+    const session = (key, fields) => {
+      const entry = { sessionId: crypto.randomUUID(), completedAt: '2026-09-01T00:00:00.000Z', ...fields }
+      return { operationId: crypto.randomUUID(), entityType: 'session', entityId: entry.sessionId, payload: { key, entry } }
+    }
+    const stats = (key) => ({ operationId: crypto.randomUUID(), entityType: 'record', entityId: key, payload: { started: 1, completed: 1 } })
+    const res = await call(ctx.baseUrl, 'POST', '/v1/sync', { credential, body: { schemaVersion: CURRENT_SCHEMA_VERSION, cursor: null, operations: [
+      stats('sudoku:stats:easy'), stats('sudoku:stats:hard'), stats('numbermatch:stats:easy'), stats('switchtrail:stats:color:hard'), stats('mentalrotation:stats:untimed:easy'),
+      session('sudoku:history', { difficulty: 'easy' }), session('sudoku:history', { difficulty: 'easy' }), session('sudoku:history', { difficulty: 'hard' }),
+      session('numbermatch:history', { difficulty: 'easy', boardCleared: true }), session('numbermatch:history', { difficulty: 'easy', boardCleared: false }),
+      session('switchtrail:history:color:hard', { completed: true }), session('switchtrail:history:color:hard', { completed: true }), session('switchtrail:history:color:hard', { completed: false }),
+      session('mentalrotation:history:untimed', { difficulty: 'easy' }), session('mentalrotation:history:untimed', { difficulty: 'easy' }),
+      session('emojimahjong:history', { difficulty: 'easy' }), // retired difficulty list: no stats record to count into
+    ] } })
+    const changes = res.body.changes
+    expect(changes['sudoku:stats:easy'].completed).toBe(2)
+    expect(changes['sudoku:stats:hard'].completed).toBe(1)
+    expect(changes['numbermatch:stats:easy'].completed).toBe(1) // cleared boards only
+    expect(changes['switchtrail:stats:color:hard'].completed).toBe(2) // completed trails only
+    expect(changes['mentalrotation:stats:untimed:easy'].completed).toBe(2)
+    expect(changes['emojimahjong:stats:easy']).toBeUndefined() // never invents a record
+  })
+
+  it('never lowers a count (a device counter above the surviving history stays)', async () => {
+    const { credential } = (await call(ctx.baseUrl, 'POST', '/v1/identities', { body: { deviceId: crypto.randomUUID() } })).body
+    const entry = { sessionId: crypto.randomUUID(), completedAt: 'x' }
+    const res = await call(ctx.baseUrl, 'POST', '/v1/sync', { credential, body: { schemaVersion: CURRENT_SCHEMA_VERSION, cursor: null, operations: [
+      { operationId: 'a', entityType: 'record', entityId: 'hanoi:stats:1', payload: { started: 40, completed: 35 } },
+      { operationId: 'b', entityType: 'session', entityId: entry.sessionId, payload: { key: 'hanoi:history:1', entry } },
+    ] } })
+    expect(res.body.changes['hanoi:stats:1']).toMatchObject({ started: 40, completed: 35 })
+  })
+})
+
+describe('Flags mastery from merged learning events (§20)', () => {
+  let ctx
+  beforeEach(async () => { ctx = await startServer() })
+  afterEach(() => ctx.close())
+
+  const round = (answers) => ({
+    level: 1, correctCount: 0, totalCount: answers.length, accuracy: 0, bestStreak: 0, score: 0, stars: 1, duration: 1000,
+    perQuestionLog: answers.map(([countryCode, correct, timestamp]) => ({ countryCode, correct, wrongCode: correct ? undefined : 'cy', timestamp })),
+  })
+
+  it('replays every device\'s answers in order, so mastery reflects all devices', async () => {
+    const [blue, green] = [makeDevice(), makeDevice()]
+    const { syncId } = await blue.use(() => createIdentity({ baseUrl: ctx.baseUrl }))
+    await pairDevice(ctx, green, syncId)
+    // Blue: gr correct twice. Green (later): gr correct twice more → 4 in a row across devices.
+    await blue.use(() => useFlagsStats().recordCompletion(1, round([['gr', true, 1000], ['gr', true, 2000]])))
+    await green.use(() => useFlagsStats().recordCompletion(1, round([['gr', true, 3000], ['gr', true, 4000]])))
+    for (const device of [blue, green, blue]) await device.use(() => runSync({ transport }))
+    for (const device of [blue, green]) {
+      expect(device.data()['flagsoftheworld:learning'].gr).toMatchObject({ attempts: 4, correct: 4, currentCorrectStreak: 4, mastery: 'mastered' })
+    }
+  })
+
+  it('a wrong answer on any device resets the shared streak, in answer order', async () => {
+    const [blue, green] = [makeDevice(), makeDevice()]
+    const { syncId } = await blue.use(() => createIdentity({ baseUrl: ctx.baseUrl }))
+    await pairDevice(ctx, green, syncId)
+    await blue.use(() => useFlagsStats().recordCompletion(1, round([['fr', true, 1000], ['fr', true, 2000], ['fr', true, 3000]])))
+    await green.use(() => useFlagsStats().recordCompletion(1, round([['fr', false, 4000]])))
+    for (const device of [blue, green, blue]) await device.use(() => runSync({ transport }))
+    expect(blue.data()['flagsoftheworld:learning'].fr).toMatchObject({ attempts: 4, wrong: 1, currentCorrectStreak: 0, mastery: 'needs-practice' })
+  })
+
+  it('ignores malformed events', async () => {
+    const { credential } = (await call(ctx.baseUrl, 'POST', '/v1/identities', { body: { deviceId: crypto.randomUUID() } })).body
+    const res = await call(ctx.baseUrl, 'POST', '/v1/sync', { credential, body: { schemaVersion: CURRENT_SCHEMA_VERSION, cursor: null, operations: [
+      { operationId: 'e1', entityType: 'learningEvent', entityId: 'e1', payload: { learningEventId: 'e1', countryCode: 'gr', correct: 'yes' } },
+    ] } })
+    expect(res.body.rejected).toEqual(['e1'])
+    expect(res.body.changes['flagsoftheworld:learning']).toBeUndefined()
+  })
+})
+
+describe('backups', () => {
+  it('writes a consistent, restorable copy while the database is in use, and keeps only the newest N', async () => {
+    const { backupDatabase } = await import('./backup.js')
+    const dir = mkdtempSync(join(tmpdir(), 'brain-sync-backup-'))
+    try {
+      const path = join(dir, 'live.sqlite')
+      const live = openDatabase(path) // stays open, like the running server
+      const { credential } = syncModule.createIdentity(live, { deviceId: crypto.randomUUID() })
+      live.prepare("INSERT INTO records (sync_id, storage_key, value, revision, updated_at) SELECT sync_id, 'hanoi:progress', '{\"completedLevels\":[1]}', 1, 'x' FROM identities").run()
+      for (let i = 0; i < 4; i++) backupDatabase(path, join(dir, 'backups'), { keep: 3, now: new Date(Date.UTC(2026, 0, 1 + i)) })
+      const files = readdirSync(join(dir, 'backups')).sort()
+      expect(files).toHaveLength(3)
+      expect(files[0]).toContain('2026-01-02')
+      const restored = openDatabase(join(dir, 'backups', files.at(-1)))
+      expect(authenticate(restored, credential).syncId).toBeTypeOf('string') // credentials survive a restore
+      expect(JSON.parse(restored.prepare('SELECT value FROM records').get().value)).toEqual({ completedLevels: [1] })
+      restored.close()
+      live.close()
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('restoring the server from an older backup (ops §4)', () => {
+  let ctx
+  beforeEach(async () => { ctx = await startServer() })
+  afterEach(() => ctx.close())
+
+  it('devices automatically re-upload everything the restored server lost; nobody loses progress', async () => {
+    const [blue, green] = [makeDevice(), makeDevice()]
+    const { syncId } = await blue.use(() => createIdentity({ baseUrl: ctx.baseUrl }))
+    await pairDevice(ctx, green, syncId)
+    await blue.use(async () => {
+      useHanoiStats().recordCompletion(1, hanoi())
+      await runSync({ transport })
+    })
+    // "Backup" taken here.
+    const backup = {
+      revision: ctx.db.prepare('SELECT revision FROM identities').get().revision,
+      sessions: ctx.db.prepare('SELECT session_id FROM sessions').all().map((r) => r.session_id),
+    }
+    // More progress syncs after the backup…
+    await green.use(async () => {
+      useLightsOutStats().recordCompletion(1, lightsout())
+      await runSync({ transport })
+    })
+    await blue.use(async () => {
+      useHanoiStats().recordCompletion(2, hanoi())
+      await runSync({ transport })
+    })
+    // …then the server is restored to the backup.
+    ctx.db.prepare(`DELETE FROM sessions WHERE session_id NOT IN (${backup.sessions.map(() => '?').join(',')})`).run(...backup.sessions)
+    ctx.db.prepare("DELETE FROM records WHERE storage_key LIKE 'lightsout:%' OR storage_key = 'hanoi:stats:2'").run()
+    ctx.db.prepare('UPDATE identities SET revision = ?').run(backup.revision)
+
+    // Each device's next exchange notices, re-uploads, and everything converges again.
+    for (const device of [green, blue]) {
+      const first = await device.use(() => runSync({ transport }))
+      expect(first).toMatchObject({ status: 'synced', more: true })
+      await device.use(() => runSync({ transport }))
+    }
+    await green.use(() => runSync({ transport }))
+    expect(ctx.db.prepare('SELECT COUNT(*) AS n FROM sessions').get().n).toBe(3)
+    for (const device of [blue, green]) {
+      const data = device.data()
+      expect(data['hanoi:progress'].completedLevels).toEqual([1, 2])
+      expect(data['lightsout:progress'].completedLevels).toEqual([1])
+    }
+  })
+})

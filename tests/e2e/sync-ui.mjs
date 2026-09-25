@@ -14,134 +14,25 @@
 //   4. Green joins with the pairing code; Blue sees it arrive
 //   5. The sync server goes down: "Sync unavailable · Progress is safe…"
 
-import { spawn, spawnSync } from 'node:child_process'
-import { mkdtempSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { readdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { createHarness, log, sleep } from './harness.mjs'
 
-const ROOT = fileURLToPath(new URL('../..', import.meta.url))
-const FIREFOX = process.env.FIREFOX || 'firefox'
 const SYNC_PORT = Number(process.env.E2E_SYNC_PORT || 18790)
 const APP_PORT = Number(process.env.E2E_APP_PORT || 4179)
 const BIDI_PORT = Number(process.env.E2E_BIDI_PORT || 9333)
 const SYNC_URL = `http://127.0.0.1:${SYNC_PORT}`
 const APP = `http://127.0.0.1:${APP_PORT}/`
 
-const work = mkdtempSync(join(tmpdir(), 'brain-sync-e2e-'))
-const shots = join(work, 'screenshots')
-mkdirSync(shots)
-const children = []
-const log = (...a) => console.log('•', ...a)
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
-
-function start(name, command, args, env = {}) {
-  const child = spawn(command, args, { cwd: ROOT, env: { ...process.env, ...env }, stdio: ['ignore', 'pipe', 'pipe'] })
-  const out = []
-  child.stdout.on('data', (d) => out.push(d))
-  child.stderr.on('data', (d) => out.push(d))
-  child.on('exit', () => writeFileSync(join(work, `${name}.log`), Buffer.concat(out)))
-  children.push(child)
-  return child
-}
-
-async function waitFor(check, what, timeout = 20000) {
-  const started = Date.now()
-  while (Date.now() - started < timeout) {
-    try {
-      if (await check()) return
-    } catch {
-      // not up yet
-    }
-    await sleep(200)
-  }
-  throw new Error(`timed out waiting for ${what}`)
-}
-
-function teardown() {
-  for (const child of children) if (child.exitCode === null) child.kill()
-  if (!process.env.KEEP) rmSync(work, { recursive: true, force: true })
-  else console.log(`\nwork dir kept: ${work}`)
-}
-
-// ---- BiDi client ----------------------------------------------------------
-
-let ws
-let nextId = 0
-const pending = new Map()
-const send = (method, params = {}) => new Promise((resolve, reject) => {
-  const id = ++nextId
-  pending.set(id, { resolve, reject })
-  ws.send(JSON.stringify({ id, method, params }))
-})
-
-async function connectBidi() {
-  await waitFor(() => new Promise((resolve) => {
-    const socket = new WebSocket(`ws://127.0.0.1:${BIDI_PORT}/session`)
-    socket.onopen = () => { ws = socket; resolve(true) }
-    socket.onerror = () => resolve(false)
-  }), 'Firefox remote agent')
-  ws.onmessage = (event) => {
-    const msg = JSON.parse(event.data)
-    if (msg.id === undefined || !pending.has(msg.id)) return
-    const { resolve, reject } = pending.get(msg.id)
-    pending.delete(msg.id)
-    msg.type === 'error' ? reject(new Error(`${msg.error}: ${msg.message}`)) : resolve(msg.result)
-  }
-  await send('session.new', { capabilities: {} })
-}
-
-async function newDevice(name) {
-  const { userContext } = await send('browser.createUserContext')
-  const { context } = await send('browsingContext.create', { type: 'tab', userContext })
-  await send('browsingContext.setViewport', { context, viewport: { width: 390, height: 844 } })
-  return { name, context }
-}
-
-async function evaluate(device, expression) {
-  const result = await send('script.evaluate', { expression, target: { context: device.context }, awaitPromise: true, resultOwnership: 'none' })
-  if (result.type === 'exception') throw new Error(`${device.name}: ${result.exceptionDetails.text}`)
-  return result.result?.value
-}
-
-async function waitForText(device, text, timeout = 10000) {
-  const started = Date.now()
-  while (Date.now() - started < timeout) {
-    if (await evaluate(device, `document.body.innerText.includes(${JSON.stringify(text)})`)) return
-    await sleep(150)
-  }
-  throw new Error(`${device.name}: timed out waiting for "${text}". Page says:\n${await evaluate(device, 'document.body.innerText')}`)
-}
-
-async function click(device, label) {
-  const ok = await evaluate(device, `(() => {
-    const el = [...document.querySelectorAll('button, summary')].find((b) => b.innerText.trim().includes(${JSON.stringify(label)}) && !b.disabled)
-    if (!el) return false
-    el.click(); return true })()`)
-  if (!ok) throw new Error(`${device.name}: no enabled button "${label}"`)
-  await sleep(200)
-}
-
-async function fill(device, labelText, value) {
-  const ok = await evaluate(device, `(() => {
-    const label = [...document.querySelectorAll('label')].find((l) => l.innerText.includes(${JSON.stringify(labelText)}))
-    const el = label?.querySelector('input, textarea')
-    if (!el) return false
-    el.value = ${JSON.stringify(value)}; el.dispatchEvent(new Event('input', { bubbles: true })); return true })()`)
-  if (!ok) throw new Error(`${device.name}: no field "${labelText}"`)
-}
-
-async function shot(device, file) {
-  const { data } = await send('browsingContext.captureScreenshot', { context: device.context, origin: 'document' })
-  writeFileSync(join(shots, file), Buffer.from(data, 'base64'))
-}
+const h = createHarness('sync-ui')
+const { evaluate, waitForText, click, fill, shot, readLocal } = h
+const newDevice = (name) => h.newDevice(name)
 
 async function open(device) {
-  await send('browsingContext.navigate', { context: device.context, url: APP, wait: 'complete' })
+  await h.navigate(device, APP)
   await waitForText(device, 'Choose a Game')
 }
 
-const readLocal = async (device, key) => JSON.parse(await evaluate(device, `localStorage.getItem(${JSON.stringify(key)})`))
 // Stands in for progress played before sync was enabled.
 const seed = (device, key, value) => evaluate(device, `localStorage.setItem(${JSON.stringify(key)}, ${JSON.stringify(JSON.stringify(value))})`)
 
@@ -266,8 +157,7 @@ async function serverGoesDown(syncServer) {
   await acknowledgeRecoveryCode(solo)
   await waitForText(solo, 'Synced')
 
-  syncServer.kill()
-  await new Promise((r) => syncServer.once('exit', r))
+  await h.stop(syncServer)
   log('sync server stopped')
 
   await click(solo, 'Sync Now')
@@ -279,28 +169,23 @@ async function serverGoesDown(syncServer) {
   log('server down: "Sync unavailable · Progress is safe on this device", nothing blocked')
 }
 
-// ---- run ------------------------------------------------------------------
+// ---- run ----------------------------------------------------------------
 
 let failed = false
 try {
-  const build = spawnSync(process.execPath, ['node_modules/vite/bin/vite.js', 'build', '--outDir', join(work, 'dist'), '--emptyOutDir'], {
-    cwd: ROOT, env: { ...process.env, VITE_BRAIN_SYNC_URL: SYNC_URL }, encoding: 'utf8',
+  const dist = join(h.work, 'dist')
+  h.build(dist, { env: { VITE_BRAIN_SYNC_URL: SYNC_URL } })
+  const jsqrChunk = readdirSync(join(dist, 'assets')).find((f) => /^jsQR-.*\.js$/.test(f))
+  const syncServer = h.start('sync', process.execPath, ['server/index.js'], {
+    env: {
+      BRAIN_SYNC_DB: join(h.work, 'sync.sqlite'), BRAIN_SYNC_PORT: String(SYNC_PORT),
+      BRAIN_SYNC_REQUIRE_HTTPS: '0', BRAIN_SYNC_ALLOWED_ORIGINS: APP.slice(0, -1),
+    },
   })
-  if (build.status !== 0) throw new Error(`build failed:\n${build.stderr}`)
-  const jsqrChunk = readdirSync(join(work, 'dist', 'assets')).find((f) => /^jsQR-.*\.js$/.test(f))
-
-  const syncServer = start('sync', process.execPath, ['server/index.js'], {
-    BRAIN_SYNC_DB: join(work, 'sync.sqlite'), BRAIN_SYNC_PORT: String(SYNC_PORT),
-    BRAIN_SYNC_REQUIRE_HTTPS: '0', BRAIN_SYNC_ALLOWED_ORIGINS: APP.slice(0, -1),
-  })
-  start('preview', process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--outDir', join(work, 'dist'), '--host', '127.0.0.1', '--port', String(APP_PORT), '--strictPort'])
-  const profile = join(work, 'firefox-profile')
-  mkdirSync(profile)
-  start('firefox', FIREFOX, ['--headless', '--no-remote', '--profile', profile, '--remote-debugging-port', String(BIDI_PORT)])
-
-  await waitFor(async () => (await fetch(`${SYNC_URL}/v1/health`)).ok, 'sync server')
-  await waitFor(async () => (await fetch(APP)).ok, 'app preview')
-  await connectBidi()
+  h.preview('preview', dist, APP_PORT)
+  await h.waitFor(async () => (await fetch(`${SYNC_URL}/v1/health`)).ok, 'sync server')
+  await h.waitFor(async () => (await fetch(APP)).ok, 'app preview')
+  await h.startFirefox(BIDI_PORT)
 
   await threeDevices(jsqrChunk)
   await serverGoesDown(syncServer)
@@ -309,8 +194,6 @@ try {
   failed = true
   console.error(`\nFAILED: ${error.message}`)
 } finally {
-  if (ws) await send('session.end').catch(() => {})
-  ws?.close()
-  teardown()
+  await h.teardown()
 }
 process.exit(failed ? 1 : 0)

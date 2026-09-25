@@ -37,6 +37,11 @@ prune()
 setInterval(prune, 60 * 60 * 1000).unref()
 
 const server = createServer(app)
+// Slow or stalled clients can't hold connections open indefinitely.
+server.headersTimeout = 15_000
+server.requestTimeout = 60_000
+server.keepAliveTimeout = 5_000
+server.maxHeadersCount = 50
 server.listen(port, host, () => console.log(`brain-sync listening on ${host}:${port}`))
 
 for (const signal of ['SIGINT', 'SIGTERM']) {

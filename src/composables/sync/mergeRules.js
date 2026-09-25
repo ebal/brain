@@ -26,6 +26,25 @@ import { EMOJIMAHJONG_LEVELS } from '../../constants/emojimahjong/levels.js'
 import { WHACKAMOLE_LEVELS } from '../../constants/whackamole/levels.js'
 import { FLAGS_LEVELS } from '../../constants/flags/levels.js'
 
+// §24/§26: the definition a best was measured under, for records written
+// before bests were stamped. Every unstamped best in the wild was recorded
+// under the metric versions in force when stamping began, so they are
+// frozen here — never update this map when bumping METRIC_VERSIONS. Level
+// definitions were all version 1 then. This gives every best an effective
+// version, which keeps "newer definition wins" a strict total order (and so
+// the merge associative) even when stamped and unstamped bests mix.
+export const UNSTAMPED_METRIC_VERSIONS = Object.freeze({
+  stroop: 1, schulte: 1, nback: 1, sudoku: 1, set: 1, 'sequence-memory': 1, switchtrail: 1, memorypairs: 1,
+  marblejump: 1, mentalrotation: 1, emojimahjong: 2, numbermatch: 1, oddoneout: 1, targettap: 1, hanoi: 1,
+  lightsout: 1, whackamole: 1, flagsoftheworld: 1,
+})
+
+export function definitionDefaults(game) {
+  return { metricVersion: UNSTAMPED_METRIC_VERSIONS[game], levelVersion: game in LEVEL_GAMES_SET ? 1 : undefined }
+}
+
+const LEVEL_GAMES_SET = { hanoi: 1, lightsout: 1, emojimahjong: 1, whackamole: 1, flagsoftheworld: 1 }
+
 // Re-exported for callers that already import the rest of the rules from here.
 export { isDeviceLocalKey } from '../../constants/storageKeys.js'
 
@@ -117,4 +136,32 @@ export const LEVEL_GAMES = {
   emojimahjong: { levelCount: EMOJIMAHJONG_LEVELS.length },
   whackamole: { levelCount: WHACKAMOLE_LEVELS.length },
   flagsoftheworld: { levelCount: FLAGS_LEVELS.length },
+}
+
+// §27: which stats record a history entry counts toward as a completion,
+// or null if it doesn't count (or the game keeps no counters). Mirrors
+// each game's own `stats.completed += 1` rule exactly:
+//   level games                  <g>:history:<n>  -> <g>:stats:<n>
+//   per-scope history lists      <g>:history:<s>  -> <g>:stats:<s>
+//   shared lists (by difficulty) <g>:history      -> <g>:stats:<difficulty>
+//   Number Match counts cleared boards only; Switch Trail completed trails only.
+// Stroop, Schulte and N-Back keep no completion counters.
+const SCOPED = new Set(['hanoi', 'lightsout', 'whackamole', 'flagsoftheworld', 'memorypairs', 'oddoneout', 'targettap', 'switchtrail'])
+const SHARED = new Set(['sudoku', 'set', 'sequence-memory', 'marblejump', 'numbermatch'])
+
+export function completionScopeOf(historyKey, entry) {
+  const game = historyKey.slice(0, historyKey.indexOf(':'))
+  const scope = historyKey.slice(`${game}:history`.length) // '' or ':<scope>'
+  if (game === 'numbermatch' && entry?.boardCleared !== true) return null
+  if (game === 'switchtrail' && entry?.completed !== true) return null
+  if (SCOPED.has(game) && scope) return `${game}:stats${scope}`
+  if (game === 'emojimahjong' && /^:\d+$/.test(scope)) return `${game}:stats${scope}` // not the retired difficulty list
+  const difficulty = typeof entry?.difficulty === 'string' ? entry.difficulty : null
+  if (!difficulty) return null
+  if (SHARED.has(game) && !scope) return `${game}:stats:${difficulty}`
+  if (game === 'mentalrotation') {
+    if (!scope) return `mentalrotation:stats:${difficulty}`
+    if (scope === ':untimed') return `mentalrotation:stats:untimed:${difficulty}`
+  }
+  return null
 }

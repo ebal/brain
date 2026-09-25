@@ -4,3 +4,4 @@ dist/
 .env
 brain-sync.sqlite*
 .env.local
+backups/

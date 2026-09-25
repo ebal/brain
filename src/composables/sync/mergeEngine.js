@@ -32,7 +32,8 @@
 
 import { isGameKey, isHistoryKey } from '../../constants/storageKeys.js'
 import { stableStringify } from '../persistence/ids.js'
-import { statsRulesFor, BEST_KEY_RULES, LEVEL_GAMES, isDeviceLocalKey } from './mergeRules.js'
+import { statsRulesFor, BEST_KEY_RULES, LEVEL_GAMES, isDeviceLocalKey, definitionDefaults } from './mergeRules.js'
+import { withinLimits, isSafeKey } from './payloadLimits.js'
 
 const LEARNING_KEY = 'flagsoftheworld:learning'
 const LEARNING_RULE = { order: [['attempts', 'max']] }
@@ -75,14 +76,28 @@ export function compareByOrder(order, a, b) {
   return 0
 }
 
-export function pickBest(rule, a, b) {
+// §24/§26: a best measured under a newer metric or level definition wins —
+// the two numbers aren't comparable. A record without provenance (set
+// before bests were stamped) counts as the definition in force back then
+// (mergeRules.js definitionDefaults), so it competes normally with bests
+// on that same definition, and the comparison stays a strict total order.
+function compareDefinitions(a, b, defaults = {}) {
+  for (const field of ['metricVersion', 'levelVersion']) {
+    const x = Number.isInteger(a[field]) ? a[field] : defaults[field]
+    const y = Number.isInteger(b[field]) ? b[field] : defaults[field]
+    if (Number.isInteger(x) && Number.isInteger(y) && x !== y) return x > y ? 1 : -1
+  }
+  return 0
+}
+
+export function pickBest(rule, a, b, defaults) {
   const valid = (r) => isPlainObject(r) && (!rule.eligible || rule.eligible(r))
   const aOk = valid(a)
   const bOk = valid(b)
   if (!aOk && !bOk) return null
   if (!aOk) return b
   if (!bOk) return a
-  const c = compareByOrder(rule.order, a, b)
+  const c = compareDefinitions(a, b, defaults) || compareByOrder(rule.order, a, b)
   if (c > 0) return a
   if (c < 0) return b
   return byContent(a, b)
@@ -135,7 +150,9 @@ export function mergeGeneric(a, b) {
   if (Array.isArray(a) && Array.isArray(b)) return multisetUnion(a, b)
   if (isPlainObject(a) && isPlainObject(b)) {
     const out = {}
-    for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) out[k] = mergeGeneric(a[k], b[k])
+    for (const k of new Set([...Object.keys(a), ...Object.keys(b)])) {
+      if (isSafeKey(k)) out[k] = mergeGeneric(a[k], b[k])
+    }
     return out
   }
   return byContent(a, b)
@@ -157,11 +174,11 @@ export function mergeHistory(a, b) {
   return merged.sort((x, y) => orderItems(x, y) || String(x?.sessionId ?? '').localeCompare(String(y?.sessionId ?? '')))
 }
 
-function mergeRecords(rules, a, b) {
+function mergeRecords(rules, a, b, defaults) {
   const rest = (obj) => Object.fromEntries(Object.entries(obj).filter(([k]) => !(k in rules)))
   const out = mergeGeneric(rest(a), rest(b))
   for (const [field, rule] of Object.entries(rules)) {
-    if (field in a || field in b) out[field] = pickBest(rule, a[field], b[field])
+    if (field in a || field in b) out[field] = pickBest(rule, a[field], b[field], defaults)
   }
   return out
 }
@@ -169,6 +186,7 @@ function mergeRecords(rules, a, b) {
 function mergeLearning(a, b) {
   const out = {}
   for (const code of new Set([...Object.keys(a), ...Object.keys(b)])) {
+    if (!isSafeKey(code)) continue
     const picked = pickBest(LEARNING_RULE, a[code], b[code])
     out[code] = picked ?? mergeGeneric(a[code], b[code])
   }
@@ -181,16 +199,18 @@ function kindOf(key) {
   if (key === LEARNING_KEY) return { kind: 'learning' }
   if (key.startsWith(`${game}:stats:`)) {
     const rules = statsRulesFor(game, key.slice(`${game}:stats:`.length))
-    if (rules) return { kind: 'stats', rules }
+    if (rules) return { kind: 'stats', rules, defaults: definitionDefaults(game) }
   }
-  if (key.startsWith(`${game}:best:`) && BEST_KEY_RULES[game]) return { kind: 'best', rule: BEST_KEY_RULES[game] }
+  if (key.startsWith(`${game}:best:`) && BEST_KEY_RULES[game]) return { kind: 'best', rule: BEST_KEY_RULES[game], defaults: definitionDefaults(game) }
   return { kind: 'generic' }
 }
 
 // §45: a structurally invalid value is treated as absent — it can never
-// displace a valid one.
+// displace a valid one. That includes anything too deep/large for the
+// recursive merge, or carrying prototype-changing keys (payloadLimits.js).
 function isValid(kind, value) {
   if (value === undefined) return false
+  if (!withinLimits(value)) return false
   if (kind === 'history') return Array.isArray(value)
   if (kind === 'stats' || kind === 'learning') return isPlainObject(value)
   if (kind === 'best') return value === null || isPlainObject(value)
@@ -209,9 +229,9 @@ export function mergeKey(key, a, b) {
     case 'history':
       return mergeHistory(a, b)
     case 'stats':
-      return mergeRecords(spec.rules, a, b)
+      return mergeRecords(spec.rules, a, b, spec.defaults)
     case 'best':
-      return pickBest(spec.rule, a, b)
+      return pickBest(spec.rule, a, b, spec.defaults)
     case 'learning':
       return mergeLearning(a, b)
     default:

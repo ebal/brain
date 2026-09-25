@@ -1,3 +1,4 @@
+import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
 import { persistJSON } from '../persistence/durableWrite.js'
 
 const PREFIX = 'nback:best:'
@@ -49,6 +50,9 @@ export function useBestScores() {
       avgRT: result.avgRT,
       medianRT: result.medianRT,
       date: new Date().toISOString(),
+      // Provenance (BRAIN-SYNC-SPEC §24). No sessionId: the history entry is
+      // written by a separate call, so there's no shared session to name.
+      metricVersion: METRIC_VERSIONS.nback,
     }
 
     if (isBetter(candidate, current)) {

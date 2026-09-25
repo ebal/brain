@@ -1,6 +1,7 @@
 import { avg, median } from '../mathStats.js'
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
 import { newSessionStamp } from '../persistence/device.js'
+import { bestProvenance } from '../persistence/provenance.js'
 import { persistJSON } from '../persistence/durableWrite.js'
 
 const STATS_PREFIX = 'mentalrotation:stats:'
@@ -75,6 +76,8 @@ export function useMentalRotationStats() {
 
   // result: { mode, score, accuracy, correct, wrong, trialsCompleted, avgRT, medianRT, duration }
   function recordCompletion(difficultyKey, result) {
+    const stamp = newSessionStamp()
+    const provenance = bestProvenance('mentalrotation', stamp)
     const modeKey = result.mode || 'timed'
     const stats = getStats(difficultyKey, modeKey)
 
@@ -103,18 +106,18 @@ export function useMentalRotationStats() {
       date: new Date().toISOString(),
     }
     if (isBetterScore(scoreCandidate, stats.bestScore)) {
-      stats.bestScore = scoreCandidate
+      stats.bestScore = { ...scoreCandidate, ...provenance }
       isNewBestScore = true
     }
 
     if (!stats.bestAccuracy || result.accuracy > stats.bestAccuracy.accuracy) {
-      stats.bestAccuracy = { accuracy: result.accuracy, score: result.score, date: new Date().toISOString() }
+      stats.bestAccuracy = { accuracy: result.accuracy, score: result.score, date: new Date().toISOString(), ...provenance }
       isNewBestAccuracy = true
     }
 
     if (result.accuracy >= RT_ELIGIBILITY_ACCURACY && result.medianRT > 0) {
       if (!stats.bestMedianRT || result.medianRT < stats.bestMedianRT.medianRT) {
-        stats.bestMedianRT = { medianRT: result.medianRT, accuracy: result.accuracy, date: new Date().toISOString() }
+        stats.bestMedianRT = { medianRT: result.medianRT, accuracy: result.accuracy, date: new Date().toISOString(), ...provenance }
         isNewBestMedianRT = true
       }
     }
@@ -134,7 +137,7 @@ export function useMentalRotationStats() {
       medianRT: result.medianRT,
       duration: result.duration,
       completedAt: new Date().toISOString(),
-      ...newSessionStamp(),
+      ...stamp,
       metricVersion: METRIC_VERSIONS.mentalrotation,
       appVersion: __APP_VERSION__,
     })

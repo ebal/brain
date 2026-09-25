@@ -8,6 +8,7 @@
 import { avg, median } from '../mathStats.js'
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
 import { newSessionStamp } from '../persistence/device.js'
+import { bestProvenance } from '../persistence/provenance.js'
 import { persistJSON } from '../persistence/durableWrite.js'
 
 const STATS_PREFIX = 'targettap:stats:'
@@ -97,6 +98,8 @@ export function useTargetTapStats() {
   // targets, hits, misses, falseAlarms, correctRejections, accuracy,
   // hitRate, falseAlarmRate, avgHitRT, medianHitRT, fastestHitRT, duration }
   function recordCompletion(difficultyKey, result) {
+    const stamp = newSessionStamp()
+    const provenance = bestProvenance('targettap', stamp)
     const stats = getStats(difficultyKey)
     stats.completed += 1
 
@@ -115,17 +118,17 @@ export function useTargetTapStats() {
       date,
     }
     if (isBetterScore(scoreCandidate, stats.bestScore)) {
-      stats.bestScore = scoreCandidate
+      stats.bestScore = { ...scoreCandidate, ...provenance }
       isNewBestScore = true
     }
 
     if (!stats.bestHitRate || result.hitRate > stats.bestHitRate.hitRate) {
-      stats.bestHitRate = { hitRate: result.hitRate, date }
+      stats.bestHitRate = { hitRate: result.hitRate, date, ...provenance }
       isNewBestHitRate = true
     }
 
     if (!stats.bestFalseAlarmRate || result.falseAlarmRate < stats.bestFalseAlarmRate.falseAlarmRate) {
-      stats.bestFalseAlarmRate = { falseAlarmRate: result.falseAlarmRate, date }
+      stats.bestFalseAlarmRate = { falseAlarmRate: result.falseAlarmRate, date, ...provenance }
       isNewBestFalseAlarmRate = true
     }
 
@@ -135,7 +138,7 @@ export function useTargetTapStats() {
       result.falseAlarmRate <= RT_BEST_MAX_FALSE_ALARM_RATE &&
       (!stats.bestMedianHitRT || result.medianHitRT < stats.bestMedianHitRT.medianHitRT)
     ) {
-      stats.bestMedianHitRT = { medianHitRT: result.medianHitRT, hitRate: result.hitRate, falseAlarmRate: result.falseAlarmRate, date }
+      stats.bestMedianHitRT = { medianHitRT: result.medianHitRT, hitRate: result.hitRate, falseAlarmRate: result.falseAlarmRate, date, ...provenance }
       isNewBestMedianRT = true
     }
 
@@ -174,7 +177,7 @@ export function useTargetTapStats() {
       fastestHitRT: result.fastestHitRT,
       duration: result.duration,
       completedAt: date,
-      ...newSessionStamp(),
+      ...stamp,
       metricVersion: METRIC_VERSIONS.targettap,
       appVersion: __APP_VERSION__,
     })

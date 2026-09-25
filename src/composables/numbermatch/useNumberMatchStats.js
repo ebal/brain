@@ -1,6 +1,7 @@
 import { avg, median } from '../mathStats.js'
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
 import { newSessionStamp } from '../persistence/device.js'
+import { bestProvenance } from '../persistence/provenance.js'
 import { persistJSON } from '../persistence/durableWrite.js'
 
 const STATS_PREFIX = 'numbermatch:stats:'
@@ -75,6 +76,8 @@ export function useNumberMatchStats() {
   //           pairsRemoved, score, completionTime, moves, mistakes,
   //           addNumbersUsed, hints, undos, clean }
   function recordCompletion(difficultyKey, result) {
+    const stamp = newSessionStamp()
+    const provenance = bestProvenance('numbermatch', stamp)
     const stats = getStats(difficultyKey)
 
     if (result.cleared) stats.completed += 1
@@ -95,17 +98,17 @@ export function useNumberMatchStats() {
       date,
     }
     if (isBetterScore(scoreCandidate, stats.bestScore)) {
-      stats.bestScore = scoreCandidate
+      stats.bestScore = { ...scoreCandidate, ...provenance }
       isNewBestScore = true
     }
 
     if (result.clean && (!stats.bestCleanScore || result.score > stats.bestCleanScore.score)) {
-      stats.bestCleanScore = { score: result.score, date }
+      stats.bestCleanScore = { score: result.score, date, ...provenance }
       isNewBestCleanScore = true
     }
 
     if (result.cleared && (!stats.bestClearTime || result.completionTime < stats.bestClearTime.completionTime)) {
-      stats.bestClearTime = { completionTime: result.completionTime, score: result.score, date }
+      stats.bestClearTime = { completionTime: result.completionTime, score: result.score, date, ...provenance }
       isNewBestClearTime = true
     }
 
@@ -141,7 +144,7 @@ export function useNumberMatchStats() {
       undos: result.undos,
       clean: result.clean,
       completedAt: date,
-      ...newSessionStamp(),
+      ...stamp,
       metricVersion: METRIC_VERSIONS.numbermatch,
       appVersion: __APP_VERSION__,
     })

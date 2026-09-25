@@ -8,6 +8,7 @@
 import { WHACKAMOLE_LEVELS } from '../../constants/whackamole/levels.js'
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
 import { newSessionStamp } from '../persistence/device.js'
+import { bestProvenance } from '../persistence/provenance.js'
 import { persistJSON } from '../persistence/durableWrite.js'
 
 const STATS_PREFIX = 'whackamole:stats:'
@@ -95,6 +96,8 @@ export function useWhackAMoleStats() {
   // emptyTaps, hitRate, falseAlarmRate, avgHitRT, medianHitRT,
   // fastestHitRT, stars, duration }
   function recordCompletion(level, result) {
+    const stamp = newSessionStamp()
+    const provenance = bestProvenance('whackamole', stamp, level)
     const stats = getStats(level)
     stats.completed += 1
 
@@ -111,7 +114,7 @@ export function useWhackAMoleStats() {
 
     let isNewBest = false
     if (isBetter(candidate, stats.best)) {
-      stats.best = candidate
+      stats.best = { ...candidate, ...provenance }
       isNewBest = true
     }
 
@@ -135,7 +138,8 @@ export function useWhackAMoleStats() {
       stars: result.stars,
       duration: result.duration,
       completedAt: date,
-      ...newSessionStamp(),
+      ...stamp,
+      levelVersion: provenance.levelVersion,
       metricVersion: METRIC_VERSIONS.whackamole,
       appVersion: __APP_VERSION__,
     })

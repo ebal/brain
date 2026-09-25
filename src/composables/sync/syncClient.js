@@ -165,14 +165,24 @@ async function doSync({ transport, online = true, timeoutMs = SYNC_TIMEOUT_MS, n
     return { status: unauthorized ? 'unauthorized' : 'failed', error: next.lastError, retryInMs: unauthorized ? null : backoffDelay(next.consecutiveFailures) }
   }
 
-  const pulled = applyRemoteChanges(response.changes)
+  let pulled
+  try {
+    pulled = applyRemoteChanges(response.changes)
+  } catch (error) {
+    // Nothing is acknowledged: every queued op stays queued and retries.
+    const next = updateSyncState({ consecutiveFailures: state.consecutiveFailures + 1, lastError: String(error?.message ?? error) })
+    return { status: 'failed', error: next.lastError, retryInMs: backoffDelay(next.consecutiveFailures) }
+  }
   acknowledge(response.acknowledged, queued)
   const ackedAll = outgoing.every((op) => response.acknowledged.includes(op.operationId))
   const patch = { cursor: response.cursor, lastSyncAt: now(), consecutiveFailures: 0, lastError: null }
   // Only a completed bootstrap clears the flag — never one raised meanwhile.
   if (state.needsFullResync && ackedAll) patch.needsFullResync = false
+  // The server lost data this device had already synced (e.g. it was
+  // restored from a backup): push the whole local state again.
+  if (response.resync === true) patch.needsFullResync = true
   updateSyncState(patch)
-  return { status: 'synced', pushed: outgoing.length, pulled: pulled.length, pending: listOutbox().length }
+  return { status: 'synced', pushed: outgoing.length, pulled: pulled.length, pending: listOutbox().length, more: response.resync === true }
 }
 
 // Lives in outbox.js so the status line doesn't pull in the merge engine.

@@ -9,6 +9,7 @@ import { DATASET_VERSION } from '../../constants/flags/countries.js'
 import { updateCountryLearning } from './learning.js'
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
 import { newSessionStamp } from '../persistence/device.js'
+import { bestProvenance } from '../persistence/provenance.js'
 import { persistJSON } from '../persistence/durableWrite.js'
 import { enqueueLearningEvents } from '../sync/outbox.js'
 
@@ -119,6 +120,8 @@ export function useFlagsStats() {
   // progress entirely — only learning state is touched, since practice
   // "does not affect campaign unlocking."
   function recordCompletion(level, result) {
+    const stamp = newSessionStamp()
+    const provenance = bestProvenance('flagsoftheworld', stamp, level)
     for (const entry of result.perQuestionLog ?? []) {
       updateLearning(entry.countryCode, { correct: entry.correct, wrongCode: entry.wrongCode, timestamp: entry.timestamp })
     }
@@ -136,7 +139,7 @@ export function useFlagsStats() {
 
     let isNewBest = false
     if (isBetter(candidate, stats.best)) {
-      stats.best = candidate
+      stats.best = { ...candidate, ...provenance }
       isNewBest = true
     }
 
@@ -155,7 +158,8 @@ export function useFlagsStats() {
       stars: result.stars,
       duration: result.duration,
       completedAt: date,
-      ...newSessionStamp(),
+      ...stamp,
+      levelVersion: provenance.levelVersion,
       metricVersion: METRIC_VERSIONS.flagsoftheworld,
       appVersion: __APP_VERSION__,
     })

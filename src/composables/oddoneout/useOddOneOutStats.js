@@ -8,6 +8,7 @@
 import { avg, median } from '../mathStats.js'
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
 import { newSessionStamp } from '../persistence/device.js'
+import { bestProvenance } from '../persistence/provenance.js'
 import { persistJSON } from '../persistence/durableWrite.js'
 
 const STATS_PREFIX = 'oddoneout:stats:'
@@ -91,6 +92,8 @@ export function useOddOneOutStats() {
   // avgCorrectRT, medianCorrectRT, fastestCorrectRT, slowestCorrectRT,
   // duration, timeLimit, timedOut }
   function recordCompletion(difficultyKey, result, variantKey = 'classic') {
+    const stamp = newSessionStamp()
+    const provenance = bestProvenance('oddoneout', stamp)
     const stats = getStats(difficultyKey, variantKey)
     stats.completed += 1
 
@@ -111,17 +114,17 @@ export function useOddOneOutStats() {
       date,
     }
     if (isBetterScore(scoreCandidate, stats.bestScore)) {
-      stats.bestScore = scoreCandidate
+      stats.bestScore = { ...scoreCandidate, ...provenance }
       isNewBestScore = true
     }
 
     if (!stats.bestAccuracy || result.accuracy > stats.bestAccuracy.accuracy) {
-      stats.bestAccuracy = { accuracy: result.accuracy, date }
+      stats.bestAccuracy = { accuracy: result.accuracy, date, ...provenance }
       isNewBestAccuracy = true
     }
 
     if (!stats.bestTrialCount || result.trials > stats.bestTrialCount.trials) {
-      stats.bestTrialCount = { trials: result.trials, date }
+      stats.bestTrialCount = { trials: result.trials, date, ...provenance }
       isNewBestTrialCount = true
     }
 
@@ -130,7 +133,7 @@ export function useOddOneOutStats() {
       result.accuracy >= RT_BEST_MIN_ACCURACY &&
       (!stats.bestMedianCorrectRT || result.medianCorrectRT < stats.bestMedianCorrectRT.medianCorrectRT)
     ) {
-      stats.bestMedianCorrectRT = { medianCorrectRT: result.medianCorrectRT, accuracy: result.accuracy, date }
+      stats.bestMedianCorrectRT = { medianCorrectRT: result.medianCorrectRT, accuracy: result.accuracy, date, ...provenance }
       isNewBestMedianRT = true
     }
 
@@ -161,7 +164,7 @@ export function useOddOneOutStats() {
       slowestCorrectRT: result.slowestCorrectRT,
       duration: result.duration,
       completedAt: date,
-      ...newSessionStamp(),
+      ...stamp,
       metricVersion: METRIC_VERSIONS.oddoneout,
       appVersion: __APP_VERSION__,
     })

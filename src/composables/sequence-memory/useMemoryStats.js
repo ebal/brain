@@ -1,6 +1,7 @@
 import { avg, median } from '../mathStats.js'
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
 import { newSessionStamp } from '../persistence/device.js'
+import { bestProvenance } from '../persistence/provenance.js'
 import { persistJSON } from '../persistence/durableWrite.js'
 
 const STATS_PREFIX = 'sequence-memory:stats:'
@@ -74,6 +75,8 @@ export function useMemoryStats() {
 
   // result: { highestLevel, longestSequence, correctTaps, mistakes, accuracy, avgTapTime, medianTapTime, duration }
   function recordCompletion(difficultyKey, result) {
+    const stamp = newSessionStamp()
+    const provenance = bestProvenance('sequence-memory', stamp)
     const stats = getStats(difficultyKey)
 
     stats.completed += 1
@@ -100,7 +103,7 @@ export function useMemoryStats() {
       date: new Date().toISOString(),
     }
     if (isBetterResult(candidate, stats.bestResult)) {
-      stats.bestResult = candidate
+      stats.bestResult = { ...candidate, ...provenance }
       isNewBest = true
     }
 
@@ -118,7 +121,7 @@ export function useMemoryStats() {
       medianTapTime: result.medianTapTime,
       duration: result.duration,
       completedAt: new Date().toISOString(),
-      ...newSessionStamp(),
+      ...stamp,
       metricVersion: METRIC_VERSIONS['sequence-memory'],
       appVersion: __APP_VERSION__,
     })

@@ -1,3 +1,4 @@
+import { METRIC_VERSIONS } from '../constants/metricVersions.js'
 import { persistJSON } from './persistence/durableWrite.js'
 
 const PREFIX = 'stroop:best:'
@@ -38,6 +39,9 @@ export function useBestScores() {
         correct: result.correct,
         wrong: result.wrong,
         date: new Date().toISOString(),
+        // Provenance (BRAIN-SYNC-SPEC §24). No sessionId: the history entry is
+        // written by a separate call, so there's no shared session to name.
+        metricVersion: METRIC_VERSIONS.stroop,
       }
       write(mode, difficultyKey, entry)
       return { isNewBest: true, entry }

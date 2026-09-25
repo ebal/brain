@@ -408,6 +408,34 @@ describe('auto-sync triggers (§22)', () => {
     })
   })
 
+  it('runs a follow-up exchange by itself when the server asks for a full re-upload', async () => {
+    vi.useFakeTimers()
+    const server = createMockSyncServer()
+    let first = true
+    const transport = {
+      async sync(request) {
+        const response = await server.transport.sync(request)
+        if (first) {
+          first = false
+          return { ...response, resync: true }
+        }
+        return response
+      },
+    }
+    const env = fakeEnv(true)
+    await makeDevice().use(async () => {
+      enableSync()
+      updateStateNoResync()
+      useHanoiStats().recordCompletion(1, hanoiResult())
+      const auto = startAutoSync({ transport, win: env.win, doc: env.doc, nav: env.nav })
+      await vi.runAllTimersAsync()
+      expect(server.requests).toHaveLength(2) // launch + automatic re-upload
+      expect(server.requests[1].operations.some((op) => op.entityId === 'hanoi:progress')).toBe(true) // full state
+      expect(getSyncState().needsFullResync).toBe(false)
+      auto.stop()
+    })
+  })
+
   it('backoff is exponential, jittered and bounded', () => {
     expect(backoffDelay(0)).toBe(0)
     expect(backoffDelay(1, () => 1)).toBe(5000)

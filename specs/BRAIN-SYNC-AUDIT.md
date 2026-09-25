@@ -1,8 +1,8 @@
-# Brain Sync — Phase 0 Persistence Audit (and Phase 1–6 record)
+# Brain Sync — Phase 0 Persistence Audit (and Phase 1–7 record)
 
 Audit of Brain's local persistence as of **1.1.1** (`45a9015`), per
 [`BRAIN-SYNC-SPEC.md`](./BRAIN-SYNC-SPEC.md) §55/§65. The last section records what Phase 1
-(§56) through Phase 6 (§61) changed. Production hardening is Phase 7.
+(§56) through Phase 7 (§62) changed. §16 at the end gives the definition-of-done status.
 
 ## 1. Baseline
 
@@ -193,7 +193,7 @@ PWAs (standalone display mode). Firefox shows a permission prompt, so gate it.
 | 4 | Backend: zero-dependency Node + SQLite API — identity, device credentials, sync endpoint, cursors/revisions, idempotency, device list/rename/revoke, cloud delete; browser HTTP client | ✅ (§12) |
 | 5 | QR pairing (short-lived single-use tokens), recovery code + rotation, re-joining after revoke/disconnect/lost credential | ✅ (§13) |
 | 6 | Status line, Brain Sync screen (enable, join by QR/pairing code/recovery code, Sync Now, devices, recovery code, disconnect, cloud delete), auto-sync start-up, semantic import merge, real-browser e2e | ✅ (§14) |
-| 7 | Hardening, including the physical Airplane-Mode acceptance test (§52); best provenance (`sessionId`), `levelVersion` stamping, session-derived counters | next |
+| 7 | Security hardening, best provenance + definition versions, exact completion counts, Flags mastery from events, release-upgrade and offline-flight browser tests, backups and lossless restore, operations runbook, manual acceptance plan | ✅ (§15), except the physical tests in `BRAIN-SYNC-ACCEPTANCE.md` |
 
 Pre-existing issue found, not fixed (out of scope):
 `whackamole/useWhackAMoleGame.test.js › "a distractor tapped is a False Alarm…"` is **flaky on
@@ -675,3 +675,93 @@ the QR code load only with the Brain Sync screen, or at startup on devices that 
 - The §52 physical Airplane Mode acceptance test.
 - Best provenance, `levelVersion`, session-derived counters.
 - Server-side mastery recomputation from Flags learning events.
+
+## 15. Phase 7 — production hardening
+
+### Security fixes found by probing (§45, §53)
+
+- **A remote `__proto__` key replaced a merged object's prototype.** It didn't reach the global
+  `Object.prototype`, but the merged object was corrupted. **A 20,000-level nested payload crashed
+  the recursive merge** with a `RangeError`, which the server would return as a 500 on every
+  retry. `sync/payloadLimits.js` now caps depth (32) and size (250k nodes) and rejects
+  prototype-changing keys, using an iterative check. The merge engine treats such values as
+  absent and never assigns unsafe keys. The server acknowledges such operations but never merges
+  them, so they can't jam a device's queue.
+- **Per-identity quotas:** sessions, records, learning events and the size of one record. **A
+  sync rate limit per identity.** **HTTP timeouts:** headers, request and keep-alive. A client
+  whose merge of a response throws now reports a failed sync and keeps its queue, instead of an
+  unhandled rejection.
+
+### Data correctness items deferred from earlier phases
+
+- **Best provenance (§24/§26).** Every newly set best records the session that set it (the same
+  `sessionId` as its history entry), its `metricVersion` and, for campaign levels, its
+  `levelVersion` (`constants/levelVersions.js`, per level, all 1 today). When two bests are on
+  different definitions, the newer definition wins. Unstamped bests count as the definition in
+  force when stamping began (`UNSTAMPED_METRIC_VERSIONS`, frozen). Probing found that the first
+  version of this rule could form a **cycle** once versions mix, which would break convergence;
+  that is fixed, with a test that fails on the old rule. The heavy stress run passes.
+- **Exact completion counts (§27).** The server recounts completions from its uncapped session
+  rows for every history list a sync touches. It follows each game's own rule
+  (`completionScopeOf`: campaign levels, per-scope lists, shared lists split by difficulty, Number
+  Match cleared boards only, Switch Trail completed runs only). It joins the result in and lifts
+  `started` to at least `completed`. Two devices that each finished a level 3 times now both show
+  6. Counts never go down, and no stats record is invented. Other running totals (such as play
+  time) remain MAX lower bounds.
+- **Flags mastery from events (§20).** The server replays every device's answers for a country
+  through the game's own `updateCountryLearning`, in answer order. The result joins the learning
+  record, where the record built from more attempts wins. So a streak started on one device and
+  continued on another is recognised, and a wrong answer anywhere resets it.
+
+### Release safety, offline and multi-device, in a real browser
+
+`npm run test:e2e-release` (`tests/e2e/release-offline.mjs`):
+
+- **Release upgrade:** builds the last pre-sync release (v1.1.1, extracted with `git archive`) and
+  **plays a real Hanoi level on it**. It then deploys this build to the same origin. The installed
+  service worker keeps the old app running until **"Reload to update"** is clicked. The new app
+  then migrates in place: schema 2, the legacy session byte-for-byte plus a deterministic
+  `sessionId`, and unlocks intact.
+- **Offline:** with the app server, the sync server **and the browser's own network** gone
+  (Firefox offline emulation), the app **cold-starts from the PWA cache**. A level is played to
+  the Results screen, saved and queued. The status reads "✈ Offline · Progress saved locally ·
+  3 changes to sync". Everything survives an offline reload.
+- **Reconnect:** once the network is back, the queue drains **with no button pressed**. A second
+  device paired by recovery code receives both sessions and the correct completion count.
+
+`npm run test:e2e-sync` (Phase 6) is refactored onto the shared `tests/e2e/harness.mjs` and
+still passes.
+
+### Operations
+
+- **Backups:** `server/backup.js` (`npm run sync-backup`) takes a consistent online snapshot with
+  `VACUUM INTO` and keeps the newest N. A test restores one with credentials and data intact.
+- **Lossless restore:** writing the runbook exposed that restoring an older backup would strand
+  progress. The server's revision went back while device cursors stayed ahead, so devices neither
+  re-uploaded nor pulled again. **Fixed:** a cursor ahead of the server's revision gets the full
+  state and `resync: true`, and auto-sync immediately re-uploads the device's whole local state.
+  A test restores a server to an earlier point and checks that two devices bring everything back.
+- `deploy/BRAIN-SYNC-OPERATIONS.md`: a checklist, configuration and limits, upgrade order,
+  backup and restore drill, log retention, privacy, threat model, incidents and monitoring.
+- `deploy/brain-sync.service.example`: a sandboxed systemd unit plus a backup timer, checked with
+  `systemd-analyze verify`. **Nothing was deployed.**
+- `specs/BRAIN-SYNC-ACCEPTANCE.md`: the tests that need real hardware.
+
+## 16. Definition of done (spec §66–§71)
+
+| § | Requirement | Status |
+|---|---|---|
+| 66 | Release upgrades preserve all supported existing data | ✅ historical fixtures + migration tests; real v1.1.1 → this build upgrade in a browser |
+| 67 | Zero connectivity: cold start, play, save, unlock, bests, queue, survive close/reopen/reboot | ✅ automated in a browser except **reboot**: manual test A7 |
+| 68 | Pending changes upload, remote download, semantic merge, convergence, no better progress lost | ✅ property tests, 3-device convergence over HTTP and in a browser, automatic reconnect |
+| 69 | One Sync ID owns devices with any labels; labels never affect identity | ✅ server and UI tests |
+| 70 | New device joins by QR or recovery code, no username/password/email | ✅ in a browser (rendered QR decoded; pairing and recovery flows). **A real camera scan is manual test B** |
+| 71 | Usable without sync, no real-world identity, revocation, independent local/cloud deletion | ✅ builds without a URL have no sync at all; revoke, disconnect and delete are tested |
+
+**Still to do before calling it production-ready:** the physical tests in
+`BRAIN-SYNC-ACCEPTANCE.md`. Section A, the §52 Airplane Mode flight test on a real iPhone
+including a reboot, is **mandatory per the spec**. Section B is camera pairing on real devices.
+They need hardware and a person. Deployment is deliberately left to the maintainer.
+
+Pre-existing and unrelated: `whackamole/useWhackAMoleGame.test.js › "a distractor tapped…"` is
+still flaky on unmodified code (§8).

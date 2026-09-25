@@ -601,7 +601,18 @@ VITE_BRAIN_SYNC_URL=http://localhost:8787 npm run dev
 ```
 
 Open two different browsers (or a normal and a private window) to act as two devices.
-`npm run test:e2e-sync` runs the same flows automatically in headless Firefox.
+
+Two end-to-end suites run in headless Firefox and need no extra dependencies:
+
+- `npm run test:e2e-sync` runs these sync flows automatically.
+- `npm run test:e2e-release` checks two things: upgrading from the last pre-sync release with real
+  data on it, and a full offline session (cold start from cache, play, reload, reconnect,
+  automatic sync).
+
+Running a server for real is covered in
+[`deploy/BRAIN-SYNC-OPERATIONS.md`](./deploy/BRAIN-SYNC-OPERATIONS.md): configuration, backups
+(`npm run sync-backup`), restores, logs and incidents. The tests that need real phones are in
+[`specs/BRAIN-SYNC-ACCEPTANCE.md`](./specs/BRAIN-SYNC-ACCEPTANCE.md).
 
 ```bash
 BRAIN_SYNC_REQUIRE_HTTPS=0 npm run sync-server   # local only; listens on 127.0.0.1:8787

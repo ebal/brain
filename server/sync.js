@@ -10,17 +10,27 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { transaction } from './db.js'
 import { mergeKey, mergeData, mergeHistory, syncableData } from '../src/composables/sync/mergeEngine.js'
-import { LEVEL_GAMES } from '../src/composables/sync/mergeRules.js'
+import { LEVEL_GAMES, completionScopeOf } from '../src/composables/sync/mergeRules.js'
 import { isGameKey, isHistoryKey, isDeviceLocalKey } from '../src/constants/storageKeys.js'
 import { stableStringify } from '../src/composables/persistence/ids.js'
 import { CURRENT_SCHEMA_VERSION } from '../src/composables/persistence/migrations.js'
 import { generateRecoveryCode, normalizeRecoveryCode, isValidRecoveryCode } from '../src/composables/sync/recoveryCode.js'
+import { withinLimits } from '../src/composables/sync/payloadLimits.js'
+import { updateCountryLearning } from '../src/composables/flags/learning.js'
 
 export const LIMITS = {
   maxOperations: 5000,
   maxLabelLength: 64,
   pairingTtlMs: 5 * 60 * 1000, // §11: short-lived
   maxOpenPairingTokens: 5, // per identity; the oldest is dropped beyond this
+  // Per-identity storage quotas — orders of magnitude above real use (a
+  // heavy player writes a few thousand sessions a year), there so one
+  // credential can't fill the disk. Ops beyond a quota are rejected, not
+  // merged; nothing already stored is touched.
+  maxSessionsPerIdentity: 250000,
+  maxRecordsPerIdentity: 5000,
+  maxLearningEventsPerIdentity: 2000000,
+  maxRecordBytes: 256 * 1024,
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -251,8 +261,9 @@ function nextRevision(db, syncId) {
   return db.prepare('SELECT revision FROM identities WHERE sync_id = ?').get(syncId).revision
 }
 
-function upsertSession(db, auth, key, entry, touched) {
+function upsertSession(db, auth, key, entry, touched, quota) {
   if (!isHistoryKey(key) || !isPlainObject(entry) || typeof entry.sessionId !== 'string' || entry.sessionId.length > 64) return false
+  if (!withinLimits(entry) || JSON.stringify(entry).length > 16 * 1024) return false
   const existing = db.prepare('SELECT storage_key AS key, entry FROM sessions WHERE sync_id = ? AND session_id = ?').get(auth.syncId, entry.sessionId)
   if (existing) {
     // Same session ID seen again: keep the deterministic merge winner.
@@ -264,18 +275,21 @@ function upsertSession(db, auth, key, entry, touched) {
     touched.add(existing.key)
     return true
   }
+  if (quota && !quota.take('sessions')) return false
   db.prepare('INSERT INTO sessions (sync_id, session_id, storage_key, entry, device_id, revision, received_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
     .run(auth.syncId, entry.sessionId, key, JSON.stringify(entry), auth.deviceId, nextRevision(db, auth.syncId), now())
   touched.add(key)
   return true
 }
 
-function upsertRecord(db, auth, key, value, touched) {
+function upsertRecord(db, auth, key, value, touched, quota) {
   const row = db.prepare('SELECT value FROM records WHERE sync_id = ? AND storage_key = ?').get(auth.syncId, key)
+  if (!row && quota && !quota.take('records')) return false
   const current = row ? JSON.parse(row.value) : undefined
   const merged = mergeKey(key, current, value)
   if (merged === undefined) return false // structurally invalid and nothing valid stored (§45)
   if (current !== undefined && stableStringify(merged) === stableStringify(current)) return true
+  if (JSON.stringify(merged).length > LIMITS.maxRecordBytes) return false
   const at = now()
   db.prepare(`INSERT INTO records (sync_id, storage_key, value, revision, updated_at) VALUES (?, ?, ?, ?, ?)
               ON CONFLICT (sync_id, storage_key) DO UPDATE SET value = excluded.value, revision = excluded.revision, updated_at = excluded.updated_at`)
@@ -287,17 +301,21 @@ function upsertRecord(db, auth, key, value, touched) {
 // Applies one op. Returns false when the op is invalid (it's still
 // acknowledged, so a bad op can never jam a device's queue — it's simply
 // never merged).
-function applyOperation(db, auth, op, touched) {
+function applyOperation(db, auth, op, touched, quota) {
   const payload = op.payload
+  if (!withinLimits(payload)) return false // §45/§53: too deep, too large, or prototype-changing keys
   if (op.entityType === 'learningEvent') {
     if (!isPlainObject(payload) || payload.learningEventId !== op.entityId) return false
+    if (typeof payload.countryCode !== 'string' || payload.countryCode.length > 8 || typeof payload.correct !== 'boolean') return false
+    if (!db.prepare('SELECT 1 FROM learning_events WHERE sync_id = ? AND event_id = ?').get(auth.syncId, op.entityId) && !quota.take('learningEvents')) return false
+    touched.add(`learning:${payload.countryCode}`)
     db.prepare('INSERT OR IGNORE INTO learning_events (sync_id, event_id, payload, device_id, received_at) VALUES (?, ?, ?, ?, ?)')
       .run(auth.syncId, op.entityId, JSON.stringify(payload), auth.deviceId, now())
     return true
   }
   if (op.entityType === 'session') {
     if (!isPlainObject(payload) || !syncable(payload.key) || payload.entry?.sessionId !== op.entityId) return false
-    return upsertSession(db, auth, payload.key, payload.entry, touched)
+    return upsertSession(db, auth, payload.key, payload.entry, touched, quota)
   }
   // record
   if (!syncable(op.entityId)) return false
@@ -305,10 +323,10 @@ function applyOperation(db, auth, op, touched) {
     // A whole history list (bootstrap/full resync): stored as sessions.
     if (!Array.isArray(payload)) return false
     let ok = true
-    for (const entry of payload) ok = upsertSession(db, auth, op.entityId, entry, touched) && ok
+    for (const entry of payload) ok = upsertSession(db, auth, op.entityId, entry, touched, quota) && ok
     return ok
   }
-  return upsertRecord(db, auth, op.entityId, payload, touched)
+  return upsertRecord(db, auth, op.entityId, payload, touched, quota)
 }
 
 // §25: campaign progression is re-derived server-side whenever a level
@@ -324,6 +342,53 @@ function rederiveProgress(db, auth, touched) {
     const derived = mergeData(subset, {})[`${game}:progress`]
     if (stableStringify(derived) !== stableStringify(progress)) upsertRecord(db, auth, `${game}:progress`, derived, touched)
   }
+}
+
+// §27: exact completion counts from the full, uncapped session history.
+// Each device's own `completed` counter only knows its own games (and the
+// merge can only take the MAX of them); the server has every session, so
+// for every history list this request touched it recounts completions per
+// stats record and joins the count in. `started` is lifted to at least
+// `completed` so a completion rate can't exceed 100%. Only raises values —
+// a count can never go down through this.
+function rederiveCompletionCounts(db, auth, touched, quota) {
+  const counts = new Map()
+  for (const key of [...touched].filter(isHistoryKey)) {
+    for (const row of db.prepare('SELECT entry FROM sessions WHERE sync_id = ? AND storage_key = ?').all(auth.syncId, key)) {
+      const statsKey = completionScopeOf(key, JSON.parse(row.entry))
+      if (statsKey) counts.set(statsKey, (counts.get(statsKey) ?? 0) + 1)
+    }
+  }
+  for (const [statsKey, completed] of counts) {
+    const row = db.prepare('SELECT value FROM records WHERE sync_id = ? AND storage_key = ?').get(auth.syncId, statsKey)
+    if (!row) continue // never invent a stats record a device hasn't written
+    const stats = JSON.parse(row.value)
+    if ((stats.completed ?? 0) >= completed && (stats.started ?? 0) >= completed) continue
+    upsertRecord(db, auth, statsKey, { completed, started: completed }, touched, quota)
+  }
+}
+
+// §20: Flags mastery recomputed from the merged per-answer events of every
+// device, replaying them through the game's own updateCountryLearning in
+// answer order (answeredAt, then event ID — client clocks only order the
+// replay, they never decide what counts as better, §47). The result joins
+// the learning record like any device's copy: per country, the record
+// built from more attempts wins, so a device's pre-sync history is kept
+// until the shared event log has seen more answers than that device did.
+function rederiveLearning(db, auth, touched, quota) {
+  const countries = [...touched].filter((k) => k.startsWith('learning:')).map((k) => k.slice('learning:'.length))
+  if (countries.length === 0) return
+  const derived = {}
+  for (const code of countries) {
+    const events = db.prepare("SELECT event_id AS id, payload FROM learning_events WHERE sync_id = ? AND json_extract(payload, '$.countryCode') = ?")
+      .all(auth.syncId, code)
+      .map((row) => ({ id: row.id, ...JSON.parse(row.payload) }))
+      .sort((a, b) => (a.answeredAt ?? 0) - (b.answeredAt ?? 0) || a.id.localeCompare(b.id))
+    let state
+    for (const e of events) state = updateCountryLearning(state, { correct: e.correct, wrongCode: e.wrongCode ?? undefined, timestamp: e.answeredAt })
+    if (state) derived[code] = state
+  }
+  if (Object.keys(derived).length > 0) upsertRecord(db, auth, 'flagsoftheworld:learning', derived, touched, quota)
 }
 
 function changesSince(db, syncId, cursor) {
@@ -343,9 +408,34 @@ function changesSince(db, syncId, cursor) {
   return syncableData(changes)
 }
 
+// Remaining quota for this request, counted once up front.
+function quotaFor(db, syncId) {
+  const count = (table) => db.prepare(`SELECT COUNT(*) AS n FROM ${table} WHERE sync_id = ?`).get(syncId).n
+  const left = {
+    sessions: LIMITS.maxSessionsPerIdentity - count('sessions'),
+    records: LIMITS.maxRecordsPerIdentity - count('records'),
+    learningEvents: LIMITS.maxLearningEventsPerIdentity - count('learning_events'),
+  }
+  return {
+    take(kind) {
+      if (left[kind] <= 0) return false
+      left[kind] -= 1
+      return true
+    },
+  }
+}
+
 export function sync(db, auth, body) {
   validateRequest(body)
   return transaction(db, () => {
+    // A cursor ahead of this identity's revision means the server has lost
+    // data the device already synced (e.g. restored from an older backup).
+    // Ask the device to re-upload everything it holds, and send it the
+    // full current state rather than "changes since" a revision that no
+    // longer exists. Devices never lose progress through a restore.
+    const revisionBefore = db.prepare('SELECT revision FROM identities WHERE sync_id = ?').get(auth.syncId).revision
+    const resync = Number.isInteger(body.cursor) && body.cursor > revisionBefore
+    const quota = quotaFor(db, auth.syncId)
     const touched = new Set()
     const acknowledged = []
     const rejected = []
@@ -355,14 +445,18 @@ export function sync(db, auth, body) {
       if (!seen.get(auth.syncId, op.operationId)) {
         // §28: an operation is applied at most once per identity; a retry
         // (lost response, second tab) is acknowledged without re-applying.
-        if (!applyOperation(db, auth, op, touched)) rejected.push(op.operationId)
+        if (!applyOperation(db, auth, op, touched, quota)) rejected.push(op.operationId)
         remember.run(auth.syncId, op.operationId, auth.deviceId, now())
       }
       acknowledged.push(op.operationId)
     }
+    rederiveCompletionCounts(db, auth, touched, quota)
+    rederiveLearning(db, auth, touched, quota)
     rederiveProgress(db, auth, touched)
     const cursor = db.prepare('SELECT revision FROM identities WHERE sync_id = ?').get(auth.syncId).revision
-    return { acknowledged, rejected, changes: changesSince(db, auth.syncId, body.cursor), cursor }
+    const response = { acknowledged, rejected, changes: changesSince(db, auth.syncId, resync ? null : body.cursor), cursor }
+    if (resync) response.resync = true
+    return response
   })
 }
 

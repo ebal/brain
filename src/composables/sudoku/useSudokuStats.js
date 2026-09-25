@@ -1,6 +1,7 @@
 import { avg, median } from '../mathStats.js'
 import { METRIC_VERSIONS } from '../../constants/metricVersions.js'
 import { newSessionStamp } from '../persistence/device.js'
+import { bestProvenance } from '../persistence/provenance.js'
 import { persistJSON } from '../persistence/durableWrite.js'
 
 const STATS_PREFIX = 'sudoku:stats:'
@@ -70,6 +71,8 @@ export function useSudokuStats() {
 
   // result: { completionTime, mistakes, hints }
   function recordCompletion(difficultyKey, result) {
+    const stamp = newSessionStamp()
+    const provenance = bestProvenance('sudoku', stamp)
     const stats = getStats(difficultyKey)
     const cleanSolve = result.hints === 0
 
@@ -85,7 +88,7 @@ export function useSudokuStats() {
     if (cleanSolve) {
       const candidate = { time: result.completionTime, mistakes: result.mistakes, date: new Date().toISOString() }
       if (isBetterCleanTime(candidate, stats.bestCleanTime)) {
-        stats.bestCleanTime = candidate
+        stats.bestCleanTime = { ...candidate, ...provenance }
         isNewCleanBest = true
       }
     }
@@ -101,7 +104,7 @@ export function useSudokuStats() {
       hints: result.hints,
       cleanSolve,
       completedAt: new Date().toISOString(),
-      ...newSessionStamp(),
+      ...stamp,
       metricVersion: METRIC_VERSIONS.sudoku,
       appVersion: __APP_VERSION__,
     })

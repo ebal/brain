@@ -1,0 +1,65 @@
+# Example systemd unit for the Brain Sync API (server/). Not installed or
+# enabled by anything in this repo — copy, adjust paths/host names, then:
+#   sudo cp deploy/brain-sync.service.example /etc/systemd/system/brain-sync.service
+#   sudo systemctl daemon-reload && sudo systemctl enable --now brain-sync
+#
+# Listens on 127.0.0.1 only; a TLS-terminating reverse proxy (see
+# nginx.conf.example) is the only thing that should reach it.
+
+[Unit]
+Description=Brain Sync API
+After=network.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+StateDirectory=brain-sync
+WorkingDirectory=/opt/brain
+ExecStart=/usr/bin/node server/index.js
+Environment=BRAIN_SYNC_HOST=127.0.0.1
+Environment=BRAIN_SYNC_PORT=8787
+Environment=BRAIN_SYNC_DB=/var/lib/brain-sync/brain-sync.sqlite
+Environment=BRAIN_SYNC_TRUST_PROXY=1
+Environment=BRAIN_SYNC_ALLOWED_ORIGINS=https://brain.example.org
+Restart=on-failure
+RestartSec=5
+
+# Sandboxing: the service only needs its state directory and loopback.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=no
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target
+
+# ── Daily backup (separate files: brain-sync-backup.service + .timer) ──────
+#
+# [Unit]
+# Description=Brain Sync database backup
+# [Service]
+# Type=oneshot
+# DynamicUser=yes
+# StateDirectory=brain-sync
+# WorkingDirectory=/opt/brain
+# Environment=BRAIN_SYNC_DB=/var/lib/brain-sync/brain-sync.sqlite
+# Environment=BRAIN_SYNC_BACKUP_DIR=/var/lib/brain-sync/backups
+# Environment=BRAIN_SYNC_BACKUP_KEEP=14
+# ExecStart=/usr/bin/node server/backup.js
+#
+# [Unit]
+# Description=Daily Brain Sync backup
+# [Timer]
+# OnCalendar=daily
+# Persistent=true
+# [Install]
+# WantedBy=timers.target
