@@ -9,8 +9,8 @@ Everything a script can check is automated:
 What's left needs real hardware and a person. [`BRAIN-SYNC-SPEC.md`](./BRAIN-SYNC-SPEC.md) §52
 makes the physical flight test **mandatory before production-ready status**.
 
-Use a staging build (`VITE_BRAIN_SYNC_URL` pointing at a staging server over HTTPS) installed to the
-Home Screen. Record for each run: date, app version, device/OS/browser, pass/fail, notes.
+Use a staging deployment over HTTPS (the app with its sync server behind `/v1`, as in
+`deploy/nginx.conf.example`), installed to the Home Screen. Record for each run: date, app version, device/OS/browser, pass/fail, notes.
 
 ## A. Physical flight test (§52): mandatory
 
@@ -71,4 +71,4 @@ phone.
 | 1 | `npm run sync-backup` produces a file; a restore drill per `deploy/BRAIN-SYNC-OPERATIONS.md` §4 succeeds | ☐ |
 | 2 | Server access log contains only `METHOD /route STATUS ms` lines (no IDs, tokens, IPs) | ☐ |
 | 3 | `curl -i http://<api>/v1/profile` over plain HTTP through the proxy is refused / redirected | ☐ |
-| 4 | Requests from an origin not in `BRAIN_SYNC_ALLOWED_ORIGINS` get no CORS headers | ☐ |
+| 4 | Only if the API is on its own host: requests from an origin not in `BRAIN_SYNC_ALLOWED_ORIGINS` get no CORS headers | ☐ |

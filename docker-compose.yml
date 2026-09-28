@@ -1,6 +1,9 @@
 services:
   # Runs the Vite dev server directly against the bind-mounted source, with
   # hot-reload. No build step, ever — just `docker compose up` and edit files.
+  # Brain Sync is on by default: the app calls /v1 on whatever address it was
+  # opened on (localhost or any LAN IP), and this server forwards /v1 to the
+  # brain-sync service below. Set VITE_BRAIN_SYNC_URL=off to run without it.
   brain:
     image: node:26-trixie-slim
     container_name: brain-dev
@@ -12,29 +15,27 @@ services:
     user: "${DOCKER_UID:-1000}:${DOCKER_GID:-1000}"
     environment:
       - npm_config_cache=/app/.npm-cache
-      # Empty (default) = no sync UI. Set it in .env to try Brain Sync, e.g.
-      # VITE_BRAIN_SYNC_URL=http://192.168.1.3:8787 (see README).
       - VITE_BRAIN_SYNC_URL=${VITE_BRAIN_SYNC_URL:-}
+      - BRAIN_SYNC_PROXY_TARGET=http://brain-sync:8787
+    depends_on:
+      - brain-sync
     command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
 
-  # Brain Sync API (server/), for local development only. Opt-in:
-  #   docker compose --profile sync up
-  # Plain http on localhost, so HTTPS enforcement is off here. In production
-  # it must sit behind a TLS-terminating reverse proxy (see
-  # deploy/nginx.conf.example).
+  # Brain Sync API (server/, zero dependencies), for local development. Not
+  # published on its own port: it's only reached through the dev server's /v1
+  # proxy, which is why it can trust the proxy's forwarded client address.
+  # Plain http here, so HTTPS enforcement is off. In production it must sit
+  # behind a TLS-terminating reverse proxy (see deploy/nginx.conf.example).
   brain-sync:
-    profiles: ["sync"]
     image: node:26-trixie-slim
     container_name: brain-sync-dev
     working_dir: /app
     volumes:
       - .:/app
-    ports:
-      - "8787:8787"
     user: "${DOCKER_UID:-1000}:${DOCKER_GID:-1000}"
     environment:
       - BRAIN_SYNC_HOST=0.0.0.0
       - BRAIN_SYNC_DB=/app/brain-sync.sqlite
       - BRAIN_SYNC_REQUIRE_HTTPS=0
-      - BRAIN_SYNC_ALLOWED_ORIGINS=${BRAIN_SYNC_ALLOWED_ORIGINS:-http://localhost:5173}
+      - BRAIN_SYNC_TRUST_PROXY=1
     command: node server/index.js

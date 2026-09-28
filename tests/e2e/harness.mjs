@@ -44,8 +44,8 @@ export function createHarness(name) {
     if (result.status !== 0) throw new Error(`build failed in ${cwd}:\n${result.stderr}${result.stdout}`)
   }
 
-  function preview(label, distDir, port, { cwd = ROOT } = {}) {
-    return start(label, process.execPath, [join(cwd, 'node_modules/vite/bin/vite.js'), 'preview', '--outDir', distDir, '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd })
+  function preview(label, distDir, port, { cwd = ROOT, env = {} } = {}) {
+    return start(label, process.execPath, [join(cwd, 'node_modules/vite/bin/vite.js'), 'preview', '--outDir', distDir, '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { cwd, env })
   }
 
   async function waitFor(check, what, timeout = 20000) {

@@ -768,7 +768,7 @@ still flaky on unmodified code (§8).
 
 ## 17. After v1.2.0: fixes from manual LAN testing
 
-- **Pairing with a plain-http development server** (e.g. `http://192.168.1.3:8787`) was impossible,
+- **Pairing with a plain-http development server** (e.g. `http://192.0.2.10:8787`) was impossible,
   because pairing codes only allowed HTTPS or localhost servers. They now also accept the exact
   server the build is configured with (`VITE_BRAIN_SYNC_URL`, fixed at build time). Any other
   insecure server is still rejected.
@@ -781,3 +781,24 @@ still flaky on unmodified code (§8).
 - The About, Activity and Manage Your Data screens said "nothing is ever sent anywhere", which is
   untrue once a player enables sync. They now show sync-aware wording on synced devices and are
   unchanged otherwise.
+
+## 18. Sync on by default, on the app's own origin
+
+Sync used to need a server URL fixed at build time, plus a CORS allow-list naming the app's exact
+address. On a LAN that meant hard-coding one machine's IP. Now:
+
+- **`VITE_BRAIN_SYNC_URL` unset (the default)** means the app calls `/v1` on whatever origin
+  served the page (`sync/config.js`, `resolveSyncServerUrl`). The dev and preview servers forward
+  `/v1` to the sync server (`vite.config.js`, `BRAIN_SYNC_PROXY_TARGET`), and so does the
+  production reverse proxy (`deploy/nginx.conf.example`). It's a same-origin request, so there's
+  no CORS to configure and it works on any host or LAN address.
+- **`off`** builds without sync. An explicit URL still targets a server on another origin (with
+  CORS).
+- **`docker compose up`** always starts `brain-sync`. It isn't published on its own port: it's
+  reachable only through the dev server's proxy, which is why it can trust the forwarded client
+  address for rate limiting.
+- A pairing code from another device on the same address passes the pairing check unchanged,
+  because the configured server is now the page's own origin.
+
+`git clone` + `docker compose up` gives a working app with sync on any network, with nothing to
+configure.

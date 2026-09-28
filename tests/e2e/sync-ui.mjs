@@ -5,8 +5,9 @@
 //   npm run test:e2e-sync            (needs Firefox ≥ 129 on PATH, or FIREFOX=/path/to/firefox)
 //   KEEP=1 npm run test:e2e-sync     keep the work dir (build, logs, screenshots)
 //
-// It builds the app pointed at a throwaway local sync server, serves it with
-// `vite preview`, and runs installations as isolated browser user contexts
+// It makes the default build (sync on, calling /v1 on its own origin), serves
+// it with `vite preview`, which forwards /v1 to a throwaway local sync server
+// (no CORS, as in production), and runs installations as isolated browser user contexts
 // (separate storage, like separate devices):
 //   1. Blue (local progress) enables sync → recovery code shown once
 //   2. Red (own progress) joins with the recovery code, typo caught locally
@@ -22,6 +23,9 @@ const SYNC_PORT = Number(process.env.E2E_SYNC_PORT || 18790)
 const APP_PORT = Number(process.env.E2E_APP_PORT || 4179)
 const BIDI_PORT = Number(process.env.E2E_BIDI_PORT || 9333)
 const SYNC_URL = `http://127.0.0.1:${SYNC_PORT}`
+// The default build: the app calls /v1 on its own origin, and the preview
+// server forwards it to the sync server, exactly as in real use.
+const APP_ORIGIN = `http://127.0.0.1:${APP_PORT}`
 const APP = `http://127.0.0.1:${APP_PORT}/`
 
 const h = createHarness('sync-ui')
@@ -111,7 +115,7 @@ async function threeDevices(jsqrChunk) {
   await waitForText(blue, 'Expires in')
   await shot(blue, '03-add-device-qr.png')
   const payload = await evaluate(blue, `'BRAINPAIR1.' + window.__pairingToken + '.' +
-    btoa(${JSON.stringify(SYNC_URL)}).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '')`)
+    btoa(${JSON.stringify(APP_ORIGIN)}).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '')`)
   const scanned = await evaluate(blue, `(async () => {
     const svg = document.querySelector('svg.qr').cloneNode(true)
     svg.setAttribute('width', '400'); svg.setAttribute('height', '400')
@@ -174,17 +178,18 @@ async function serverGoesDown(syncServer) {
 let failed = false
 try {
   const dist = join(h.work, 'dist')
-  h.build(dist, { env: { VITE_BRAIN_SYNC_URL: SYNC_URL } })
+  h.build(dist) // default build: sync on, same-origin /v1
   const jsqrChunk = readdirSync(join(dist, 'assets')).find((f) => /^jsQR-.*\.js$/.test(f))
   const syncServer = h.start('sync', process.execPath, ['server/index.js'], {
     env: {
       BRAIN_SYNC_DB: join(h.work, 'sync.sqlite'), BRAIN_SYNC_PORT: String(SYNC_PORT),
-      BRAIN_SYNC_REQUIRE_HTTPS: '0', BRAIN_SYNC_ALLOWED_ORIGINS: APP.slice(0, -1),
+      BRAIN_SYNC_REQUIRE_HTTPS: '0', BRAIN_SYNC_TRUST_PROXY: '1', // no CORS list: same origin
     },
   })
-  h.preview('preview', dist, APP_PORT)
+  h.preview('preview', dist, APP_PORT, { env: { BRAIN_SYNC_PROXY_TARGET: SYNC_URL } })
   await h.waitFor(async () => (await fetch(`${SYNC_URL}/v1/health`)).ok, 'sync server')
   await h.waitFor(async () => (await fetch(APP)).ok, 'app preview')
+  await h.waitFor(async () => (await fetch(`${APP_ORIGIN}/v1/health`)).ok, 'sync API through the app\'s own origin')
   await h.startFirefox(BIDI_PORT)
 
   await threeDevices(jsqrChunk)

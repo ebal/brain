@@ -7,7 +7,8 @@ in this repository deploys anything: the files in `deploy/` are examples to adap
 
 - [ ] Node.js ≥ 22.13 on the host (for built-in `node:sqlite`). No `npm install` is needed for the
       server: it has no dependencies.
-- [ ] A dedicated host name for the API, such as `sync.example.org`, with TLS.
+- [ ] The API on the app's own host under `/v1` (the default: nothing to configure in the app, no
+      CORS). A separate host such as `sync.example.org` is optional; see §2.
 - [ ] Reverse proxy per `deploy/nginx.conf.example`:
   - TLS terminated at the proxy;
   - `X-Forwarded-Proto` and `X-Forwarded-For` set;
@@ -16,14 +17,15 @@ in this repository deploys anything: the files in `deploy/` are examples to adap
     format logs neither).
 - [ ] Service per `deploy/brain-sync.service.example`, with these settings:
   - `BRAIN_SYNC_TRUST_PROXY=1`
-  - `BRAIN_SYNC_ALLOWED_ORIGINS=https://<your app origin>`: the exact app origin, not the API's
-    own host name.
+  - `BRAIN_SYNC_ALLOWED_ORIGINS`: only if the API is on a different host than the app. Then set
+    it to the exact app origin, not the API's own host name.
   - `BRAIN_SYNC_REQUIRE_HTTPS` left at its default (on).
   - `BRAIN_SYNC_DB` pointing at persistent storage.
 - [ ] Daily backups (§4) scheduled **before** real users arrive.
-- [ ] The app built with `VITE_BRAIN_SYNC_URL=https://sync.example.org`. A build without it has no
-      sync UI at all, which is the safe default.
-- [ ] Smoke test: `curl https://sync.example.org/v1/health` returns `{"ok":true,…}`, and one full
+- [ ] The app built normally (`npm run build`). Sync is on by default and uses `/v1` on the app's
+      own host. Use `VITE_BRAIN_SYNC_URL=off` for a build without sync, or
+      `VITE_BRAIN_SYNC_URL=https://sync.example.org` for an API on its own host.
+- [ ] Smoke test: `curl https://<app host>/v1/health` returns `{"ok":true,…}`, and one full
       enable → pair → sync round trip works in a browser.
 - [ ] The manual acceptance tests in `specs/BRAIN-SYNC-ACCEPTANCE.md` are done on real devices.
 
@@ -32,9 +34,9 @@ Recommended for the **app** origin (not required by sync):
 - `Permissions-Policy: camera=(self)`, since the in-app QR scanner is the only camera user.
 - A Content-Security-Policy. The device credential is kept in `localStorage`, so the app should
   never load third-party scripts. It doesn't today. Start with `Content-Security-Policy-Report-Only`,
-  for example `default-src 'self'; connect-src 'self' https://sync.example.org;
-  img-src 'self' data:; style-src 'self' 'unsafe-inline'`. Enforce it only after checking the
-  browser console for violations.
+  for example `default-src 'self'; connect-src 'self'; img-src 'self' data:;
+  style-src 'self' 'unsafe-inline'` (add the API's origin to `connect-src` only if it's on its own
+  host). Enforce it only after checking the browser console for violations.
 
 ## 2. Configuration reference
 
@@ -42,7 +44,7 @@ Recommended for the **app** origin (not required by sync):
 |---|---|---|
 | `BRAIN_SYNC_HOST` / `BRAIN_SYNC_PORT` | `127.0.0.1` / `8787` | keep it on loopback behind the proxy |
 | `BRAIN_SYNC_DB` | `./brain-sync.sqlite` | SQLite in WAL mode; also `-wal`/`-shm` files next to it |
-| `BRAIN_SYNC_ALLOWED_ORIGINS` | none | comma-separated app origins allowed by CORS |
+| `BRAIN_SYNC_ALLOWED_ORIGINS` | none | comma-separated app origins allowed by CORS; only needed when the API is on another origin |
 | `BRAIN_SYNC_TRUST_PROXY` | off | `1` behind a proxy; otherwise forwarded headers are ignored |
 | `BRAIN_SYNC_REQUIRE_HTTPS` | on | `0` only for local development |
 | `BRAIN_SYNC_OPS_RETENTION_DAYS` | `90` | how long operation IDs are remembered for idempotency |

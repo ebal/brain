@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { describeSyncStatus, refreshSyncStatus, syncStatus, installSyncStatus } from './syncStatus.js'
-import { isSyncAvailable, SYNC_SERVER_URL } from './config.js'
+import { isSyncAvailable, SYNC_SERVER_URL, resolveSyncServerUrl } from './config.js'
 import { startSyncRuntime, stopSyncRuntime, syncNow, isSyncRuntimeRunning } from './syncRuntime.js'
 import { installOutbox, enableSync, updateSyncState } from './outbox.js'
 import { createMockSyncServer } from './mockServer.js'
@@ -56,7 +56,20 @@ describe('status wording (BRAIN-SYNC-SPEC §41)', () => {
 })
 
 describe('build configuration', () => {
-  it('has no sync server unless VITE_BRAIN_SYNC_URL is set at build time', () => {
+  it('defaults to the sync API on the page\'s own origin, whatever host or LAN address it was opened on', () => {
+    expect(resolveSyncServerUrl(undefined, 'http://10.0.0.7:5173')).toBe('http://10.0.0.7:5173')
+    expect(resolveSyncServerUrl('', 'https://brain.example.org')).toBe('https://brain.example.org')
+    expect(resolveSyncServerUrl('same-origin', 'http://localhost:5173/')).toBe('http://localhost:5173')
+  })
+
+  it('can point at another server, or be switched off entirely', () => {
+    expect(resolveSyncServerUrl('https://sync.example.org/', 'http://localhost:5173')).toBe('https://sync.example.org')
+    for (const off of ['off', 'OFF', 'false', '0', 'none', 'disabled']) expect(resolveSyncServerUrl(off, 'http://localhost:5173')).toBe('')
+  })
+
+  it('has no server without a real page origin (e.g. a file:// page or these tests)', () => {
+    expect(resolveSyncServerUrl(undefined, 'null')).toBe('')
+    expect(resolveSyncServerUrl(undefined, undefined)).toBe('')
     expect(SYNC_SERVER_URL).toBe('')
     expect(isSyncAvailable()).toBe(false)
   })

@@ -6,13 +6,22 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 const pkg = JSON.parse(readFileSync(fileURLToPath(new URL('./package.json', import.meta.url)), 'utf-8'))
 
+// The app calls the Brain Sync API on its own origin (/v1, see
+// composables/sync/config.js), so the dev and preview servers forward /v1 to
+// the sync server: whatever host or LAN IP the app is opened on, sync works
+// with no configuration and no CORS. docker-compose points this at its
+// brain-sync service; `npm run sync-server` listens on the default.
+const syncProxy = {
+  '/v1': { target: process.env.BRAIN_SYNC_PROXY_TARGET || 'http://127.0.0.1:8787', xfwd: true },
+}
+
 export default defineConfig({
-  // Never read .env files: the project's .env is docker-compose's (UID/GID,
-  // and optionally VITE_BRAIN_SYNC_URL for the dev container, which compose
-  // passes in as a real environment variable). Reading it here would bake a
-  // developer's LAN sync server into any `npm run build`. VITE_* variables
-  // from the actual environment still work.
+  // Never read .env files: the project's .env is docker-compose's (UID/GID
+  // and optional overrides it passes in as real environment variables).
+  // VITE_* variables from the actual environment still work.
   envDir: false,
+  server: { proxy: syncProxy },
+  preview: { proxy: syncProxy },
   define: {
     // Stamped into data exports (dataPortability.js) so an old export file
     // can be told apart from a newer one at a glance.

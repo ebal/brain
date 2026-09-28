@@ -132,10 +132,10 @@ describe('QR pairing (BRAIN-SYNC-SPEC §10/§11)', () => {
   })
 
   it('accepts a plain-http server only when it is exactly the one this build is configured for', () => {
-    const lan = encodePairingPayload('http://192.168.1.3:8787', 'bpt_' + 'a'.repeat(43))
+    const lan = encodePairingPayload('http://192.0.2.10:8787', 'bpt_' + 'a'.repeat(43))
     expect(decodePairingPayload(lan)).toBeNull()
-    expect(decodePairingPayload(lan, { trustedServer: 'http://192.168.1.3:8787' })).toMatchObject({ baseUrl: 'http://192.168.1.3:8787' })
-    expect(decodePairingPayload(lan, { trustedServer: 'http://192.168.1.4:8787' })).toBeNull()
+    expect(decodePairingPayload(lan, { trustedServer: 'http://192.0.2.10:8787' })).toMatchObject({ baseUrl: 'http://192.0.2.10:8787' })
+    expect(decodePairingPayload(lan, { trustedServer: 'http://192.0.2.11:8787' })).toBeNull()
   })
 
   it('rejects malformed payloads locally', () => {

@@ -496,10 +496,11 @@ count every game exactly once. See [`BRAIN-SYNC-AUDIT.md`](./specs/BRAIN-SYNC-AU
 ## Brain Sync
 
 Optional, anonymous sync that keeps your progress in step across your phone, tablet and computer.
-There's no username, email or password. Brain works exactly the same without it, and it only
-appears on a build that has been set up with a sync server (see
-[Brain Sync server](#brain-sync-server) below). A build without a sync server shows nothing
-sync-related at all.
+There's no username, email or password, and each player chooses whether to turn it on. Brain works
+exactly the same without it. It's included by default: the app talks to the sync API on its own
+address (`/v1`), which `docker compose up` provides out of the box (see
+[Brain Sync server](#brain-sync-server) below). A build made with `VITE_BRAIN_SYNC_URL=off` shows
+nothing sync-related at all.
 
 ### How it works
 
@@ -593,8 +594,8 @@ Installing on a phone also requires HTTPS, a browser rule and not something this
 No account, no ads, no analytics or tracking of any kind. Every game's history, stats and settings
 live in this browser's `localStorage`.
 
-- **Without Brain Sync** (the default, and always on builds without a sync server), nothing is ever
-  sent anywhere, online or offline. Clearing your browser data or switching devices loses
+- **Without Brain Sync** (until you turn it on, and always on a build without sync), nothing is
+  ever sent anywhere, online or offline. Clearing your browser data or switching devices loses
   everything unless you've exported it first (see [Your Data](#your-data) above).
 - **With Brain Sync**, which you turn on yourself:
   - your game progress is copied to the sync server;
@@ -610,7 +611,8 @@ live in this browser's `localStorage`.
 
 ### Requirements
 
-- [Node.js](https://nodejs.org/) 20+ and npm, for local development.
+- [Node.js](https://nodejs.org/) 20+ and npm, for local development (22.13+ to run the Brain Sync
+  server, which uses the built-in `node:sqlite`).
 - [Docker](https://www.docker.com/) and Docker Compose, optional if you'd rather not install
   Node locally.
 
@@ -628,7 +630,10 @@ npm install
 npm run dev
 ```
 
-Starts the Vite dev server (with hot reload). Open the printed local URL in your browser.
+Starts the Vite dev server (with hot reload). Open the printed local URL in your browser. For Brain
+Sync, also run `BRAIN_SYNC_REQUIRE_HTTPS=0 npm run sync-server` in a second terminal. The dev
+server forwards `/v1` to it. Without it, everything else works and sync just shows as
+unavailable.
 
 ### Production build
 
@@ -650,6 +655,11 @@ docker compose up
 
 Open `http://localhost:5173`, edit any file, the browser updates instantly. Stop with
 `docker compose stop`.
+
+It also starts the Brain Sync server (`brain-sync`, data in `./brain-sync.sqlite`), so sync works
+out of the box. Other devices on your network (e.g. a phone) can open `http://<this machine's LAN
+address>:5173` and sync too, with nothing to configure: the app always calls the sync API on the
+address it was opened on, and the dev server forwards it.
 
 This runs Vite's own dev server (unminified, dev-only tooling), not an optimized production build.
 Fine for local/personal use. `npm run build && npm run preview` (above) is the closest built-in
@@ -687,33 +697,23 @@ always agree on which progress is "better". It covers anonymous identities, QR p
 short-lived single-use tokens, and a rotatable recovery code. No username, password or email is
 involved. Brain stays fully usable without it.
 
-Sync is switched on per build by pointing the app at a server. Without
-`VITE_BRAIN_SYNC_URL` the build has no sync UI at all and never touches the network:
+By default the app calls the sync API on **its own address** (`/v1`), so there's no server URL
+or CORS to configure anywhere:
+
+- **Docker Compose:** the dev server forwards `/v1` to the `brain-sync` service.
+- **`npm run dev` / `npm run preview`:** the server forwards `/v1` to `http://127.0.0.1:8787`
+  (override with `BRAIN_SYNC_PROXY_TARGET`).
+- **Production:** the reverse proxy forwards `/v1` to the sync server (see
+  `deploy/nginx.conf.example`).
+
+`VITE_BRAIN_SYNC_URL` (set at build time, as an environment variable) changes that:
 
 ```bash
-VITE_BRAIN_SYNC_URL=https://sync.example.org npm run build
-```
-
-With it, the landing screen shows the sync status line and the **Brain Sync** screen described in
-[Brain Sync](#brain-sync) above.
-
-To try it locally, run the server and the dev app side by side:
-
-```bash
-BRAIN_SYNC_REQUIRE_HTTPS=0 BRAIN_SYNC_ALLOWED_ORIGINS=http://localhost:5173 npm run sync-server
-VITE_BRAIN_SYNC_URL=http://localhost:8787 npm run dev
+VITE_BRAIN_SYNC_URL=off npm run build                        # no sync UI, never touches the network
+VITE_BRAIN_SYNC_URL=https://sync.example.org npm run build   # sync server on another origin (needs CORS)
 ```
 
 Open two different browsers (or a normal and a private window) to act as two devices.
-
-With Docker, to test from other devices on your network (e.g. a phone), add this to `.env` (with
-your machine's LAN address) and run `docker compose --profile sync up -d`. `.env` is read by Docker
-Compose only. Vite ignores `.env` files, so these values never leak into an `npm run build`:
-
-```bash
-VITE_BRAIN_SYNC_URL=http://192.168.1.3:8787
-BRAIN_SYNC_ALLOWED_ORIGINS=http://192.168.1.3:5173
-```
 
 Plain `http://` on a LAN address isn't a browser "secure context". Enabling sync, the recovery
 code, joining by recovery code or pasted pairing code, devices, Sync Now, disconnect and delete
@@ -733,7 +733,7 @@ Running a server for real is covered in
 
 ```bash
 BRAIN_SYNC_REQUIRE_HTTPS=0 npm run sync-server   # local only; listens on 127.0.0.1:8787
-docker compose --profile sync up                 # or alongside the dev server
+docker compose up                                # or: app + sync server together
 ```
 
 Configuration is by environment variable (see `server/index.js`). In production it must run
