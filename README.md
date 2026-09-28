@@ -8,7 +8,8 @@ minutes free, open Brain and play a small game instead.
 
 It's a Vue 3 + Vite app. Also deployed at brain.ebal.gr. Pick a game from the landing screen; each
 keeps its own scoring, history and personal bests. There's also a suite-wide
-[Activity dashboard](#activity-dashboard) and full [data export/import](#your-data).
+[Activity dashboard](#activity-dashboard), full [data export/import](#your-data), and optional,
+anonymous [Brain Sync](#brain-sync) to keep your progress in step across devices.
 
 **Brain measures your performance on these specific games, over time.** It isn't a measure of
 general intelligence, brain health or clinical cognitive ability, and doesn't claim to be.
@@ -417,6 +418,8 @@ See [`Whack-a-Mole-SPEC.md`](./specs/Whack-a-Mole-SPEC.md) for the full design r
 
 ## Flags of the World
 
+![Flags of the World](docs/screenshots/brain-flags.png)
+
 A country's name appears — pick its flag from four choices. Not a reaction test: there's no
 timer, and tapping the correct flag repeatedly is genuinely how you learn 195 flags, not a
 speed contest.
@@ -439,10 +442,13 @@ speed contest.
 See [`brain-Flags-of-the-World-SPEC.md`](./specs/brain-Flags-of-the-World-SPEC.md) for the full
 design rationale.
 
-Every history entry carries a per-game `metricVersion` (currently `1` everywhere) and the app
-version that recorded it. If a score formula or measurement ever changes meaningfully, that game's
-version number gets bumped so old and new sessions are never silently averaged together. Entries
-from before this field existed are treated as version 1.
+Every history entry carries a per-game `metricVersion` (`1` for every game except Emoji Mahjong,
+which is `2` since its level-based campaign replaced the old difficulty picker) and the app version
+that recorded it. If a score formula or measurement ever changes meaningfully, that game's version
+number gets bumped so old and new sessions are never silently averaged together. Entries from
+before this field existed are treated as version 1. Personal bests record the same version (and,
+for campaign levels, a level version), so a best set under an older definition is never compared
+as if it were measured the same way.
 
 ## Activity Dashboard
 
@@ -459,8 +465,8 @@ ability, and that practice alone can raise a score.
 
 ## Your Data
 
-Reachable via **Manage Your Data**. There's no account and no backend, so this is the only way to
-back up or move your data.
+Reachable via **Manage Your Data**. Without [Brain Sync](#brain-sync), this is how you back up or
+move your data. With it, exports are still a useful offline backup.
 
 - **Export All Data (JSON)**: a complete backup of history, stats, personal bests and any
   in-progress game, across every game. Versioned so a future format change is never misread as an
@@ -468,26 +474,114 @@ back up or move your data.
 - **Export History (CSV)**: a flattened, spreadsheet-friendly view of every session across every
   game.
 - **Import**: restore from a previously exported JSON file. Shows a preview (record counts per
-  game) before writing anything, with a choice between **Merge** (combine both, keep this device's
-  stats on conflict) and **Replace** (wipe first). Rejects anything that isn't a recognizable
-  export, with a specific reason.
+  game) before writing anything, with a choice between **Merge** and **Replace**.
+  - **Merge** uses the same rules as Brain Sync: history is combined, the better personal best
+    wins whichever side it's on, and completed levels are never lost.
+  - **Replace** wipes your current data first. It's hidden while Brain Sync is on, because your
+    synced progress would come straight back.
+
+  Rejects anything that isn't a recognizable export, with a specific reason. Exports never contain
+  Brain Sync credentials.
 - **Delete All Data**: permanently erases everything stored on this device. Gated behind typing
-  `DELETE`, since it can't be undone.
+  `DELETE`, since it can't be undone. With Brain Sync on, it deletes only this device's copy: your
+  synced progress downloads again on the next sync (use **Delete Cloud Data** to remove that).
 
 Stored data carries a `schemaVersion`. When a new release changes the storage shape, the data
 already on the device is upgraded in place on first launch, one version step at a time, and never
 cleared. A copy is taken first, and if anything fails the original data stays exactly as it was.
 Older export files go through the same upgrade when imported. Every session also gets a unique
-`sessionId` and an anonymous random per-installation `deviceId`, which lay the groundwork for
-optional cross-device sync. See [`BRAIN-SYNC-AUDIT.md`](./specs/BRAIN-SYNC-AUDIT.md).
+`sessionId` and an anonymous random per-installation `deviceId`, which is what lets Brain Sync
+count every game exactly once. See [`BRAIN-SYNC-AUDIT.md`](./specs/BRAIN-SYNC-AUDIT.md).
+
+## Brain Sync
+
+Optional, anonymous sync that keeps your progress in step across your phone, tablet and computer.
+There's no username, email or password. Brain works exactly the same without it, and it only
+appears on a build that has been set up with a sync server (see
+[Brain Sync server](#brain-sync-server) below). A build without a sync server shows nothing
+sync-related at all.
+
+### How it works
+
+- **Your device always comes first.** Every result is saved on the device before anything else
+  happens. Results, unlocks and personal bests never wait for the network, and Brain plays fully
+  offline as before.
+- **Changes wait in a queue.** Each finished game is queued on the device, and the queue survives
+  closing the app and restarting the device. It's sent in the background: when the app starts,
+  when the connection comes back, when you return to the app, a couple of seconds after a game
+  ends, or when you press **Sync Now**. No iPhone-unfriendly background APIs are involved.
+- **Progress is merged, never overwritten.** Each device's progress is combined with the cloud copy
+  piece by piece, never "this device's copy wins":
+
+  | What | How it's merged |
+  |---|---|
+  | Game history | combined; every game counted once, even if it arrives twice |
+  | Personal bests | the better one wins, by that game's own rules (e.g. a reaction-time best only counts with enough accuracy) |
+  | Completed levels | combined; unlocked levels and star totals are worked out again from them |
+  | Games played | counted from the full history on the server, so two devices that each played a level 3 times show 6 |
+  | Flags learning | rebuilt from every device's answers in order, so a streak can continue across devices |
+
+  Clock times never decide which result is better, and better progress is never replaced by worse
+  or older progress.
+- **The cloud copy is the backup.** A server outage never blocks anything: the device keeps playing
+  and saving, and catches up later.
+
+What syncs: completed games, history, personal bests, level progress and Flags learning. What stays
+on each device: a game in progress (its autosave), and small UI hints such as tutorials you've
+already seen.
+
+### Using it
+
+Open **Brain Sync** from the landing screen (below the game list):
+
+1. **Enable Brain Sync** on your first device, optionally giving it a profile name and a device
+   name (e.g. "My iPhone"). Everything already on the device is kept and uploaded.
+2. **Save the recovery code** it shows, of the form `XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX`. It's shown only
+   once and isn't stored on your device or readable on the server. You need it to add a device when
+   none of your devices is at hand.
+3. **Add another device.** On a connected device, open **Add Device** to show a QR code (valid for
+   5 minutes, usable once). On the new device, open Brain Sync and choose either:
+   - **Scan QR code**, or
+   - **Paste pairing code**, which accepts either the pairing code from "Can't scan?" or your
+     recovery code, or
+   - **Use recovery code**. Typos are caught before anything is sent.
+
+   A device that already has progress keeps it: the two are merged, never "keep this or keep that".
+
+The status line on the landing screen shows where things stand:
+
+| Status | Meaning |
+|---|---|
+| Progress stored on this device · Enable Sync | sync isn't on for this device |
+| ☁ Synced | everything is up to date |
+| ☁ 3 changes waiting to sync | finished games not uploaded yet |
+| ✈ Offline · Progress saved locally | no connection. Keep playing, nothing is lost |
+| Sync unavailable · Progress is safe on this device | the server can't be reached right now |
+| Sync paused · … reconnect in Brain Sync | this device was removed or disconnected |
+
+From the Brain Sync screen you can also rename your profile and devices (names are only labels),
+remove a lost device, create a new recovery code (the old one stops working immediately), and
+choose between two ways to leave:
+
+- **Disconnect This Device** stops syncing here and keeps this device's progress.
+- **Delete Cloud Data** removes the synced copy from the server, and every device keeps its own
+  progress.
+
+> **Keep your recovery code safe.** There's no email or password behind Brain Sync. If you lose
+> every device *and* the recovery code, the cloud copy can't be recovered. Progress on a device
+> always stays on that device.
+
+For the full design, see [`BRAIN-SYNC-SPEC.md`](./specs/BRAIN-SYNC-SPEC.md) and
+[`BRAIN-SYNC-AUDIT.md`](./specs/BRAIN-SYNC-AUDIT.md).
 
 ## Offline / installable (PWA)
 
 The whole suite installs as a Home Screen app on iOS, Android and desktop, and works fully offline
-once installed. There's no network dependency for gameplay to begin with (no fonts, CDNs,
-analytics or API calls anywhere in the app), so the entire app shell gets precached by a Service
-Worker and served from cache afterward. All data (scores, history, stats, an in-progress game)
-lives in `localStorage` and works the same offline, since it was never network-backed.
+once installed. There's no network dependency for gameplay to begin with (no fonts, CDNs or
+analytics, and the only API calls are the optional Brain Sync ones), so the entire app shell gets
+precached by a Service Worker and served from cache afterward. All data (scores, history, stats, an
+in-progress game) lives in `localStorage` and works the same offline. With Brain Sync, finished
+games queue up while offline and sync once the connection is back.
 
 This only applies to a **production build** (`npm run build`, served via `npm run preview` or
 similar). `npm run dev` intentionally serves no Service Worker, so local development is unaffected.
@@ -496,10 +590,21 @@ Installing on a phone also requires HTTPS, a browser rule and not something this
 
 ## Privacy
 
-No account, no backend, no ads, no analytics or tracking of any kind. Every game's history, stats
-and settings live only in this browser's `localStorage`; nothing is ever sent anywhere, online or
-offline. Clearing your browser data or switching devices loses everything unless you've exported
-it first (see [Your Data](#your-data) above).
+No account, no ads, no analytics or tracking of any kind. Every game's history, stats and settings
+live in this browser's `localStorage`.
+
+- **Without Brain Sync** (the default, and always on builds without a sync server), nothing is ever
+  sent anywhere, online or offline. Clearing your browser data or switching devices loses
+  everything unless you've exported it first (see [Your Data](#your-data) above).
+- **With Brain Sync**, which you turn on yourself:
+  - your game progress is copied to the sync server;
+  - that copy is tied to a random anonymous ID, plus the optional profile and device names you
+    choose;
+  - no email, real name, phone number, IP-based identity or device fingerprint is involved;
+  - the server keeps only hashes of device credentials and of the recovery code;
+  - its logs record only the request type, status and timing.
+
+  You can remove a device, stop syncing, or delete the cloud copy at any time.
 
 ## Development
 
@@ -573,7 +678,7 @@ printf "DOCKER_UID=%s\nDOCKER_GID=%s\n" "$(id -u)" "$(id -g)" > .env
 
 Compose picks up `.env` automatically from then on, no need to pass anything on the command line.
 
-### Brain Sync server (optional, work in progress)
+### Brain Sync server
 
 `server/` holds the optional cross-device sync API described in
 [`BRAIN-SYNC-SPEC.md`](./specs/BRAIN-SYNC-SPEC.md). It has zero dependencies (`node:http` +
@@ -589,9 +694,8 @@ Sync is switched on per build by pointing the app at a server. Without
 VITE_BRAIN_SYNC_URL=https://sync.example.org npm run build
 ```
 
-With it, the landing screen shows a small sync status line, and a **Brain Sync** screen offers:
-Enable Sync, joining by QR code, pairing code or recovery code, Sync Now, device management, a new
-recovery code, Disconnect This Device and Delete Cloud Data.
+With it, the landing screen shows the sync status line and the **Brain Sync** screen described in
+[Brain Sync](#brain-sync) above.
 
 To try it locally, run the server and the dev app side by side:
 
@@ -646,8 +750,16 @@ seventeen each have their own subfolder (`schulte/`, `nback/`, `sudoku/`, `set/`
 all with the same shape: a
 `MainMenu`/`AboutPage`/`HistoryPage`/`GameScreen`/`ResultsScreen` set of components, a `useXGame.js`
 state machine plus a stats composable (and, for games with a resumable in-progress state, a storage
-composable), and a `difficulties.js` constants file. The Activity dashboard and Data Management are
-cross-cutting rather than per-game, so they live top-level alongside `GameChooser.vue`.
+composable), and a `difficulties.js` constants file. The Activity dashboard, Data Management and
+Brain Sync screens are cross-cutting rather than per-game, so they live top-level alongside
+`GameChooser.vue`.
+
+Brain Sync spans three places:
+- `composables/persistence/`: storage schema migrations, device and session IDs, best provenance,
+  and the single durable-write path every game saves through.
+- `composables/sync/`: the pure merge engine and its per-game rules, the offline outbox, the sync
+  client, auto-sync triggers, the API client, QR helpers and status.
+- `server/`: the zero-dependency API.
 
 `GameChooser.vue` (the landing screen) is the only one of those components `App.vue` imports
 eagerly — every game screen and every cross-cutting screen (Activity, Data Management, About) is
@@ -660,17 +772,25 @@ chunk files without needing to know they exist.
 
 ```
 brain/
-├── specs/                        # SPEC.md, <Game>-SPEC.md ... — one design doc per game
+├── specs/                        # SPEC.md, <Game>-SPEC.md ... one design doc per game,
+│                                 # plus BRAIN-SYNC-SPEC/-AUDIT/-ACCEPTANCE.md
+├── deploy/                       # nginx example, systemd unit example, sync operations runbook
 ├── docker-compose.yml, package.json, vite.config.js, vitest.config.js
 ├── public/                       # PWA icons, flags/ (195 local SVG flags)
+├── server/                       # Brain Sync API (node:http + node:sqlite) and its tests
+├── tests/
+│   ├── fixtures/storage/          # storage snapshots from every schema version (migration tests)
+│   └── e2e/                       # real-browser tests (headless Firefox over WebDriver BiDi)
 └── src/
     ├── App.vue
     ├── components/                # GameChooser, ActivityDashboard, DataManagement, AboutBrain,
+    │                               # SyncSettings, SyncStatusLine, sync/ (QR code + scanner),
     │                               # Stroop's own screens flat here, and one folder per remaining
     │                               # game (same MainMenu/AboutPage/... shape)
     ├── composables/                # mathStats, sessionModel, activityStats, dataPortability,
-    │                               # plus one folder per game
-    └── constants/                  # metricVersions, plus one folder per game
+    │                               # persistence/, sync/, plus one folder per game
+    └── constants/                  # metricVersions, levelVersions, storageKeys,
+                                    # plus one folder per game
 ```
 
 Each game's own `*-SPEC.md` (linked from its section above) has the full design rationale: rules,
@@ -682,12 +802,27 @@ difficulty tuning, scoring formulas, and storage shape.
 npm test
 ```
 
-Runs the automated test suite ([Vitest](https://vitest.dev/)): deterministic unit tests for the
-actual game math and generation logic across all eighteen games (trial/board/sequence generation,
-validators, difficulty classification, scoring, statistics), plus the shared session model and
-Activity dashboard logic. No component/DOM testing yet, everything covered so far is plain JS
-logic, testable without mounting a Vue component. Each tested module has a co-located `*.test.js`
-file next to it.
+Runs the automated test suite ([Vitest](https://vitest.dev/)). Each tested module has a
+co-located `*.test.js` file next to it. It covers:
+
+- deterministic unit tests for the actual game math and generation logic across all eighteen games
+  (trial/board/sequence generation, validators, difficulty classification, scoring, statistics),
+  plus the shared session model and Activity dashboard logic;
+- storage migrations against the snapshots in `tests/fixtures/storage/`;
+- the sync merge engine, including property tests that it gives the same result in any order and
+  a check of every merge rule against the games' own save code;
+- the outbox, and the sync server over real HTTP (in `server/`).
+
+Two opt-in suites run the real app in headless Firefox. They need Firefox installed, but no extra
+dependencies:
+
+```bash
+npm run test:e2e-sync      # Brain Sync UI: enable, recovery code, QR/pairing, three devices
+npm run test:e2e-release   # upgrade from the last pre-sync release, offline play and reconnect
+```
+
+The tests that need real phones and hardware are listed in
+[`BRAIN-SYNC-ACCEPTANCE.md`](./specs/BRAIN-SYNC-ACCEPTANCE.md).
 
 ## License
 

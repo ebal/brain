@@ -22,10 +22,17 @@
       improvement.
     </p>
 
-    <p class="intro">
+    <p v-if="!syncEnabled" class="intro">
       No account, no backend, no analytics, no tracking. Every game's history and every setting
       lives only in this browser's local storage — nothing is ever sent anywhere. You can export
       or delete all of it at any time from Manage Your Data.
+    </p>
+    <p v-else class="intro">
+      No username, email or password, no analytics, no tracking. Every game's history and every
+      setting lives in this browser's local storage. You turned on Brain Sync, so your game
+      progress is also copied, anonymously, to your Brain Sync server to keep your devices in step.
+      You can export or delete your data from Manage Your Data, and stop syncing or delete the
+      cloud copy from Brain Sync.
     </p>
 
     <p class="author">Made by Evaggelos Balaskas</p>
@@ -35,7 +42,11 @@
 </template>
 
 <script setup>
+import { isSyncEnabled } from '../composables/sync/outbox.js'
+
 defineEmits(['menu'])
+
+const syncEnabled = isSyncEnabled()
 </script>
 
 <style scoped>

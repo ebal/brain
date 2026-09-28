@@ -765,3 +765,19 @@ They need hardware and a person. Deployment is deliberately left to the maintain
 
 Pre-existing and unrelated: `whackamole/useWhackAMoleGame.test.js › "a distractor tapped…"` is
 still flaky on unmodified code (§8).
+
+## 17. After v1.2.0: fixes from manual LAN testing
+
+- **Pairing with a plain-http development server** (e.g. `http://192.168.1.3:8787`) was impossible,
+  because pairing codes only allowed HTTPS or localhost servers. They now also accept the exact
+  server the build is configured with (`VITE_BRAIN_SYNC_URL`, fixed at build time). Any other
+  insecure server is still rejected.
+- **A recovery code pasted into "Paste pairing code"** was rejected in the browser without ever
+  reaching the server. The box now accepts either kind of code, and the error messages name both
+  formats, the 5-minute pairing expiry, and "only the newest recovery code works".
+- **Vite no longer reads `.env` files** (`envDir: false`). The repo's `.env` belongs to
+  docker-compose. With `VITE_BRAIN_SYNC_URL` in it for LAN testing, every `npm run build` would
+  otherwise have shipped that LAN server. Real environment variables still work.
+- The About, Activity and Manage Your Data screens said "nothing is ever sent anywhere", which is
+  untrue once a player enables sync. They now show sync-aware wording on synced devices and are
+  unchanged otherwise.

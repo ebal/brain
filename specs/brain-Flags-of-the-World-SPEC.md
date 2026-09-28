@@ -240,6 +240,8 @@ Version the dataset conceptually (`flagsDatasetVersion: 1`) because names, desig
 ## 24. Persistence
 Persist highest unlocked level, stars/bests per level, per-country learning state, weak/confusion history, last completed level, and dataset version using Brain's existing persistence architecture.
 
+With the optional Brain Sync ([`BRAIN-SYNC-SPEC.md`](./BRAIN-SYNC-SPEC.md) §20), and only while the player has it enabled, each answer is also recorded as a learning event with its own ID and queued for sync. The server replays every device's events in answer order through the same `updateCountryLearning` logic, so a streak started on one device and continued on another is recognised. Gameplay and local persistence are unchanged, and the game itself still needs no backend.
+
 If backgrounded mid-level: pause timer, hide choices, preserve completed questions, and do not mark the unanswered question wrong. Resume safely with the same country (candidate order may be restored or regenerated deterministically).
 
 ## 25. Architecture

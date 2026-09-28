@@ -1,9 +1,13 @@
 <template>
   <div class="data-management">
     <h1>Your Data</h1>
-    <p class="intro">
+    <p v-if="!syncEnabled" class="intro">
       Everything below reads and writes only your own device's local storage — nothing here ever
       touches a network.
+    </p>
+    <p v-else class="intro">
+      Everything below reads and writes your own device's local storage. Brain Sync is on, so
+      changes made here, such as an import, also sync to your other devices.
     </p>
 
     <section class="card">

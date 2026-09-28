@@ -48,9 +48,14 @@
 
     <section class="card about-data">
       <h2>About This Data</h2>
-      <p>
+      <p v-if="!syncEnabled">
         No account. No backend. No analytics. No tracking. Your game history and performance data
         stay on this device — nothing is ever sent anywhere.
+      </p>
+      <p v-else>
+        No username, email or password. No analytics. No tracking. Your game history and
+        performance data live on this device and, because Brain Sync is on, are also copied
+        anonymously to your Brain Sync server to keep your devices in step.
       </p>
       <p>
         Results are best read as your performance on these specific tasks over time, not a general
@@ -67,8 +72,11 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { getActivityDashboardData } from '../composables/activityStats.js'
+import { isSyncEnabled } from '../composables/sync/outbox.js'
 
 defineEmits(['menu'])
+
+const syncEnabled = isSyncEnabled()
 
 const ranges = [
   { key: '7d', label: '7 Days' },
