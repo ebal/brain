@@ -4,7 +4,7 @@
 //
 //   npm run test:e2e-release     (needs Firefox ≥ 129; KEEP=1 keeps logs/screenshots)
 //
-// 1. Release upgrade: the last pre-sync release (v1.1.1, 45a9015) is built
+// 1. Release upgrade: the last pre-sync release (v1.1.1) is built
 //    and served; a real game is played on it. Then THIS build is deployed
 //    to the same origin. The installed service worker keeps serving the old
 //    app until the player accepts the update banner, and the new app must
@@ -24,7 +24,11 @@ import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { createHarness, playHanoiLevel1, log, ROOT } from './harness.mjs'
 
-const OLD_RELEASE = process.env.E2E_OLD_RELEASE || '45a9015' // v1.1.1, storage schema v1
+// The last release before sync: the parent of the commit that introduced
+// storage migrations (v1.1.1, storage schema v1). Found from history rather
+// than by a hard-coded commit ID, so it survives history rewrites.
+const firstMigrationsCommit = () => execSync('git rev-list --reverse HEAD -- src/composables/persistence/migrations.js', { cwd: ROOT, encoding: 'utf8' }).split('\n')[0]
+const OLD_RELEASE = process.env.E2E_OLD_RELEASE || `${firstMigrationsCommit()}^`
 const SYNC_PORT = Number(process.env.E2E_SYNC_PORT || 18791)
 const APP_PORT = Number(process.env.E2E_APP_PORT || 4181)
 const BIDI_PORT = Number(process.env.E2E_BIDI_PORT || 9335)

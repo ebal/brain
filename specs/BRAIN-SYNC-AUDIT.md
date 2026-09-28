@@ -1,6 +1,6 @@
 # Brain Sync — Phase 0 Persistence Audit (and Phase 1–7 record)
 
-Audit of Brain's local persistence as of **1.1.1** (`45a9015`), per
+Audit of Brain's local persistence as of **1.1.1**, per
 [`BRAIN-SYNC-SPEC.md`](./BRAIN-SYNC-SPEC.md) §55/§65. The last section records what Phase 1
 (§56) through Phase 7 (§62) changed. §16 at the end gives the definition-of-done status.
 
@@ -53,9 +53,9 @@ another difficulty's history from the shared keys.
 Never read by any UI. Still exported (where under a game prefix), and deleted by Delete All Data:
 
 - `emojimahjong:history`, `emojimahjong:stats:<easy…master>`: the difficulty-based Emoji Mahjong
-  (replaced in `a978306`).
-- `nback:history:1`, `nback:best:1`: the removed 1-back (`1f1e654`).
-- `benchmark:*`: Benchmark Mode (`6373d5f`). Not exported, only deleted.
+  (replaced by the 50-level campaign).
+- `nback:history:1`, `nback:best:1`: the removed 1-back.
+- `benchmark:*`: the removed Benchmark Mode. Not exported, only deleted.
 
 ### 2.4 Export format
 

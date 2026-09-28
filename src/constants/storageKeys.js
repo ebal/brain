@@ -6,7 +6,7 @@
 export const GAME_PREFIXES = ['stroop:', 'schulte:', 'nback:', 'sudoku:', 'set:', 'sequence-memory:', 'switchtrail:', 'memorypairs:', 'marblejump:', 'mentalrotation:', 'emojimahjong:', 'numbermatch:', 'oddoneout:', 'targettap:', 'hanoi:', 'lightsout:', 'whackamole:', 'flagsoftheworld:']
 
 // Prefixes belonging to a feature that has since been removed from the app
-// entirely (Benchmark Mode, removed in 6373d5f) — never added to
+// entirely (Benchmark Mode, since removed) — never added to
 // GAME_PREFIXES, so Export/Import/describeExport still only ever see
 // current games' data. Kept here purely so Delete All Data and the storage-
 // footprint estimate can still find and clean up old keys a returning user's
